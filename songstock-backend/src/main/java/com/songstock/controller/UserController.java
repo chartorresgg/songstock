@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/users") // SIN /api/v1 porque ya está en context-path
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class UserController {
 
@@ -29,14 +29,14 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success("Usuario encontrado", user));
     }
 
     @GetMapping("/username/{username}")
-    @PreAuthorize("hasRole('ADMIN') or #username == authentication.principal.username")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> getUserByUsername(@PathVariable String username) {
         User user = userService.getUserByUsername(username);
         return ResponseEntity.ok(ApiResponse.success("Usuario encontrado", user));
@@ -64,7 +64,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UserRegistrationDTO userDTO) {
