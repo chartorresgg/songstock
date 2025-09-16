@@ -1,0 +1,43 @@
+# Configuración de la aplicación
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: vinyl-store-api
+  
+  # Configuración de base de datos
+  datasource:
+    url: jdbc:mysql://localhost:3306/vinyl_store?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: yourpassword
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # Configuración de JPA/Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: validate # Usar 'create' solo en desarrollo, 'validate' en producción
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+        
+  # Configuración de Jackson para JSON
+  jackson:
+    default-property-inclusion: NON_NULL
+    serialization:
+      write-dates-as-timestamps: false
+
+# Configuración de JWT
+jwt:
+  secret: mySecretKey123456789012345678901234567890
+  expiration: 86400000 # 24 horas
+
+# Configuración de logging
+logging:
+  level:
+    com.vinylstore: DEBUG
+    org.springframework.security: DEBUG

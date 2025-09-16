@@ -1,4 +1,11 @@
-# 🎶 SongStock – Marketplace de Vinilos y Música Digital  
+# 🎵 SongStock - Sistema de Gestión de Tienda de Discos
+
+![Java](https://img.shields.io/badge/Java-17-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-green)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+## 📋 Descripción
 
 SongStock es una plataforma ágil para coleccionistas de vinilos y amantes de la música digital.  
 Permite a proveedores gestionar catálogos, inventarios y ventas, mientras compradores pueden explorar, comprar y recibir notificaciones.  
@@ -11,43 +18,214 @@ Permite a proveedores gestionar catálogos, inventarios y ventas, mientras compr
 - Carrito de compras y pedidos
 - Notificaciones y reportería para proveedores
 
-## 🛠️ Tecnologías
+
+## 🏗️ Arquitectura
+
+```
+┌─────────────────┐
+│   Controllers   │ ← API REST Endpoints
+├─────────────────┤
+│    Services     │ ← Lógica de Negocio
+├─────────────────┤
+│  Repositories   │ ← Acceso a Datos (JPA)
+├─────────────────┤
+│   Entities      │ ← Modelo de Datos
+└─────────────────┘
+```
+
+## 🛠️ Stack Tecnológico
+
+- **Backend:** Java 17, Spring Boot 3.2, Spring Security
 - **Frontend**: React / Tailwind CSS
-- **Backend**: Java
-- **Base de datos**: MySQL
-- **Testing**: Jest / Mocha
-
-## 📂 Estructura del repositorio
-Consulta la [documentación de arquitectura](docs/architecture.md).
-
-## 🔧 Configuración local
-1. Clonar el repositorio:
-   ```bash
-   git clone https://github.com/tuusuario/songstock.git
-
-2. Entrar al proyecto:
-cd songstock
-
-3. Configurar variables de entorno:
-cp .env.example .env
-
-4. Instalar dependencias:
-cd backend && npm install
-cd ../frontend && npm install
-
-5. Correr proyecto:
-npm run dev
+- **Base de Datos:** MySQL 8.0 con JPA/Hibernate
+- **Autenticación:** JWT (JSON Web Tokens)
+- **Documentación:** OpenAPI/Swagger
+- **Testing:** JUnit 5, Testcontainers
+- **Build:** Maven 3.8+
 
 
-🤝 Contribución
+## 🚀 Instalación y Configuración
 
-Usa CONTRIBUTING.md para guías de estilo y flujo de trabajo.
+### Prerrequisitos
 
-Abre un Issue con la plantilla correspondiente.
+- ☑️ Java 17+
+- ☑️ Maven 3.8+
+- ☑️ MySQL 8.0+
+- ☑️ Git
 
-Haz Pull Request contra main.
+### 1. Clonar el Repositorio
 
-📅 Gestión Ágil
+```bash
+git clone https://github.com/tu-usuario/vinyl-store-backend.git
+cd vinyl-store-backend
+```
 
-El desarrollo sigue Sprints de 3 semanas con un Product Backlog definido en docs/sprints.md
-.
+### 2. Configurar Base de Datos
+
+```sql
+-- Conectar a MySQL
+mysql -u root -p
+
+-- Crear base de datos
+CREATE DATABASE vinyl_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Crear usuario (opcional)
+CREATE USER 'vinylstore_user'@'localhost' IDENTIFIED BY 'secure_password';
+GRANT ALL PRIVILEGES ON vinyl_store.* TO 'vinylstore_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 3. Ejecutar Schema
+
+```bash
+mysql -u root -p vinyl_store < database/schema.sql
+```
+
+### 4. Configurar Variables de Entorno
+
+```bash
+# Copiar archivo de configuración
+cp src/main/resources/application-example.yml src/main/resources/application-local.yml
+
+# Editar configuración local
+vim src/main/resources/application-local.yml
+```
+
+### 5. Compilar y Ejecutar
+
+```bash
+# Compilar proyecto
+mvn clean compile
+
+# Ejecutar tests
+mvn test
+
+# Ejecutar aplicación
+mvn spring-boot:run
+```
+
+## 🔧 Configuración
+
+### Variables de Entorno
+
+| Variable | Descripción | Valor por Defecto |
+|----------|-------------|-------------------|
+| `DB_HOST` | Host de MySQL | `localhost` |
+| `DB_PORT` | Puerto de MySQL | `3306` |
+| `DB_NAME` | Nombre de BD | `vinyl_store` |
+| `DB_USERNAME` | Usuario de BD | `root` |
+| `DB_PASSWORD` | Password de BD | - |
+| `JWT_SECRET` | Clave secreta JWT | - |
+| `JWT_EXPIRATION` | Expiración JWT (ms) | `86400000` |
+
+## 📡 API Endpoints
+
+### Autenticación
+- `POST /api/v1/auth/login` - Iniciar sesión
+- `POST /api/v1/auth/register-provider` - Registrar proveedor
+- `POST /api/v1/auth/logout` - Cerrar sesión
+
+### Usuarios
+- `GET /api/v1/users` - Listar usuarios
+- `POST /api/v1/users` - Crear usuario
+- `PUT /api/v1/users/{id}` - Actualizar usuario
+- `DELETE /api/v1/users/{id}` - Eliminar usuario
+
+### Proveedores
+- `GET /api/v1/providers` - Listar proveedores
+- `PATCH /api/v1/providers/{id}/verify` - Verificar proveedor
+- `PATCH /api/v1/providers/{id}/reject` - Rechazar proveedor
+
+## 🧪 Testing
+
+```bash
+# Ejecutar todos los tests
+mvn test
+
+# Ejecutar tests específicos
+mvn test -Dtest=UserServiceTest
+
+# Ejecutar con coverage
+mvn test jacoco:report
+```
+
+## 📊 Base de Datos
+
+### Entidades Principales
+
+- **User** - Usuarios del sistema (admin, provider, customer)
+- **Provider** - Información adicional de proveedores
+- **Category** - Categorías de productos
+- **Genre** - Géneros musicales
+- **Artist** - Artistas
+- **Album** - Álbumes
+- **Product** - Productos (vinilos físicos/digitales)
+
+### Diagrama ER
+
+Ver documentación completa en `/docs/database/`
+
+## 🔐 Seguridad
+
+- Autenticación basada en JWT
+- Encriptación de passwords con BCrypt
+- Roles y permisos por endpoint
+- CORS configurado
+- Validación de entrada de datos
+
+## 🚀 Deployment
+
+### Docker
+
+```bash
+# Construir imagen
+docker build -t vinyl-store-api .
+
+# Ejecutar con Docker Compose
+docker-compose up
+```
+
+### Producción
+
+```bash
+# Compilar para producción
+mvn clean package -Pprod
+
+# Ejecutar JAR
+java -jar target/vinyl-store-backend-1.0.0.jar --spring.profiles.active=prod
+```
+
+## 🤝 Contribución
+
+1. Fork el proyecto
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abrir Pull Request
+
+## 📋 Roadmap
+
+- [x] Sistema de autenticación y autorización
+- [x] Gestión de usuarios y proveedores
+- [x] Catálogo de categorías y géneros
+- [ ] Gestión completa de productos
+- [ ] Sistema de carrito de compras
+- [ ] Procesamiento de pedidos
+- [ ] Dashboard de administración
+- [ ] Reportes y analytics
+
+## 📄 Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para detalles.
+
+## 👥 Autores
+
+- **Tu Nombre** - *Desarrollo inicial* - [TuGitHub](https://github.com/tu-usuario)
+
+## 🆘 Soporte
+
+Para soporte, envía un email a soporte@vinylstore.com o crea un issue en GitHub.
+
+---
+
+**Hecho con ❤️ para la comunidad musical** 🎵
