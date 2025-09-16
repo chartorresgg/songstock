@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder; // AGREGAR ESTE IMPORT
 import org.springframework.web.bind.annotation.*;
+import com.songstock.entity.ProviderInvitation;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -149,4 +150,11 @@ public class AuthController {
         }
         return null;
     }
+
+    @GetMapping("/invitation/{token}")
+    public ResponseEntity<ApiResponse<ProviderInvitation>> getInvitationInfo(@PathVariable String token) {
+        ProviderInvitation invitation = providerService.getInvitationByToken(token);
+        return ResponseEntity.ok(ApiResponse.success("Información de invitación obtenida", invitation));
+    }
+
 }

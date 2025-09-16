@@ -69,17 +69,13 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**").permitAll() // Rutas de autenticación
-                        .requestMatchers("/test/**").permitAll() // Rutas de prueba
-                        .requestMatchers("/public/**").permitAll() // Rutas públicas
-                        .requestMatchers("/actuator/**").permitAll() // Actuator
-                        .requestMatchers("/").permitAll() // Root
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/providers/**").hasAnyRole("ADMIN", "PROVIDER")
+        http
+                .cors().and()
+                .csrf().disable()
+                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.stereotype.Component;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+@Component
 public class AuthTokenFilter extends OncePerRequestFilter {
 
     @Autowired
@@ -29,10 +31,16 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+
+        logger.debug("🔍 AuthTokenFilter ejecutándose para: {}", request.getRequestURI());
+
         try {
             String jwt = parseJwt(request);
+            logger.debug("🔑 JWT extraído: {}", jwt != null ? "Presente" : "Ausente");
+
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                logger.debug("✅ JWT válido para usuario: {}", username);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -40,9 +48,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                logger.debug("❌ JWT inválido o ausente");
             }
         } catch (Exception e) {
-            logger.error("No se puede establecer autenticación de usuario: {}", e.getMessage());
+            logger.error("❌ Error en autenticación: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
@@ -57,4 +67,5 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         return null;
     }
+
 }

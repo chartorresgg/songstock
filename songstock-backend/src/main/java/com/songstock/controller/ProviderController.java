@@ -10,6 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.songstock.dto.ProviderInvitationDTO;
+import com.songstock.dto.CompleteRegistrationDTO;
+import com.songstock.dto.AuthResponseDTO;
+import com.songstock.entity.ProviderInvitation;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -97,5 +102,60 @@ public class ProviderController {
     public ResponseEntity<ApiResponse<String>> deleteProvider(@PathVariable Long id) {
         providerService.deleteProvider(id);
         return ResponseEntity.ok(ApiResponse.success("Proveedor eliminado exitosamente"));
+    }
+
+    @PostMapping("/register-by-admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Provider>> registerProviderByAdmin(
+            @Valid @RequestBody ProviderRegistrationDTO providerDTO) {
+
+        Provider createdProvider = providerService.registerProviderByAdmin(providerDTO);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Proveedor registrado por administrador exitosamente",
+                createdProvider));
+    }
+
+    @PostMapping("/invite-provider")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> inviteProvider(
+            @Valid @RequestBody ProviderInvitationDTO invitationDTO) {
+
+        providerService.inviteProvider(invitationDTO);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Invitación enviada al proveedor exitosamente"));
+    }
+
+    @GetMapping("/invitations")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<ProviderInvitation>>> getProviderInvitations() {
+        List<ProviderInvitation> invitations = providerService.getProviderInvitations();
+        return ResponseEntity.ok(ApiResponse.success(
+                "Invitaciones obtenidas exitosamente",
+                invitations));
+    }
+
+    @PostMapping("/complete-registration/{token}")
+    public ResponseEntity<ApiResponse<AuthResponseDTO>> completeRegistration(
+            @PathVariable String token,
+            @Valid @RequestBody CompleteRegistrationDTO registrationDTO,
+            HttpServletRequest request) {
+
+        AuthResponseDTO authResponse = providerService.completeRegistration(token, registrationDTO, request);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Registro completado exitosamente",
+                authResponse));
+    }
+
+    @DeleteMapping("/invitations/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> cancelInvitation(@PathVariable Long id) {
+        providerService.cancelInvitation(id);
+        return ResponseEntity.ok(ApiResponse.success("Invitación cancelada exitosamente"));
+    }
+
+    @GetMapping("/invitations/{token}")
+    public ResponseEntity<ApiResponse<ProviderInvitation>> getInvitationByToken(@PathVariable String token) {
+        ProviderInvitation invitation = providerService.getInvitationByToken(token);
+        return ResponseEntity.ok(ApiResponse.success("Invitación encontrada", invitation));
     }
 }
