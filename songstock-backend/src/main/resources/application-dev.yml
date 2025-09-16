@@ -1,0 +1,11 @@
+# src/main/resources/application-dev.yml
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    root: INFO
+    com.vinylstore: DEBUG

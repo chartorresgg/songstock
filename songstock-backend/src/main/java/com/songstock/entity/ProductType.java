@@ -1,5 +1,5 @@
 package com.songstock.entity;
 
-public class ProductType {
-
+public enum ProductType {
+    PHYSICAL, DIGITAL
 }

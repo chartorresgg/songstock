@@ -5,21 +5,20 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "categories")
-public class Category {
+@Table(name = "genres")
+public class Genre {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true, nullable = false, length = 50)
-    @NotBlank(message = "Nombre de la categoría es requerido")
+    @NotBlank(message = "Nombre del género es requerido")
     @Size(max = 50, message = "Nombre no puede exceder 50 caracteres")
     private String name;
 
@@ -33,19 +32,15 @@ public class Category {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "genre", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Product> products;
+    private List<Album> albums;
 
     // Constructors
-    public Category() {
+    public Genre() {
     }
 
-    public Category(String name, String description) {
+    public Genre(String name, String description) {
         this.name = name;
         this.description = description;
     }
@@ -91,19 +86,11 @@ public class Category {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public List<Album> getAlbums() {
+        return albums;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public List<Product> getProducts() {
-        return products;
-    }
-
-    public void setProducts(List<Product> products) {
-        this.products = products;
+    public void setAlbums(List<Album> albums) {
+        this.albums = albums;
     }
 }

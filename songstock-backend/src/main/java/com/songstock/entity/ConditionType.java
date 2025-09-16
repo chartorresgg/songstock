@@ -1,5 +1,5 @@
 package com.songstock.entity;
 
-public class ConditionType {
-
+public enum ConditionType {
+    NEW, LIKE_NEW, VERY_GOOD, GOOD, FAIR, POOR
 }

@@ -12,10 +12,10 @@
 
     <!-- CORREGIDO: Información del proyecto -->
     <groupId>com.songstock</groupId>
-    <artifactId>vinyl-store-backend</artifactId>
+    <artifactId>songstock-backend</artifactId>
     <version>1.0.0</version>
-    <name>vinyl-store-backend</name>
-    <description>Vinyl Store API - Sistema de gestión de tienda de discos de vinilo</description>
+    <name>songstock-backend</name>
+    <description>Song Stock API - Sistema de gestión de tienda de discos de vinilo</description>
     <packaging>jar</packaging>
 
     <properties>
@@ -50,95 +50,185 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
 
         <!-- OPCIONAL: Redis session (solo si vas a usar Redis) -->
         <!-- <dependency>
-        			<groupId>org.springframework.session</groupId>
-        			<artifactId>spring-session-data-redis</artifactId>
-        		</dependency> -->
+                                        			<groupId>org.springframework.session</groupId>
+                                        			<artifactId>spring-session-data-redis</artifactId>
+                                        		</dependency> -->
 
         <!-- AGREGADO: JWT Dependencies (CRÍTICO para autenticación) -->
-            <dependency><groupId>io.jsonwebtoken
-            </groupId><artifactId>jjwt-api
-            </artifactId><version>${jjwt.version}
+            <dependency>
+                <groupId>
+            io.jsonwebtoken
+            </groupId>
+                <artifactId>
+            jjwt-api
+            </artifactId>
+                <version>
+            ${jjwt.version}
         </version>
         </dependency>
-            <dependency><groupId>io.jsonwebtoken
-            </groupId><artifactId>jjwt-impl
-            </artifactId><version>${jjwt.version}
-            </version><scope>runtime
+            <dependency>
+                <groupId>
+            io.jsonwebtoken
+            </groupId>
+                <artifactId>
+            jjwt-impl
+            </artifactId>
+                <version>
+            ${jjwt.version}
+            </version>
+                <scope>
+            runtime
         </scope>
         </dependency>
-            <dependency><groupId>io.jsonwebtoken
-            </groupId><artifactId>jjwt-jackson
-            </artifactId><version>${jjwt.version}
-            </version><scope>runtime
+            <dependency>
+                <groupId>
+            io.jsonwebtoken
+            </groupId>
+                <artifactId>
+            jjwt-jackson
+            </artifactId>
+                <version>
+            ${jjwt.version}
+            </version>
+                <scope>
+            runtime
         </scope>
         </dependency>
 
         <!-- AGREGADO: Documentación API con OpenAPI/Swagger -->
-            <dependency><groupId>org.springdoc
-            </groupId><artifactId>springdoc-openapi-starter-webmvc-ui
-            </artifactId><version>${springdoc.version}
+            <dependency>
+                <groupId>
+            org.springdoc
+            </groupId>
+                <artifactId>
+            springdoc-openapi-starter-webmvc-ui
+            </artifactId>
+                <version>
+            ${springdoc.version}
         </version>
         </dependency>
 
         <!-- AGREGADO: MapStruct para mapeo de DTOs (opcional pero recomendado) -->
-            <dependency><groupId>org.mapstruct
-            </groupId><artifactId>mapstruct
-            </artifactId><version>${mapstruct.version}
+            <dependency>
+                <groupId>
+            org.mapstruct
+            </groupId>
+                <artifactId>
+            mapstruct
+            </artifactId>
+                <version>
+            ${mapstruct.version}
         </version>
         </dependency>
-            <dependency><groupId>org.mapstruct
-            </groupId><artifactId>mapstruct-processor
-            </artifactId><version>${mapstruct.version}
-            </version><scope>provided
+            <dependency>
+                <groupId>
+            org.mapstruct
+            </groupId>
+                <artifactId>
+            mapstruct-processor
+            </artifactId>
+                <version>
+            ${mapstruct.version}
+            </version>
+                <scope>
+            provided
         </scope>
         </dependency>
 
         <!-- Runtime Dependencies -->
-            <dependency><groupId>org.springframework.boot
-            </groupId><artifactId>spring-boot-devtools
-            </artifactId><scope>runtime
-            </scope><optional>true
+            <dependency>
+                <groupId>
+            org.springframework.boot
+            </groupId>
+                <artifactId>
+            spring-boot-devtools
+            </artifactId>
+                <scope>
+            runtime
+            </scope>
+                <optional>
+            true
         </optional>
         </dependency>
 
         <!-- CORREGIDO: MySQL Connector (versión actualizada) -->
-            <dependency><groupId>com.mysql
-            </groupId><artifactId>mysql-connector-j
-            </artifactId><scope>runtime
+            <dependency>
+                <groupId>
+            com.mysql
+            </groupId>
+                <artifactId>
+            mysql-connector-j
+            </artifactId>
+                <scope>
+            runtime
         </scope>
         </dependency>
 
         <!-- AGREGADO: H2 Database para testing -->
-            <dependency><groupId>com.h2database
-            </groupId><artifactId>h2
-            </artifactId><scope>test
+            <dependency>
+                <groupId>
+            com.h2database
+            </groupId>
+                <artifactId>
+            h2
+            </artifactId>
+                <scope>
+            test
         </scope>
         </dependency>
 
         <!-- Testing Dependencies -->
-            <dependency><groupId>org.springframework.boot
-            </groupId><artifactId>spring-boot-starter-test
-            </artifactId><scope>test
+            <dependency>
+                <groupId>
+            org.springframework.boot
+            </groupId>
+                <artifactId>
+            spring-boot-starter-test
+            </artifactId>
+                <scope>
+            test
         </scope>
         </dependency>
-            <dependency><groupId>org.springframework.security
-            </groupId><artifactId>spring-security-test
-            </artifactId><scope>test
+            <dependency>
+                <groupId>
+            org.springframework.security
+            </groupId>
+                <artifactId>
+            spring-security-test
+            </artifactId>
+                <scope>
+            test
         </scope>
         </dependency>
 
         <!-- AGREGADO: Testcontainers para integration testing -->
-            <dependency><groupId>org.testcontainers
-            </groupId><artifactId>junit-jupiter
-            </artifactId><scope>test
+            <dependency>
+                <groupId>
+            org.testcontainers
+            </groupId>
+                <artifactId>
+            junit-jupiter
+            </artifactId>
+                <scope>
+            test
         </scope>
         </dependency>
-            <dependency><groupId>org.testcontainers
-            </groupId><artifactId>mysql
-            </artifactId><scope>test
+            <dependency>
+                <groupId>
+            org.testcontainers
+            </groupId>
+                <artifactId>
+            mysql
+            </artifactId>
+                <scope>
+            test
         </scope>
     </dependency>
     </dependencies>
@@ -146,11 +236,21 @@
     <!-- AGREGADO: Dependency Management para Testcontainers -->
         <dependencyManagement>
             <dependencies>
-                <dependency><groupId>org.testcontainers
-                </groupId><artifactId>testcontainers-bom
-                </artifactId><version>1.19.0
-                </version><type>pom
-                </type><scope>import
+                <dependency>
+                    <groupId>
+                org.testcontainers
+                </groupId>
+                    <artifactId>
+                testcontainers-bom
+                </artifactId>
+                    <version>
+                1.19.0
+                </version>
+                    <type>
+                pom
+                </type>
+                    <scope>
+                import
             </scope>
         </dependency>
     </dependencies>
@@ -158,14 +258,22 @@
 
         <build>
             <plugins>
-                <plugin><groupId>org.springframework.boot
-                </groupId><artifactId>spring-boot-maven-plugin
+                <plugin>
+                    <groupId>
+                org.springframework.boot
+                </groupId>
+                    <artifactId>
+                spring-boot-maven-plugin
                 </artifactId>
                     <configuration>
                     <!-- AGREGADO: Configuración para development -->
                         <excludes>
-                            <exclude><groupId>org.projectlombok
-                            </groupId><artifactId>lombok
+                            <exclude>
+                                <groupId>
+                            org.projectlombok
+                            </groupId>
+                                <artifactId>
+                            lombok
                         </artifactId>
                     </exclude>
                 </excludes>
@@ -173,15 +281,27 @@
             </plugin>
 
             <!-- AGREGADO: Plugin para MapStruct -->
-                <plugin><groupId>org.apache.maven.plugins
-                </groupId><artifactId>maven-compiler-plugin
-                </artifactId><version>3.11.0
+                <plugin>
+                    <groupId>
+                org.apache.maven.plugins
+                </groupId>
+                    <artifactId>
+                maven-compiler-plugin
+                </artifactId>
+                    <version>
+                3.11.0
                 </version>
                     <configuration>
                         <annotationProcessorPaths>
-                            <path><groupId>org.mapstruct
-                            </groupId><artifactId>mapstruct-processor
-                            </artifactId><version>${mapstruct.version}
+                            <path>
+                                <groupId>
+                            org.mapstruct
+                            </groupId>
+                                <artifactId>
+                            mapstruct-processor
+                            </artifactId>
+                                <version>
+                            ${mapstruct.version}
                         </version>
                     </path>
                 </annotationProcessorPaths>
@@ -189,12 +309,18 @@
             </plugin>
 
             <!-- AGREGADO: Plugin para generar información de build -->
-                <plugin><groupId>org.springframework.boot
-                </groupId><artifactId>spring-boot-maven-plugin
+                <plugin>
+                    <groupId>
+                org.springframework.boot
+                </groupId>
+                    <artifactId>
+                spring-boot-maven-plugin
                 </artifactId>
                     <executions>
                         <execution>
-                            <goals><goal>build-info
+                            <goals>
+                                <goal>
+                            build-info
                         </goal>
                     </goals>
                 </execution>
@@ -202,12 +328,20 @@
             </plugin>
 
             <!-- AGREGADO: Plugin para testing -->
-                <plugin><groupId>org.apache.maven.plugins
-                </groupId><artifactId>maven-surefire-plugin
+                <plugin>
+                    <groupId>
+                org.apache.maven.plugins
+                </groupId>
+                    <artifactId>
+                maven-surefire-plugin
                 </artifactId>
                     <configuration>
-                        <includes><include>**/*Test.java
-                        </include><include>**/*Tests.java
+                        <includes>
+                            <include>
+                        **/*Test.java
+                        </include>
+                            <include>
+                        **/*Tests.java
                     </include>
                 </includes>
             </configuration>
@@ -217,15 +351,23 @@
 
     <!-- AGREGADO: Perfiles para diferentes entornos -->
         <profiles>
-            <profile><id>dev
+            <profile>
+                <id>
+            dev
             </id>
-                <properties><spring.profiles.active>dev
+                <properties>
+                    <spring.profiles.active>
+                dev
             </spring.profiles.active>
         </properties>
         </profile>
-            <profile><id>prod
+            <profile>
+                <id>
+            prod
             </id>
-                <properties><spring.profiles.active>prod
+                <properties>
+                    <spring.profiles.active>
+                prod
             </spring.profiles.active>
         </properties>
     </profile>

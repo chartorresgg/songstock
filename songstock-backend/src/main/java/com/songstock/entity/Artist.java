@@ -11,20 +11,26 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "categories")
-public class Category {
+@Table(name = "artists")
+public class Artist {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 50)
-    @NotBlank(message = "Nombre de la categoría es requerido")
-    @Size(max = 50, message = "Nombre no puede exceder 50 caracteres")
+    @Column(nullable = false, length = 100)
+    @NotBlank(message = "Nombre del artista es requerido")
+    @Size(max = 100, message = "Nombre no puede exceder 100 caracteres")
     private String name;
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String bio;
+
+    @Column(length = 50)
+    private String country;
+
+    @Column(name = "formed_year")
+    private Integer formedYear;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -37,17 +43,17 @@ public class Category {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "artist", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Product> products;
+    private List<Album> albums;
 
     // Constructors
-    public Category() {
+    public Artist() {
     }
 
-    public Category(String name, String description) {
+    public Artist(String name, String country) {
         this.name = name;
-        this.description = description;
+        this.country = country;
     }
 
     // Getters and Setters
@@ -67,12 +73,28 @@ public class Category {
         this.name = name;
     }
 
-    public String getDescription() {
-        return description;
+    public String getBio() {
+        return bio;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public Integer getFormedYear() {
+        return formedYear;
+    }
+
+    public void setFormedYear(Integer formedYear) {
+        this.formedYear = formedYear;
     }
 
     public Boolean getIsActive() {
@@ -99,11 +121,11 @@ public class Category {
         this.updatedAt = updatedAt;
     }
 
-    public List<Product> getProducts() {
-        return products;
+    public List<Album> getAlbums() {
+        return albums;
     }
 
-    public void setProducts(List<Product> products) {
-        this.products = products;
+    public void setAlbums(List<Album> albums) {
+        this.albums = albums;
     }
 }
