@@ -1,51 +1,36 @@
-package com.songstock.entity;
+package com.songstock.dto;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "product_images")
-public class ProductImage {
+public class ProductImageDTO {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Relación Many-to-One con Product
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
     @NotNull(message = "El producto es obligatorio")
-    private Product product;
+    private Long productId;
     
     @NotBlank(message = "La URL de la imagen es obligatoria")
     @Size(max = 500, message = "La URL no puede exceder 500 caracteres")
-    @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
     
     @Size(max = 200, message = "El texto alternativo no puede exceder 200 caracteres")
-    @Column(name = "alt_text", length = 200)
     private String altText;
     
-    @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
     
-    @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
     
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
     // Constructores
-    public ProductImage() {}
+    public ProductImageDTO() {}
     
-    public ProductImage(Product product, String imageUrl, String altText) {
-        this.product = product;
+    public ProductImageDTO(Long productId, String imageUrl, String altText) {
+        this.productId = productId;
         this.imageUrl = imageUrl;
         this.altText = altText;
     }
@@ -54,8 +39,8 @@ public class ProductImage {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
     
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
@@ -71,14 +56,4 @@ public class ProductImage {
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    
-    @Override
-    public String toString() {
-        return "ProductImage{" +
-                "id=" + id +
-                ", imageUrl='" + imageUrl + '\'' +
-                ", isPrimary=" + isPrimary +
-                ", displayOrder=" + displayOrder +
-                '}';
-    }
 }

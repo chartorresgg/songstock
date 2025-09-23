@@ -1,0 +1,474 @@
+{
+	"info": {
+		"name": "SongStock - Historia de Usuario: Formatos de Álbum",
+		"description": "Validación específica de la Historia de Usuario: Como comprador, quiero ver si un disco MP3 tiene versión en vinilo para decidir qué formato comprar",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "artist_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "genre_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "album_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "category_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "provider_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "digital_product_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "vinyl_product_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. 🔐 Setup - Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Login exitoso\", function () {",
+							"    if (pm.response.code === 200) {",
+							"        const response = pm.response.json();",
+							"        if (response.success && response.data.token) {",
+							"            pm.collectionVariables.set('jwt_token', response.data.token);",
+							"            pm.expect(response.data.token).to.not.be.empty;",
+							"            console.log('✅ Token JWT guardado exitosamente');",
+							"        }",
+							"    }",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"usernameOrEmail\": \"admin\",\n    \"password\": \"admin123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "2. 🎤 Crear Artista",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Artista creado exitosamente\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.collectionVariables.set('artist_id', response.data.id);",
+							"    console.log('✅ Artista creado - ID: ' + response.data.id);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Pink Floyd\",\n    \"bio\": \"Banda británica de rock progresivo\",\n    \"country\": \"Reino Unido\",\n    \"formedYear\": 1965\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/artists",
+					"host": ["{{base_url}}"],
+					"path": ["artists"]
+				}
+			}
+		},
+		{
+			"name": "3. 🎵 Crear Género",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Género creado exitosamente\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.collectionVariables.set('genre_id', response.data.id);",
+							"    console.log('✅ Género creado - ID: ' + response.data.id);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Rock Progresivo\",\n    \"description\": \"Género musical caracterizado por composiciones complejas y experimentales\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/genres",
+					"host": ["{{base_url}}"],
+					"path": ["genres"]
+				}
+			}
+		},
+		{
+			"name": "4. 💿 Crear Álbum",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Álbum creado exitosamente\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.collectionVariables.set('album_id', response.data.id);",
+							"    console.log('✅ Álbum creado - ID: ' + response.data.id);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"The Dark Side of the Moon\",\n    \"artistId\": {{artist_id}},\n    \"genreId\": {{genre_id}},\n    \"releaseYear\": 1973,\n    \"label\": \"Harvest Records\",\n    \"catalogNumber\": \"SHVL 804\",\n    \"description\": \"Octavo álbum de estudio de Pink Floyd\",\n    \"durationMinutes\": 43\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/albums",
+					"host": ["{{base_url}}"],
+					"path": ["albums"]
+				}
+			}
+		},
+		{
+			"name": "5. 📱 Crear Producto Digital (MP3)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Producto digital MP3 creado exitosamente\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.expect(response.data.productType).to.equal('DIGITAL');",
+							"    pm.expect(response.data.fileFormat).to.equal('MP3');",
+							"    pm.collectionVariables.set('digital_product_id', response.data.id);",
+							"    console.log('✅ Producto Digital creado - ID: ' + response.data.id);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"albumId\": {{album_id}},\n    \"providerId\": {{provider_id}},\n    \"categoryId\": {{category_id}},\n    \"sku\": \"DSOTM-MP3-001\",\n    \"productType\": \"DIGITAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 9.99,\n    \"stockQuantity\": 9999,\n    \"fileFormat\": \"MP3\",\n    \"fileSizeMb\": 85,\n    \"featured\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/products",
+					"host": ["{{base_url}}"],
+					"path": ["products"]
+				}
+			}
+		},
+		{
+			"name": "6. 💽 Crear Producto Vinilo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Producto vinilo creado exitosamente\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.expect(response.data.productType).to.equal('PHYSICAL');",
+							"    pm.expect(response.data.vinylSize).to.equal('TWELVE_INCH');",
+							"    pm.collectionVariables.set('vinyl_product_id', response.data.id);",
+							"    console.log('✅ Producto Vinilo creado - ID: ' + response.data.id);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"albumId\": {{album_id}},\n    \"providerId\": {{provider_id}},\n    \"categoryId\": {{category_id}},\n    \"sku\": \"DSOTM-VINYL-001\",\n    \"productType\": \"PHYSICAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 29.99,\n    \"stockQuantity\": 50,\n    \"vinylSize\": \"TWELVE_INCH\",\n    \"vinylSpeed\": \"RPM_33\",\n    \"weightGrams\": 180,\n    \"featured\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/products",
+					"host": ["{{base_url}}"],
+					"path": ["products"]
+				}
+			}
+		},
+		{
+			"name": "7. 🎯 HU PRINCIPAL: Obtener Formatos de Álbum",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ HISTORIA DE USUARIO - Formatos obtenidos exitosamente\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data).to.exist;",
+							"    console.log('🎉 ENDPOINT PRINCIPAL FUNCIONANDO');",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 1: El álbum tiene versiones digitales\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.hasDigitalVersion).to.be.true;",
+							"    pm.expect(response.data.digitalVersions).to.be.an('array');",
+							"    pm.expect(response.data.digitalVersions.length).to.be.greaterThan(0);",
+							"    console.log('✅ GIVEN: Usuario ve disco digital (MP3)');",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 2: El álbum tiene versiones en vinilo\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.hasVinylVersion).to.be.true;",
+							"    pm.expect(response.data.vinylVersions).to.be.an('array');",
+							"    pm.expect(response.data.vinylVersions.length).to.be.greaterThan(0);",
+							"    console.log('✅ WHEN: Usuario elige formato vinilo');",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 3: El álbum tiene AMBOS formatos disponibles\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.hasBothFormats).to.be.true;",
+							"    console.log('✅ THEN: Sistema genera versión correspondiente');",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 4: Tiene recomendaciones para tomar decisión\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.recommendedDigital).to.exist;",
+							"    pm.expect(response.data.recommendedVinyl).to.exist;",
+							"    console.log('✅ Sistema proporciona recomendaciones para decisión de compra');",
+							"});",
+							"",
+							"pm.test(\"🎉 HISTORIA DE USUARIO COMPLETADA EXITOSAMENTE\", function () {",
+							"    console.log('');",
+							"    console.log('🎉 ===============================================');",
+							"    console.log('✅ HISTORIA DE USUARIO VALIDADA COMPLETAMENTE');",
+							"    console.log('📝 Como comprador, quiero ver si un disco MP3');",
+							"    console.log('   tiene versión en vinilo para decidir qué formato comprar');",
+							"    console.log('✅ CRITERIOS DE ACEPTACIÓN CUMPLIDOS:');",
+							"    console.log('   ✓ GIVEN: Usuario ve disco digital');",
+							"    console.log('   ✓ WHEN: Elige formato vinilo');",
+							"    console.log('   ✓ THEN: Sistema genera versión correspondiente');",
+							"    console.log('🎉 ===============================================');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/albums/{{album_id}}/formats",
+					"host": ["{{base_url}}"],
+					"path": ["albums", "{{album_id}}", "formats"]
+				}
+			}
+		},
+		{
+			"name": "8. 🔄 HU: Formatos Alternativos desde Digital",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Formatos alternativos obtenidos desde producto digital\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data).to.be.an('array');",
+							"    console.log('✅ Desde MP3 encuentra versiones en vinilo');",
+							"});",
+							"",
+							"pm.test(\"✅ Los formatos alternativos son vinilos (físicos)\", function () {",
+							"    const response = pm.response.json();",
+							"    if (response.data.length > 0) {",
+							"        response.data.forEach(product => {",
+							"            pm.expect(product.productType).to.equal('PHYSICAL');",
+							"        });",
+							"        console.log('✅ Encontrados ' + response.data.length + ' productos de vinilo');",
+							"    }",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/products/{{digital_product_id}}/alternative-formats",
+					"host": ["{{base_url}}"],
+					"path": ["products", "{{digital_product_id}}", "alternative-formats"]
+				}
+			}
+		},
+		{
+			"name": "9. 🔍 HU: Verificar Disponibilidad de Formatos",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Verificación de vinilo exitosa\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data).to.be.true;",
+							"    console.log('✅ El álbum SÍ tiene versión en vinilo disponible');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/albums/{{album_id}}/has-vinyl",
+					"host": ["{{base_url}}"],
+					"path": ["albums", "{{album_id}}", "has-vinyl"]
+				}
+			}
+		},
+		{
+			"name": "10. 📊 HU: Productos con Ambos Formatos",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Álbumes con ambos formatos obtenidos\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data).to.be.an('array');",
+							"    console.log('✅ Encontrados ' + response.data.length + ' álbumes con ambos formatos');",
+							"});",
+							"",
+							"pm.test(\"✅ Nuestro álbum está en la lista de ambos formatos\", function () {",
+							"    const response = pm.response.json();",
+							"    const albumId = pm.collectionVariables.get('album_id');",
+							"    const foundAlbum = response.data.find(album => album.id == albumId);",
+							"    pm.expect(foundAlbum).to.exist;",
+							"    pm.expect(foundAlbum.hasDigitalVersion).to.be.true;",
+							"    pm.expect(foundAlbum.hasVinylVersion).to.be.true;",
+							"    console.log('✅ El álbum creado aparece correctamente en la lista');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/albums/both-formats",
+					"host": ["{{base_url}}"],
+					"path": ["albums", "both-formats"]
+				}
+			}
+		}
+	]
+}

@@ -1,114 +1,79 @@
-package com.songstock.entity;
+package com.songstock.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+
+import com.songstock.entity.*;
 import jakarta.validation.constraints.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "products")
-public class Product {
+public class ProductDTO {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Relación Many-to-One con Album
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "album_id", nullable = false)
     @NotNull(message = "El álbum es obligatorio")
-    private Album album;
+    private Long albumId;
     
-    // Relación Many-to-One con Provider
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "provider_id", nullable = false)
+    private String albumTitle; // Para respuestas
+    private String artistName; // Para respuestas
+    
     @NotNull(message = "El proveedor es obligatorio")
-    private Provider provider;
+    private Long providerId;
     
-    // Relación Many-to-One con Category
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    private String providerName; // Para respuestas
+    
     @NotNull(message = "La categoría es obligatoria")
-    private Category category;
+    private Long categoryId;
+    
+    private String categoryName; // Para respuestas
     
     @NotBlank(message = "El SKU es obligatorio")
     @Size(max = 50, message = "El SKU no puede exceder 50 caracteres")
-    @Column(name = "sku", nullable = false, unique = true, length = 50)
     private String sku;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "product_type", nullable = false)
     @NotNull(message = "El tipo de producto es obligatorio")
     private ProductType productType;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "condition_type")
     private ConditionType conditionType = ConditionType.NEW;
     
     @NotNull(message = "El precio es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a 0")
     @Digits(integer = 8, fraction = 2, message = "El precio debe tener máximo 8 dígitos enteros y 2 decimales")
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
     @NotNull(message = "La cantidad en stock es obligatoria")
     @Min(value = 0, message = "La cantidad no puede ser negativa")
-    @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity = 0;
     
     // Campos específicos para vinilos físicos
-    @Enumerated(EnumType.STRING)
-    @Column(name = "vinyl_size")
     private VinylSize vinylSize;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "vinyl_speed")
     private VinylSpeed vinylSpeed;
-    
-    @Column(name = "weight_grams")
     private Integer weightGrams;
     
     // Campos específicos para productos digitales
     @Size(max = 20, message = "El formato de archivo no puede exceder 20 caracteres")
-    @Column(name = "file_format", length = 20)
     private String fileFormat;
-    
-    @Column(name = "file_size_mb")
     private Integer fileSizeMb;
     
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    private Boolean isActive;
+    private Boolean featured;
     
-    @Column(name = "featured", nullable = false)
-    private Boolean featured = false;
-    
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // Relación One-to-Many con ProductImages
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<ProductImage> images = new ArrayList<>();
+    // Información adicional para respuestas
+    private List<ProductImageDTO> images;
+    private List<ProductDTO> alternativeFormats; // Para la historia de usuario
     
     // Constructores
-    public Product() {}
+    public ProductDTO() {}
     
-    public Product(Album album, Provider provider, Category category, String sku, 
-                   ProductType productType, BigDecimal price, Integer stockQuantity) {
-        this.album = album;
-        this.provider = provider;
-        this.category = category;
+    public ProductDTO(Long albumId, Long providerId, Long categoryId, String sku, 
+                     ProductType productType, BigDecimal price, Integer stockQuantity) {
+        this.albumId = albumId;
+        this.providerId = providerId;
+        this.categoryId = categoryId;
         this.sku = sku;
         this.productType = productType;
         this.price = price;
@@ -119,14 +84,26 @@ public class Product {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
-    public Album getAlbum() { return album; }
-    public void setAlbum(Album album) { this.album = album; }
+    public Long getAlbumId() { return albumId; }
+    public void setAlbumId(Long albumId) { this.albumId = albumId; }
     
-    public Provider getProvider() { return provider; }
-    public void setProvider(Provider provider) { this.provider = provider; }
+    public String getAlbumTitle() { return albumTitle; }
+    public void setAlbumTitle(String albumTitle) { this.albumTitle = albumTitle; }
     
-    public Category getCategory() { return category; }
-    public void setCategory(Category category) { this.category = category; }
+    public String getArtistName() { return artistName; }
+    public void setArtistName(String artistName) { this.artistName = artistName; }
+    
+    public Long getProviderId() { return providerId; }
+    public void setProviderId(Long providerId) { this.providerId = providerId; }
+    
+    public String getProviderName() { return providerName; }
+    public void setProviderName(String providerName) { this.providerName = providerName; }
+    
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     
     public String getSku() { return sku; }
     public void setSku(String sku) { this.sku = sku; }
@@ -170,22 +147,15 @@ public class Product {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     
-    public List<ProductImage> getImages() { return images; }
-    public void setImages(List<ProductImage> images) { this.images = images; }
+    public List<ProductImageDTO> getImages() { return images; }
+    public void setImages(List<ProductImageDTO> images) { this.images = images; }
+    
+    public List<ProductDTO> getAlternativeFormats() { return alternativeFormats; }
+    public void setAlternativeFormats(List<ProductDTO> alternativeFormats) { this.alternativeFormats = alternativeFormats; }
     
     // Métodos de utilidad
-    public void addImage(ProductImage image) {
-        images.add(image);
-        image.setProduct(this);
-    }
-    
-    public void removeImage(ProductImage image) {
-        images.remove(image);
-        image.setProduct(null);
-    }
-    
     public boolean isInStock() {
-        return stockQuantity > 0;
+        return stockQuantity != null && stockQuantity > 0;
     }
     
     public boolean isDigital() {
@@ -194,17 +164,5 @@ public class Product {
     
     public boolean isPhysical() {
         return productType == ProductType.PHYSICAL;
-    }
-    
-    @Override
-    public String toString() {
-        return "Product{" +
-                "id=" + id +
-                ", sku='" + sku + '\'' +
-                ", productType=" + productType +
-                ", price=" + price +
-                ", stockQuantity=" + stockQuantity +
-                ", isActive=" + isActive +
-                '}';
     }
 }

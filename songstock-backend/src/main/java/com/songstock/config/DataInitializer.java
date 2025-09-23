@@ -27,6 +27,8 @@ public class DataInitializer implements CommandLineRunner {
         initializeAdminUser();
     }
 
+    
+
     private void initializeAdminUser() {
         try {
             if (!userRepository.existsByUsername("admin")) {

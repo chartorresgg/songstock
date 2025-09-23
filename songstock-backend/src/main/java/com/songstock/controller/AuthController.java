@@ -45,6 +45,15 @@ public class AuthController {
         return ResponseEntity.ok("AuthController is working!");
     }
 
+    @PostMapping("/test-password")
+    public ResponseEntity<String> testPassword(@RequestBody Map<String, String> request) {
+        String rawPassword = request.get("password");
+        String storedHash = "$2a$10$..."; // El hash de la BD
+
+        boolean matches = passwordEncoder.matches(rawPassword, storedHash);
+        return ResponseEntity.ok("Password matches: " + matches);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponseDTO>> authenticateUser(
             @Valid @RequestBody LoginRequestDTO loginRequest,

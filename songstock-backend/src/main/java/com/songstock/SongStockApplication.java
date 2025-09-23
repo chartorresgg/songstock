@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-@SpringBootApplication(scanBasePackages = "com.songstock") // IMPORTANTE: Escaneo explícito
+@SpringBootApplication(scanBasePackages = "com.songstock")
 @EnableJpaRepositories(basePackages = "com.songstock.repository")
 @EnableTransactionManagement
 public class SongStockApplication {
