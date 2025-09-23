@@ -114,7 +114,7 @@
 							"    const response = pm.response.json();",
 							"    pm.expect(response.success).to.be.true;",
 							"    pm.expect(response.data.id).to.exist;",
-							"    pm.collectionVariables.set('artist_id', response.data.id);",
+							"    pm.collectionVariables.set('artist_id', String(response.data.id));",
 							"    console.log('✅ Artista creado - ID: ' + response.data.id);",
 							"});"
 						]
@@ -152,7 +152,7 @@
 							"    const response = pm.response.json();",
 							"    pm.expect(response.success).to.be.true;",
 							"    pm.expect(response.data.id).to.exist;",
-							"    pm.collectionVariables.set('genre_id', response.data.id);",
+							"    pm.collectionVariables.set('genre_id', String(response.data.id));",
 							"    console.log('✅ Género creado - ID: ' + response.data.id);",
 							"});"
 						]
@@ -190,7 +190,7 @@
 							"    const response = pm.response.json();",
 							"    pm.expect(response.success).to.be.true;",
 							"    pm.expect(response.data.id).to.exist;",
-							"    pm.collectionVariables.set('album_id', response.data.id);",
+							"    pm.collectionVariables.set('album_id', String(response.data.id));",
 							"    console.log('✅ Álbum creado - ID: ' + response.data.id);",
 							"});"
 						]
@@ -230,7 +230,7 @@
 							"    pm.expect(response.data.id).to.exist;",
 							"    pm.expect(response.data.productType).to.equal('DIGITAL');",
 							"    pm.expect(response.data.fileFormat).to.equal('MP3');",
-							"    pm.collectionVariables.set('digital_product_id', response.data.id);",
+							"    pm.collectionVariables.set('digital_product_id', String(response.data.id));",
 							"    console.log('✅ Producto Digital creado - ID: ' + response.data.id);",
 							"});"
 						]
@@ -247,7 +247,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"albumId\": {{album_id}},\n    \"providerId\": {{provider_id}},\n    \"categoryId\": {{category_id}},\n    \"sku\": \"DSOTM-MP3-001\",\n    \"productType\": \"DIGITAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 9.99,\n    \"stockQuantity\": 9999,\n    \"fileFormat\": \"MP3\",\n    \"fileSizeMb\": 85,\n    \"featured\": true\n}"
+					"raw": "{\n    \"albumId\": {{album_id}},\n    \"providerId\": 1,\n    \"categoryId\": 1,\n    \"sku\": \"DSOTM-MP3-001\",\n    \"productType\": \"DIGITAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 9.99,\n    \"stockQuantity\": 9999,\n    \"fileFormat\": \"MP3\",\n    \"fileSizeMb\": 85,\n    \"featured\": true\n}"
 				},
 				"url": {
 					"raw": "{{base_url}}/products",
@@ -270,7 +270,7 @@
 							"    pm.expect(response.data.id).to.exist;",
 							"    pm.expect(response.data.productType).to.equal('PHYSICAL');",
 							"    pm.expect(response.data.vinylSize).to.equal('TWELVE_INCH');",
-							"    pm.collectionVariables.set('vinyl_product_id', response.data.id);",
+							"    pm.collectionVariables.set('vinyl_product_id', String(response.data.id));",
 							"    console.log('✅ Producto Vinilo creado - ID: ' + response.data.id);",
 							"});"
 						]
@@ -287,7 +287,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"albumId\": {{album_id}},\n    \"providerId\": {{provider_id}},\n    \"categoryId\": {{category_id}},\n    \"sku\": \"DSOTM-VINYL-001\",\n    \"productType\": \"PHYSICAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 29.99,\n    \"stockQuantity\": 50,\n    \"vinylSize\": \"TWELVE_INCH\",\n    \"vinylSpeed\": \"RPM_33\",\n    \"weightGrams\": 180,\n    \"featured\": true\n}"
+					"raw": "{\n    \"albumId\": {{album_id}},\n    \"providerId\": 1,\n    \"categoryId\": 1,\n    \"sku\": \"DSOTM-VINYL-001\",\n    \"productType\": \"PHYSICAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 29.99,\n    \"stockQuantity\": 50,\n    \"vinylSize\": \"TWELVE_INCH\",\n    \"vinylSpeed\": \"RPM_33\",\n    \"weightGrams\": 180,\n    \"featured\": true\n}"
 				},
 				"url": {
 					"raw": "{{base_url}}/products",
