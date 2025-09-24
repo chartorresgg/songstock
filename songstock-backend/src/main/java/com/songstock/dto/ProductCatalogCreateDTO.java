@@ -1,24 +1,26 @@
 package com.songstock.dto;
 
-import jakarta.validation.constraints.*;
-import java.math.BigDecimal;
+import com.songstock.entity.ProductType;
+import com.songstock.entity.ConditionType;
+import com.songstock.entity.VinylSize;
+import com.songstock.entity.VinylSpeed;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 
 /**
- * DTO para crear productos en el catálogo del proveedor
- * Incluye campos básicos para vinilo: nombre, artista, año, precio
+ * DTO para crear productos en el catálogo
+ * Usado por proveedores para agregar nuevos vinilos a su catálogo
  */
-public class CatalogProductCreateDTO {
+public class ProductCatalogCreateDTO {
 
-    @NotNull(message = "El álbum es obligatorio")
+    @NotNull(message = "El ID del álbum es obligatorio")
     private Long albumId;
 
-    @NotNull(message = "La categoría es obligatoria")
+    @NotNull(message = "El ID de la categoría es obligatorio")
     private Long categoryId;
 
     @NotBlank(message = "El SKU es obligatorio")
@@ -26,41 +28,46 @@ public class CatalogProductCreateDTO {
     private String sku;
 
     @NotNull(message = "El tipo de producto es obligatorio")
-    private String productType = "PHYSICAL"; // Por defecto PHYSICAL para vinilos
+    private ProductType productType;
 
-    @NotNull(message = "La condición es obligatoria")
-    private String conditionType = "NEW";
+    @NotNull(message = "El tipo de condición es obligatorio")
+    private ConditionType conditionType;
 
     @NotNull(message = "El precio es obligatorio")
-    @DecimalMin(value = "0.01", message = "El precio debe ser mayor que 0")
-    @Digits(integer = 8, fraction = 2, message = "Formato de precio inválido")
+    @Positive(message = "El precio debe ser mayor a cero")
     private BigDecimal price;
 
-    @NotNull(message = "La cantidad de stock es obligatoria")
+    @NotNull(message = "La cantidad en stock es obligatoria")
     @Min(value = 0, message = "El stock no puede ser negativo")
     private Integer stockQuantity;
 
     // Campos específicos para vinilos físicos
-    private String vinylSize = "12_INCH"; // Por defecto 12 pulgadas
-    private String vinylSpeed = "33_RPM"; // Por defecto 33 RPM
+    private VinylSize vinylSize;
+    private VinylSpeed vinylSpeed;
+    private Integer weightGrams;
 
-    @Min(value = 1, message = "El peso debe ser mayor que 0")
-    private Integer weightGrams = 180; // Peso típico de un vinilo
+    // Campos específicos para productos digitales
+    private String fileFormat; // MP3, FLAC, WAV
+    private Integer fileSizeMb;
 
     private Boolean featured = false;
 
-    private String description; // Descripción adicional del proveedor
+    @Size(max = 1000, message = "La descripción no puede exceder 1000 caracteres")
+    private String description;
 
     // Constructor vacío
-    public CatalogProductCreateDTO() {
+    public ProductCatalogCreateDTO() {
     }
 
-    // Constructor completo
-    public CatalogProductCreateDTO(Long albumId, Long categoryId, String sku,
+    // Constructor con campos básicos
+    public ProductCatalogCreateDTO(Long albumId, Long categoryId, String sku,
+            ProductType productType, ConditionType conditionType,
             BigDecimal price, Integer stockQuantity) {
         this.albumId = albumId;
         this.categoryId = categoryId;
         this.sku = sku;
+        this.productType = productType;
+        this.conditionType = conditionType;
         this.price = price;
         this.stockQuantity = stockQuantity;
     }
@@ -90,19 +97,19 @@ public class CatalogProductCreateDTO {
         this.sku = sku;
     }
 
-    public String getProductType() {
+    public ProductType getProductType() {
         return productType;
     }
 
-    public void setProductType(String productType) {
+    public void setProductType(ProductType productType) {
         this.productType = productType;
     }
 
-    public String getConditionType() {
+    public ConditionType getConditionType() {
         return conditionType;
     }
 
-    public void setConditionType(String conditionType) {
+    public void setConditionType(ConditionType conditionType) {
         this.conditionType = conditionType;
     }
 
@@ -122,19 +129,19 @@ public class CatalogProductCreateDTO {
         this.stockQuantity = stockQuantity;
     }
 
-    public String getVinylSize() {
+    public VinylSize getVinylSize() {
         return vinylSize;
     }
 
-    public void setVinylSize(String vinylSize) {
+    public void setVinylSize(VinylSize vinylSize) {
         this.vinylSize = vinylSize;
     }
 
-    public String getVinylSpeed() {
+    public VinylSpeed getVinylSpeed() {
         return vinylSpeed;
     }
 
-    public void setVinylSpeed(String vinylSpeed) {
+    public void setVinylSpeed(VinylSpeed vinylSpeed) {
         this.vinylSpeed = vinylSpeed;
     }
 
@@ -144,6 +151,22 @@ public class CatalogProductCreateDTO {
 
     public void setWeightGrams(Integer weightGrams) {
         this.weightGrams = weightGrams;
+    }
+
+    public String getFileFormat() {
+        return fileFormat;
+    }
+
+    public void setFileFormat(String fileFormat) {
+        this.fileFormat = fileFormat;
+    }
+
+    public Integer getFileSizeMb() {
+        return fileSizeMb;
+    }
+
+    public void setFileSizeMb(Integer fileSizeMb) {
+        this.fileSizeMb = fileSizeMb;
     }
 
     public Boolean getFeatured() {
@@ -164,14 +187,15 @@ public class CatalogProductCreateDTO {
 
     @Override
     public String toString() {
-        return "CatalogProductCreateDTO{" +
+        return "ProductCatalogCreateDTO{" +
                 "albumId=" + albumId +
                 ", categoryId=" + categoryId +
                 ", sku='" + sku + '\'' +
+                ", productType=" + productType +
+                ", conditionType=" + conditionType +
                 ", price=" + price +
                 ", stockQuantity=" + stockQuantity +
-                ", vinylSize='" + vinylSize + '\'' +
-                ", vinylSpeed='" + vinylSpeed + '\'' +
+                ", featured=" + featured +
                 '}';
     }
 }

@@ -1,0 +1,624 @@
+{
+	"info": {
+		"name": "SongStock - HU: Gestión del catálogo de discos de vinilo",
+		"description": "Validación de la Historia de Usuario: Como proveedor, quiero gestionar mi catálogo de vinilos con nombre, artista, año y precio para publicarlos en la plataforma.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "provider_jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "artist_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "genre_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "album_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "category_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "catalog_product_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Setup - Login Admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Login admin exitoso\", function () {",
+							"    if (pm.response.code === 200) {",
+							"        const response = pm.response.json();",
+							"        if (response.success && response.data.token) {",
+							"            pm.collectionVariables.set('jwt_token', response.data.token);",
+							"            console.log('✅ Token Admin guardado exitosamente');",
+							"        }",
+							"    }",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"usernameOrEmail\": \"admin\",\n    \"password\": \"admin123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "2. Crear Proveedor de Prueba",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Proveedor creado exitosamente\", function () {",
+							"    if (pm.response.code === 201) {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response.success).to.be.true;",
+							"        console.log('✅ Proveedor registrado para pruebas de catálogo');",
+							"    }",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"catalog_provider\",\n    \"email\": \"catalog@songstock.com\",\n    \"password\": \"password123\",\n    \"firstName\": \"Miguel\",\n    \"lastName\": \"Catálogo\",\n    \"phone\": \"+57 300 987 6543\",\n    \"businessName\": \"Discos Vintage Ltda\",\n    \"taxId\": \"900987654-3\",\n    \"address\": \"Avenida Música #123-45\",\n    \"city\": \"Bogotá\",\n    \"state\": \"Cundinamarca\",\n    \"postalCode\": \"110511\",\n    \"country\": \"Colombia\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/register-provider",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "register-provider"]
+				}
+			}
+		},
+		{
+			"name": "3. Verificar Proveedor",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Proveedor verificado exitosamente\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    console.log('✅ Proveedor verificado - Listo para gestionar catálogo');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/providers/1/verify",
+					"host": ["{{base_url}}"],
+					"path": ["providers", "1", "verify"]
+				}
+			}
+		},
+		{
+			"name": "4. Login Proveedor",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Login proveedor exitoso\", function () {",
+							"    if (pm.response.code === 200) {",
+							"        const response = pm.response.json();",
+							"        if (response.success && response.data.token) {",
+							"            pm.collectionVariables.set('provider_jwt_token', response.data.token);",
+							"            pm.collectionVariables.set('jwt_token', response.data.token);",
+							"            console.log('✅ Token Proveedor guardado - Listo para gestionar catálogo');",
+							"        }",
+							"    }",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"usernameOrEmail\": \"catalog_provider\",\n    \"password\": \"password123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "5. Crear Datos Maestros - Categoría",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    if (response.success && response.data.id) {",
+							"        pm.collectionVariables.set('category_id', String(response.data.id));",
+							"        console.log('✅ Categoría creada - ID: ' + response.data.id);",
+							"    }",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Rock Clásico\",\n    \"description\": \"Categoría para discos de rock clásico\",\n    \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/categories",
+					"host": ["{{base_url}}"],
+					"path": ["categories"]
+				}
+			}
+		},
+		{
+			"name": "6. Crear Datos Maestros - Género",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    if (response.success && response.data.id) {",
+							"        pm.collectionVariables.set('genre_id', String(response.data.id));",
+							"        console.log('✅ Género creado - ID: ' + response.data.id);",
+							"    }",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Progressive Rock\",\n    \"description\": \"Rock progresivo de los años 70\",\n    \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/genres",
+					"host": ["{{base_url}}"],
+					"path": ["genres"]
+				}
+			}
+		},
+		{
+			"name": "7. Crear Datos Maestros - Artista",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    if (response.success && response.data.id) {",
+							"        pm.collectionVariables.set('artist_id', String(response.data.id));",
+							"        console.log('✅ Artista creado - ID: ' + response.data.id);",
+							"    }",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Genesis\",\n    \"bio\": \"Banda británica de rock progresivo\",\n    \"country\": \"Reino Unido\",\n    \"formedYear\": 1967,\n    \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/artists",
+					"host": ["{{base_url}}"],
+					"path": ["artists"]
+				}
+			}
+		},
+		{
+			"name": "8. Crear Datos Maestros - Álbum",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    if (response.success && response.data.id) {",
+							"        pm.collectionVariables.set('album_id', String(response.data.id));",
+							"        console.log('✅ Álbum creado - ID: ' + response.data.id);",
+							"    }",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"The Lamb Lies Down on Broadway\",\n    \"artistId\": {{artist_id}},\n    \"genreId\": {{genre_id}},\n    \"releaseYear\": 1974,\n    \"label\": \"Charisma Records\",\n    \"catalogNumber\": \"CAS 1102\",\n    \"description\": \"Álbum conceptual doble de Genesis\",\n    \"durationMinutes\": 94,\n    \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/albums",
+					"host": ["{{base_url}}"],
+					"path": ["albums"]
+				}
+			}
+		},
+		{
+			"name": "9. HU PRINCIPAL: Crear Producto en Catálogo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ HISTORIA DE USUARIO - Producto creado en catálogo\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.collectionVariables.set('catalog_product_id', String(response.data.id));",
+							"    console.log('🎉 PRODUCTO CREADO EN CATÁLOGO - ID: ' + response.data.id);",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 1: Proveedor está logueado y gestiona catálogo\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.providerId).to.exist;",
+							"    pm.expect(response.data.providerBusinessName).to.equal('Discos Vintage Ltda');",
+							"    console.log('✅ GIVEN: Proveedor está logueado');",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 2: Producto tiene información completa\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.albumTitle).to.equal('The Lamb Lies Down on Broadway');",
+							"    pm.expect(response.data.artistName).to.equal('Genesis');",
+							"    pm.expect(response.data.releaseYear).to.equal(1974);",
+							"    pm.expect(response.data.price).to.equal(45.99);",
+							"    console.log('✅ Producto con nombre, artista, año y precio');",
+							"});",
+							"",
+							"pm.test(\"✅ CRITERIO 3: Producto está disponible públicamente\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.isActive).to.be.true;",
+							"    pm.expect(response.data.isAvailable).to.be.true;",
+							"    console.log('✅ WHEN: Proveedor edita su catálogo');",
+							"    console.log('✅ THEN: Clientes pueden ver el producto en la tienda');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"albumId\": {{album_id}},\n    \"categoryId\": {{category_id}},\n    \"sku\": \"GENESIS-LAMB-VINYL-001\",\n    \"productType\": \"PHYSICAL\",\n    \"conditionType\": \"NEW\",\n    \"price\": 45.99,\n    \"stockQuantity\": 15,\n    \"vinylSize\": \"12_INCH\",\n    \"vinylSpeed\": \"33_RPM\",\n    \"weightGrams\": 200,\n    \"featured\": true,\n    \"description\": \"Vinilo doble de Genesis en excelente estado\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/products/catalog",
+					"host": ["{{base_url}}"],
+					"path": ["products", "catalog"]
+				}
+			}
+		},
+		{
+			"name": "10. HU: Actualizar Producto del Catálogo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Producto actualizado en catálogo\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.price).to.equal(42.99);",
+							"    console.log('✅ Precio actualizado de 45.99 a 42.99');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"price\": 42.99,\n    \"stockQuantity\": 20,\n    \"featured\": true,\n    \"description\": \"Vinilo doble de Genesis - Precio especial\",\n    \"updateReason\": \"Ajuste de precios por promoción\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/products/{{catalog_product_id}}/catalog",
+					"host": ["{{base_url}}"],
+					"path": ["products", "{{catalog_product_id}}", "catalog"]
+				}
+			}
+		},
+		{
+			"name": "11. HU: Ver Catálogo Completo del Proveedor",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Catálogo del proveedor obtenido\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data.providerBusinessName).to.equal('Discos Vintage Ltda');",
+							"    pm.expect(response.data.totalProducts).to.be.greaterThan(0);",
+							"    console.log('📊 Total productos en catálogo: ' + response.data.totalProducts);",
+							"    console.log('💰 Valor total del catálogo: $' + response.data.totalCatalogValue);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/products/catalog/summary",
+					"host": ["{{base_url}}"],
+					"path": ["products", "catalog", "summary"]
+				}
+			}
+		},
+		{
+			"name": "12. HU: Validación Pública - Buscar en Catálogo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Productos visibles en catálogo público\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    pm.expect(response.data).to.be.an('array');",
+							"    ",
+							"    // Buscar nuestro producto en los resultados",
+							"    const ourProduct = response.data.find(p => p.albumTitle === 'The Lamb Lies Down on Broadway');",
+							"    pm.expect(ourProduct).to.exist;",
+							"    pm.expect(ourProduct.price).to.equal(42.99);",
+							"    console.log('✅ VALIDACIÓN FINAL: Clientes ven las actualizaciones en la tienda');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/products/catalog/search?searchQuery=Genesis&inStockOnly=true",
+					"host": ["{{base_url}}"],
+					"path": ["products", "catalog", "search"],
+					"query": [
+						{
+							"key": "searchQuery",
+							"value": "Genesis"
+						},
+						{
+							"key": "inStockOnly",
+							"value": "true"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "13. HU: Ver Productos Destacados",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Productos destacados obtenidos\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    console.log('✅ Productos destacados: ' + response.data.length);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/products/catalog/featured",
+					"host": ["{{base_url}}"],
+					"path": ["products", "catalog", "featured"]
+				}
+			}
+		},
+		{
+			"name": "14. HU: Activar/Desactivar Producto",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"✅ Estado del producto cambiado\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    console.log('✅ Producto activado/desactivado exitosamente');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/products/{{catalog_product_id}}/catalog/toggle-status",
+					"host": ["{{base_url}}"],
+					"path": ["products", "{{catalog_product_id}}", "catalog", "toggle-status"]
+				}
+			}
+		},
+		{
+			"name": "15. Validación Final: Historia de Usuario Completa",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"🎉 HISTORIA DE USUARIO COMPLETADA EXITOSAMENTE\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"    ",
+							"    console.log('');",
+							"    console.log('🎉 ===============================================');",
+							"    console.log('✅ HISTORIA DE USUARIO VALIDADA COMPLETAMENTE');",
+							"    console.log('📝 Como proveedor, quiero gestionar mi catálogo');",
+							"    console.log('   de vinilos con nombre, artista, año y precio');",
+							"    console.log('   para publicarlos en la plataforma.');",
+							"    console.log('');",
+							"    console.log('✅ CRITERIOS DE ACEPTACIÓN CUMPLIDOS:');",
+							"    console.log('   ✓ GIVEN: Proveedor está logueado');",
+							"    console.log('   ✓ WHEN: Edita su catálogo');",
+							"    console.log('   ✓ THEN: Clientes ven actualizaciones en tienda');",
+							"    console.log('');",
+							"    console.log('🛒 FUNCIONALIDADES VALIDADAS:');",
+							"    console.log('   ✓ Crear productos con información completa');",
+							"    console.log('   ✓ Actualizar precios y detalles');",
+							"    console.log('   ✓ Ver resumen del catálogo');",
+							"    console.log('   ✓ Productos visibles públicamente');",
+							"    console.log('   ✓ Gestionar estado activo/inactivo');",
+							"    console.log('🎉 ===============================================');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/products/catalog/summary",
+					"host": ["{{base_url}}"],
+					"path": ["products", "catalog", "summary"]
+				}
+			}
+		}
+	]
+}

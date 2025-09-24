@@ -4,45 +4,40 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * DTO para resumen del catálogo completo del proveedor
- * Incluye métricas y estadísticas del catálogo
+ * DTO resumen del catálogo completo de un proveedor
+ * Incluye estadísticas y lista de productos
  */
 public class ProviderCatalogSummaryDTO {
 
     private Long providerId;
     private String providerBusinessName;
 
-    // Estadísticas básicas
+    // Estadísticas del catálogo
     private Integer totalProducts;
     private Integer activeProducts;
     private Integer inactiveProducts;
     private Integer featuredProducts;
-
-    // Estadísticas de stock
     private Integer productsInStock;
-    private Integer productsLowStock;
     private Integer productsOutOfStock;
-    private Integer totalUnitsInStock;
-
-    // Estadísticas financieras
-    private BigDecimal totalCatalogValue; // Suma del precio * stock de todos los productos
     private BigDecimal averagePrice;
-    private BigDecimal lowestPrice;
-    private BigDecimal highestPrice;
+    private BigDecimal totalCatalogValue; // suma de precio * stock
 
-    // Distribución por categorías
-    private Integer totalCategories;
-    private Integer totalGenres;
-    private Integer totalArtists;
+    // Desglose por tipo
+    private Integer physicalProducts;
+    private Integer digitalProducts;
+
+    // Desglose por condición
+    private Integer newProducts;
+    private Integer usedProducts;
 
     // Lista de productos del catálogo
-    private List<CatalogProductResponseDTO> products;
+    private List<ProductCatalogResponseDTO> products;
 
     // Constructor vacío
     public ProviderCatalogSummaryDTO() {
     }
 
-    // Constructor con información básica
+    // Constructor con datos básicos
     public ProviderCatalogSummaryDTO(Long providerId, String providerBusinessName) {
         this.providerId = providerId;
         this.providerBusinessName = providerBusinessName;
@@ -51,22 +46,16 @@ public class ProviderCatalogSummaryDTO {
     // Constructor completo
     public ProviderCatalogSummaryDTO(Long providerId, String providerBusinessName,
             Integer totalProducts, Integer activeProducts,
-            Integer productsInStock, Integer totalUnitsInStock,
-            BigDecimal totalCatalogValue, BigDecimal averagePrice,
-            List<CatalogProductResponseDTO> products) {
+            Integer featuredProducts, Integer productsInStock,
+            BigDecimal averagePrice, List<ProductCatalogResponseDTO> products) {
         this.providerId = providerId;
         this.providerBusinessName = providerBusinessName;
         this.totalProducts = totalProducts;
         this.activeProducts = activeProducts;
+        this.featuredProducts = featuredProducts;
         this.productsInStock = productsInStock;
-        this.totalUnitsInStock = totalUnitsInStock;
-        this.totalCatalogValue = totalCatalogValue;
         this.averagePrice = averagePrice;
         this.products = products;
-
-        // Calcular campos derivados
-        this.inactiveProducts = totalProducts - activeProducts;
-        this.productsOutOfStock = totalProducts - productsInStock;
     }
 
     // Getters y Setters
@@ -100,9 +89,6 @@ public class ProviderCatalogSummaryDTO {
 
     public void setActiveProducts(Integer activeProducts) {
         this.activeProducts = activeProducts;
-        if (this.totalProducts != null) {
-            this.inactiveProducts = this.totalProducts - activeProducts;
-        }
     }
 
     public Integer getInactiveProducts() {
@@ -127,17 +113,6 @@ public class ProviderCatalogSummaryDTO {
 
     public void setProductsInStock(Integer productsInStock) {
         this.productsInStock = productsInStock;
-        if (this.totalProducts != null) {
-            this.productsOutOfStock = this.totalProducts - productsInStock;
-        }
-    }
-
-    public Integer getProductsLowStock() {
-        return productsLowStock;
-    }
-
-    public void setProductsLowStock(Integer productsLowStock) {
-        this.productsLowStock = productsLowStock;
     }
 
     public Integer getProductsOutOfStock() {
@@ -148,12 +123,12 @@ public class ProviderCatalogSummaryDTO {
         this.productsOutOfStock = productsOutOfStock;
     }
 
-    public Integer getTotalUnitsInStock() {
-        return totalUnitsInStock;
+    public BigDecimal getAveragePrice() {
+        return averagePrice;
     }
 
-    public void setTotalUnitsInStock(Integer totalUnitsInStock) {
-        this.totalUnitsInStock = totalUnitsInStock;
+    public void setAveragePrice(BigDecimal averagePrice) {
+        this.averagePrice = averagePrice;
     }
 
     public BigDecimal getTotalCatalogValue() {
@@ -164,59 +139,43 @@ public class ProviderCatalogSummaryDTO {
         this.totalCatalogValue = totalCatalogValue;
     }
 
-    public BigDecimal getAveragePrice() {
-        return averagePrice;
+    public Integer getPhysicalProducts() {
+        return physicalProducts;
     }
 
-    public void setAveragePrice(BigDecimal averagePrice) {
-        this.averagePrice = averagePrice;
+    public void setPhysicalProducts(Integer physicalProducts) {
+        this.physicalProducts = physicalProducts;
     }
 
-    public BigDecimal getLowestPrice() {
-        return lowestPrice;
+    public Integer getDigitalProducts() {
+        return digitalProducts;
     }
 
-    public void setLowestPrice(BigDecimal lowestPrice) {
-        this.lowestPrice = lowestPrice;
+    public void setDigitalProducts(Integer digitalProducts) {
+        this.digitalProducts = digitalProducts;
     }
 
-    public BigDecimal getHighestPrice() {
-        return highestPrice;
+    public Integer getNewProducts() {
+        return newProducts;
     }
 
-    public void setHighestPrice(BigDecimal highestPrice) {
-        this.highestPrice = highestPrice;
+    public void setNewProducts(Integer newProducts) {
+        this.newProducts = newProducts;
     }
 
-    public Integer getTotalCategories() {
-        return totalCategories;
+    public Integer getUsedProducts() {
+        return usedProducts;
     }
 
-    public void setTotalCategories(Integer totalCategories) {
-        this.totalCategories = totalCategories;
+    public void setUsedProducts(Integer usedProducts) {
+        this.usedProducts = usedProducts;
     }
 
-    public Integer getTotalGenres() {
-        return totalGenres;
-    }
-
-    public void setTotalGenres(Integer totalGenres) {
-        this.totalGenres = totalGenres;
-    }
-
-    public Integer getTotalArtists() {
-        return totalArtists;
-    }
-
-    public void setTotalArtists(Integer totalArtists) {
-        this.totalArtists = totalArtists;
-    }
-
-    public List<CatalogProductResponseDTO> getProducts() {
+    public List<ProductCatalogResponseDTO> getProducts() {
         return products;
     }
 
-    public void setProducts(List<CatalogProductResponseDTO> products) {
+    public void setProducts(List<ProductCatalogResponseDTO> products) {
         this.products = products;
     }
 
@@ -228,9 +187,8 @@ public class ProviderCatalogSummaryDTO {
                 ", totalProducts=" + totalProducts +
                 ", activeProducts=" + activeProducts +
                 ", productsInStock=" + productsInStock +
-                ", totalUnitsInStock=" + totalUnitsInStock +
-                ", totalCatalogValue=" + totalCatalogValue +
                 ", averagePrice=" + averagePrice +
+                ", products=" + (products != null ? products.size() + " items" : "null") +
                 '}';
     }
 }

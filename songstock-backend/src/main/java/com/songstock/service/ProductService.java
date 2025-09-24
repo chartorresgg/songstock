@@ -18,9 +18,21 @@ import com.songstock.dto.ProductInventoryUpdateDTO;
 import com.songstock.dto.ProductStockAdjustmentDTO;
 import com.songstock.dto.ProductInventoryResponseDTO;
 import com.songstock.dto.ProviderInventorySummaryDTO;
-import com.songstock.dto.CatalogProductCreateDTO;
-import com.songstock.dto.CatalogProductUpdateDTO;
+import com.songstock.dto.ProductCatalogCreateDTO;
+import com.songstock.dto.ProductCatalogUpdateDTO;
+import com.songstock.dto.ProductCatalogResponseDTO;
 import com.songstock.dto.ProviderCatalogSummaryDTO;
+import com.songstock.dto.CatalogFilterDTO;
+import com.songstock.entity.Album;
+import com.songstock.entity.Category;
+import com.songstock.entity.Provider;
+import com.songstock.entity.VerificationStatus;
+import com.songstock.entity.ProductType;
+import com.songstock.entity.ConditionType;
+import com.songstock.repository.AlbumRepository;
+import com.songstock.repository.CategoryRepository;
+import java.math.RoundingMode;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
@@ -720,72 +732,73 @@ public class ProductService {
     }
 
     /**
-     * Obtener catálogo completo del proveedor
+     * Crear un producto en el catálogo del proveedor
      */
-    @Transactional(readOnly = true)
-    public ProviderCatalogSummaryDTO getProviderCatalog(Long providerId) {
-        // Validar que el proveedor existe
+    @Transactional
+    public ProductCatalogResponseDTO createCatalogProduct(Long providerId, ProductCatalogCreateDTO createDTO) {
+        // Validar que el proveedor existe y está verificado
         Provider provider = providerRepository.findById(providerId)
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + providerId));
 
-        // Obtener todos los productos del proveedor
-        List<Product> providerProducts = productRepository.findByProviderId(providerId);
+        if (!provider.getVerificationStatus().equals(VerificationStatus.VERIFIED)) {
+            throw new RuntimeException("El proveedor debe estar verificado para crear productos");
+        }
 
-        // Mapear a DTOs de catálogo
-        List<CatalogProductCreateDTO> catalogProducts = providerProducts.stream()
-                .map(this::mapToCatalogDTO)
-                .collect(Collectors.toList());
+        // Validar que el álbum existe
+        Album album = albumRepository.findById(createDTO.getAlbumId())
+                .orElseThrow(() -> new RuntimeException("Álbum no encontrado con ID: " + createDTO.getAlbumId()));
 
-        // Calcular estadísticas
-        Integer totalProducts = providerProducts.size();
-        Integer activeProducts = (int) providerProducts.stream()
-                .filter(Product::getIsActive)
-                .count();
-        Integer inactiveProducts = totalProducts - activeProducts;
-        Integer featuredProducts = (int) providerProducts.stream()
-                .filter(Product::getFeatured)
-                .count();
+        // Validar que la categoría existe
+        Category category = categoryRepository.findById(createDTO.getCategoryId())
+                .orElseThrow(
+                        () -> new RuntimeException("Categoría no encontrada con ID: " + createDTO.getCategoryId()));
 
-        return new ProviderCatalogSummaryDTO(
-                providerId,
-                provider.getBusinessName(),
-                totalProducts,
-                activeProducts,
-                inactiveProducts,
-                featuredProducts,
-                catalogProducts);
+        // Validar SKU único
+        if (productRepository.existsBySku(createDTO.getSku())) {
+            throw new RuntimeException("Ya existe un producto con SKU: " + createDTO.getSku());
+        }
+
+        // Crear el producto
+        Product product = new Product();
+        product.setAlbum(album);
+        product.setProvider(provider);
+        product.setCategory(category);
+        product.setSku(createDTO.getSku());
+        product.setProductType(createDTO.getProductType());
+        product.setConditionType(createDTO.getConditionType());
+        product.setPrice(createDTO.getPrice());
+        product.setStockQuantity(createDTO.getStockQuantity());
+        product.setFeatured(createDTO.getFeatured() != null ? createDTO.getFeatured() : false);
+        product.setIsActive(true);
+
+        // Campos específicos según el tipo de producto
+        if (createDTO.getProductType() == ProductType.PHYSICAL) {
+            product.setVinylSize(createDTO.getVinylSize());
+            product.setVinylSpeed(createDTO.getVinylSpeed());
+            product.setWeightGrams(createDTO.getWeightGrams());
+        } else if (createDTO.getProductType() == ProductType.DIGITAL) {
+            product.setFileFormat(createDTO.getFileFormat());
+            product.setFileSizeMb(createDTO.getFileSizeMb());
+        }
+
+        product.setCreatedAt(LocalDateTime.now());
+        product.setUpdatedAt(LocalDateTime.now());
+
+        // Guardar el producto
+        Product savedProduct = productRepository.save(product);
+
+        logger.info("Producto creado en catálogo - ID: {}, SKU: {}, Proveedor: {}",
+                savedProduct.getId(), savedProduct.getSku(), providerId);
+
+        return mapToCatalogResponseDTO(savedProduct);
     }
 
     /**
-     * Obtener productos activos del catálogo para los clientes
-     */
-    @Transactional(readOnly = true)
-    public List<CatalogProductCreateDTO> getPublicCatalog() {
-        List<Product> activeProducts = productRepository.findByIsActiveTrueOrderByCreatedAtDesc();
-
-        return activeProducts.stream()
-                .map(this::mapToCatalogDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Obtener productos destacados del catálogo
-     */
-    @Transactional(readOnly = true)
-    public List<CatalogProductCreateDTO> getFeaturedCatalogProducts() {
-        List<Product> featuredProducts = productRepository.findByIsActiveTrueAndFeaturedTrueOrderByCreatedAtDesc();
-
-        return featuredProducts.stream()
-                .map(this::mapToCatalogDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Actualizar producto del catálogo
+     * Actualizar un producto del catálogo
      */
     @Transactional
-    public CatalogProductCreateDTO updateCatalogProduct(Long productId, Long providerId,
-            CatalogProductUpdateDTO updateDTO) {
+    public ProductCatalogResponseDTO updateCatalogProduct(Long providerId, Long productId,
+            ProductCatalogUpdateDTO updateDTO) {
         // Validar que el producto existe
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
@@ -795,123 +808,304 @@ public class ProductService {
             throw new RuntimeException("No tienes permisos para actualizar este producto");
         }
 
-        // Guardar valores anteriores para auditoría
-        BigDecimal previousPrice = product.getPrice();
-        Integer previousStock = product.getStockQuantity();
-        Boolean previousActive = product.getIsActive();
-        Boolean previousFeatured = product.getFeatured();
-
-        // Actualizar campos
-        product.setPrice(updateDTO.getPrice());
-        product.setStockQuantity(updateDTO.getStockQuantity());
-        product.setIsActive(updateDTO.getIsActive());
-        product.setFeatured(updateDTO.getFeatured());
-        product.setUpdatedAt(LocalDateTime.now());
-
-        // Guardar producto
-        Product savedProduct = productRepository.save(product);
-
-        // Log del cambio
-        logger.info(
-                "Catálogo actualizado - Producto: {}, Precio: {} -> {}, Stock: {} -> {}, Activo: {} -> {}, Destacado: {} -> {}, Proveedor: {}, Razón: {}",
-                productId, previousPrice, updateDTO.getPrice(), previousStock, updateDTO.getStockQuantity(),
-                previousActive, updateDTO.getIsActive(), previousFeatured, updateDTO.getFeatured(),
-                providerId, updateDTO.getUpdateReason());
-
-        return mapToCatalogDTO(savedProduct);
-    }
-
-    /**
-     * Activar/desactivar producto en el catálogo
-     */
-    @Transactional
-    public CatalogProductCreateDTO toggleProductStatus(Long productId, Long providerId, String reason) {
-        // Validar que el producto existe
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
-
-        // Validar que el producto pertenece al proveedor
-        if (!product.getProvider().getId().equals(providerId)) {
-            throw new RuntimeException("No tienes permisos para modificar este producto");
+        // Actualizar campos si están presentes en el DTO
+        if (updateDTO.getSku() != null && !updateDTO.getSku().equals(product.getSku())) {
+            // Validar SKU único si se está cambiando
+            if (productRepository.existsBySku(updateDTO.getSku())) {
+                throw new RuntimeException("Ya existe un producto con SKU: " + updateDTO.getSku());
+            }
+            product.setSku(updateDTO.getSku());
         }
 
-        // Cambiar estado
-        Boolean previousStatus = product.getIsActive();
-        product.setIsActive(!previousStatus);
-        product.setUpdatedAt(LocalDateTime.now());
-
-        // Guardar producto
-        Product savedProduct = productRepository.save(product);
-
-        // Log del cambio
-        logger.info("Estado del producto cambiado - Producto: {}, Estado: {} -> {}, Proveedor: {}, Razón: {}",
-                productId, previousStatus, !previousStatus, providerId, reason);
-
-        return mapToCatalogDTO(savedProduct);
-    }
-
-    /**
-     * Marcar/desmarcar producto como destacado
-     */
-    @Transactional
-    public CatalogProductCreateDTO toggleProductFeatured(Long productId, Long providerId, String reason) {
-        // Validar que el producto existe
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
-
-        // Validar que el producto pertenece al proveedor
-        if (!product.getProvider().getId().equals(providerId)) {
-            throw new RuntimeException("No tienes permisos para modificar este producto");
+        if (updateDTO.getConditionType() != null) {
+            product.setConditionType(updateDTO.getConditionType());
         }
 
-        // Cambiar estado destacado
-        Boolean previousFeatured = product.getFeatured();
-        product.setFeatured(!previousFeatured);
+        if (updateDTO.getPrice() != null) {
+            product.setPrice(updateDTO.getPrice());
+        }
+
+        if (updateDTO.getStockQuantity() != null) {
+            product.setStockQuantity(updateDTO.getStockQuantity());
+        }
+
+        if (updateDTO.getFeatured() != null) {
+            product.setFeatured(updateDTO.getFeatured());
+        }
+
+        if (updateDTO.getDescription() != null) {
+            // Asumiendo que agregamos campo description a Product entity
+            // product.setDescription(updateDTO.getDescription());
+        }
+
+        // Actualizar campos específicos por tipo
+        if (product.getProductType() == ProductType.PHYSICAL) {
+            if (updateDTO.getVinylSize() != null) {
+                product.setVinylSize(updateDTO.getVinylSize());
+            }
+            if (updateDTO.getVinylSpeed() != null) {
+                product.setVinylSpeed(updateDTO.getVinylSpeed());
+            }
+            if (updateDTO.getWeightGrams() != null) {
+                product.setWeightGrams(updateDTO.getWeightGrams());
+            }
+        } else if (product.getProductType() == ProductType.DIGITAL) {
+            if (updateDTO.getFileFormat() != null) {
+                product.setFileFormat(updateDTO.getFileFormat());
+            }
+            if (updateDTO.getFileSizeMb() != null) {
+                product.setFileSizeMb(updateDTO.getFileSizeMb());
+            }
+        }
+
         product.setUpdatedAt(LocalDateTime.now());
 
-        // Guardar producto
+        // Guardar cambios
         Product savedProduct = productRepository.save(product);
 
-        // Log del cambio
-        logger.info("Estado destacado cambiado - Producto: {}, Destacado: {} -> {}, Proveedor: {}, Razón: {}",
-                productId, previousFeatured, !previousFeatured, providerId, reason);
+        logger.info("Producto actualizado - ID: {}, Proveedor: {}, Razón: {}",
+                productId, providerId, updateDTO.getUpdateReason());
 
-        return mapToCatalogDTO(savedProduct);
+        return mapToCatalogResponseDTO(savedProduct);
     }
 
     /**
-     * Buscar en catálogo por criterios
+     * Obtener catálogo completo del proveedor
      */
     @Transactional(readOnly = true)
-    public List<CatalogProductCreateDTO> searchCatalog(String albumName, String artistName, Integer year,
-            BigDecimal minPrice, BigDecimal maxPrice) {
-        List<Product> products = productRepository.searchProducts(albumName, artistName, year, minPrice, maxPrice);
+    public ProviderCatalogSummaryDTO getProviderCatalog(Long providerId) {
+        // Validar que el proveedor existe
+        Provider provider = providerRepository.findById(providerId)
+                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + providerId));
+
+        // Obtener todos los productos del proveedor
+        List<Product> allProducts = productRepository.findByProviderId(providerId);
+
+        // Calcular estadísticas
+        ProviderCatalogSummaryDTO summary = new ProviderCatalogSummaryDTO(providerId, provider.getBusinessName());
+
+        summary.setTotalProducts(allProducts.size());
+        summary.setActiveProducts((int) allProducts.stream().filter(Product::getIsActive).count());
+        summary.setInactiveProducts(summary.getTotalProducts() - summary.getActiveProducts());
+        summary.setFeaturedProducts((int) allProducts.stream().filter(Product::getFeatured).count());
+        summary.setProductsInStock((int) allProducts.stream().filter(p -> p.getStockQuantity() > 0).count());
+        summary.setProductsOutOfStock(summary.getTotalProducts() - summary.getProductsInStock());
+
+        summary.setPhysicalProducts((int) allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.PHYSICAL).count());
+        summary.setDigitalProducts((int) allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.DIGITAL).count());
+
+        summary.setNewProducts((int) allProducts.stream()
+                .filter(p -> p.getConditionType() == ConditionType.NEW).count());
+        summary.setUsedProducts(summary.getTotalProducts() - summary.getNewProducts());
+
+        // Calcular precio promedio
+        BigDecimal averagePrice = allProducts.stream()
+                .map(Product::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(allProducts.size()), 2, RoundingMode.HALF_UP);
+        summary.setAveragePrice(averagePrice);
+
+        // Calcular valor total del catálogo
+        BigDecimal totalValue = allProducts.stream()
+                .map(p -> p.getPrice().multiply(BigDecimal.valueOf(p.getStockQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        summary.setTotalCatalogValue(totalValue);
+
+        // Mapear productos a DTOs
+        List<ProductCatalogResponseDTO> productDTOs = allProducts.stream()
+                .map(this::mapToCatalogResponseDTO)
+                .collect(Collectors.toList());
+        summary.setProducts(productDTOs);
+
+        return summary;
+    }
+
+    /**
+     * Buscar productos en el catálogo con filtros
+     */
+    @Transactional(readOnly = true)
+    public List<ProductCatalogResponseDTO> searchCatalogProducts(CatalogFilterDTO filterDTO) {
+        // Aquí implementarías la lógica de búsqueda con criterios dinámicos
+        // Por simplicidad, implemento una versión básica
+
+        List<Product> products = productRepository.findAll();
+
+        // Filtro por búsqueda de texto
+        if (filterDTO.getSearchQuery() != null && !filterDTO.getSearchQuery().isEmpty()) {
+            String query = filterDTO.getSearchQuery().toLowerCase();
+            products = products.stream()
+                    .filter(p -> p.getAlbum().getTitle().toLowerCase().contains(query) ||
+                            p.getAlbum().getArtist().getName().toLowerCase().contains(query))
+                    .collect(Collectors.toList());
+        }
+
+        // Filtro por categoría
+        if (filterDTO.getCategoryId() != null) {
+            products = products.stream()
+                    .filter(p -> p.getCategory().getId().equals(filterDTO.getCategoryId()))
+                    .collect(Collectors.toList());
+        }
+
+        // Filtro por tipo de producto
+        if (filterDTO.getProductType() != null) {
+            products = products.stream()
+                    .filter(p -> p.getProductType().equals(filterDTO.getProductType()))
+                    .collect(Collectors.toList());
+        }
+
+        // Filtro por rango de precios
+        if (filterDTO.getMinPrice() != null) {
+            products = products.stream()
+                    .filter(p -> p.getPrice().compareTo(filterDTO.getMinPrice()) >= 0)
+                    .collect(Collectors.toList());
+        }
+
+        if (filterDTO.getMaxPrice() != null) {
+            products = products.stream()
+                    .filter(p -> p.getPrice().compareTo(filterDTO.getMaxPrice()) <= 0)
+                    .collect(Collectors.toList());
+        }
+
+        // Filtro solo con stock
+        if (filterDTO.getInStockOnly() != null && filterDTO.getInStockOnly()) {
+            products = products.stream()
+                    .filter(p -> p.getStockQuantity() > 0)
+                    .collect(Collectors.toList());
+        }
+
+        // Filtro solo destacados
+        if (filterDTO.getFeaturedOnly() != null && filterDTO.getFeaturedOnly()) {
+            products = products.stream()
+                    .filter(Product::getFeatured)
+                    .collect(Collectors.toList());
+        }
+
+        // Filtro solo activos
+        if (filterDTO.getActiveOnly() != null && filterDTO.getActiveOnly()) {
+            products = products.stream()
+                    .filter(Product::getIsActive)
+                    .collect(Collectors.toList());
+        }
+
+        // Ordenamiento básico
+        if ("price".equals(filterDTO.getSortBy())) {
+            products.sort((p1, p2) -> "asc".equals(filterDTO.getSortDirection())
+                    ? p1.getPrice().compareTo(p2.getPrice())
+                    : p2.getPrice().compareTo(p1.getPrice()));
+        } else if ("createdAt".equals(filterDTO.getSortBy())) {
+            products.sort((p1, p2) -> "asc".equals(filterDTO.getSortDirection())
+                    ? p1.getCreatedAt().compareTo(p2.getCreatedAt())
+                    : p2.getCreatedAt().compareTo(p1.getCreatedAt()));
+        }
 
         return products.stream()
-                .map(this::mapToCatalogDTO)
+                .map(this::mapToCatalogResponseDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Mapear Product a ProductCatalogDTO
+     * Activar/Desactivar producto del catálogo
      */
-    private CatalogProductCreateDTO mapToCatalogDTO(Product product) {
-        return new CatalogProductCreateDTO(
-                product.getId(),
-                product.getAlbum().getTitle(),
-                product.getAlbum().getArtist().getName(),
-                product.getAlbum().getReleaseYear(),
-                product.getPrice(),
-                product.getSku(),
-                product.getStockQuantity(),
-                product.getIsActive(),
-                product.getFeatured(),
-                product.getAlbum().getGenre() != null ? product.getAlbum().getGenre().getName() : null,
-                product.getConditionType().toString(),
-                product.getVinylSize() != null ? product.getVinylSize().toString() : null,
-                product.getVinylSpeed() != null ? product.getVinylSpeed().toString() : null,
-                product.getCreatedAt(),
-                product.getUpdatedAt());
+    @Transactional
+    public ProductCatalogResponseDTO toggleProductStatus(Long providerId, Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
+
+        // Validar ownership
+        if (!product.getProvider().getId().equals(providerId)) {
+            throw new RuntimeException("No tienes permisos para modificar este producto");
+        }
+
+        product.setIsActive(!product.getIsActive());
+        product.setUpdatedAt(LocalDateTime.now());
+
+        Product savedProduct = productRepository.save(product);
+
+        logger.info("Producto {} - ID: {}, Proveedor: {}",
+                savedProduct.getIsActive() ? "activado" : "desactivado", productId, providerId);
+
+        return mapToCatalogResponseDTO(savedProduct);
     }
 
+    /**
+     * Eliminar producto del catálogo (soft delete)
+     */
+    @Transactional
+    public void deleteCatalogProduct(Long providerId, Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
+
+        // Validar ownership
+        if (!product.getProvider().getId().equals(providerId)) {
+            throw new RuntimeException("No tienes permisos para eliminar este producto");
+        }
+
+        product.setIsActive(false);
+        product.setUpdatedAt(LocalDateTime.now());
+        productRepository.save(product);
+
+        logger.info("Producto eliminado (soft delete) - ID: {}, Proveedor: {}", productId, providerId);
+    }
+
+    /**
+     * Mapear Product a ProductCatalogResponseDTO
+     */
+    private ProductCatalogResponseDTO mapToCatalogResponseDTO(Product product) {
+        ProductCatalogResponseDTO dto = new ProductCatalogResponseDTO();
+
+        dto.setId(product.getId());
+        dto.setSku(product.getSku());
+
+        // Información del álbum
+        dto.setAlbumId(product.getAlbum().getId());
+        dto.setAlbumTitle(product.getAlbum().getTitle());
+        dto.setArtistName(product.getAlbum().getArtist().getName());
+        dto.setReleaseYear(product.getAlbum().getReleaseYear());
+
+        // Información del producto
+        dto.setProductType(product.getProductType().toString());
+        dto.setConditionType(product.getConditionType().toString());
+        dto.setPrice(product.getPrice());
+        dto.setStockQuantity(product.getStockQuantity());
+        dto.setIsAvailable(product.getStockQuantity() > 0);
+
+        // Información específica de vinilos
+        if (product.getVinylSize() != null) {
+            dto.setVinylSize(product.getVinylSize().toString());
+        }
+        if (product.getVinylSpeed() != null) {
+            dto.setVinylSpeed(product.getVinylSpeed().toString());
+        }
+        dto.setWeightGrams(product.getWeightGrams());
+
+        // Información específica de digitales
+        dto.setFileFormat(product.getFileFormat());
+        dto.setFileSizeMb(product.getFileSizeMb());
+
+        // Información adicional
+        dto.setFeatured(product.getFeatured());
+        dto.setIsActive(product.getIsActive());
+
+        // Información del proveedor
+        dto.setProviderId(product.getProvider().getId());
+        dto.setProviderBusinessName(product.getProvider().getBusinessName());
+
+        // Información de categoría
+        dto.setCategoryId(product.getCategory().getId());
+        dto.setCategoryName(product.getCategory().getName());
+
+        // Información de género (si existe)
+        if (product.getAlbum().getGenre() != null) {
+            dto.setGenreId(product.getAlbum().getGenre().getId());
+            dto.setGenreName(product.getAlbum().getGenre().getName());
+        }
+
+        // Metadatos
+        dto.setCreatedAt(product.getCreatedAt());
+        dto.setUpdatedAt(product.getUpdatedAt());
+
+        return dto;
+    }
 }

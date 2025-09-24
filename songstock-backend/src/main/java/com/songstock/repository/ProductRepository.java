@@ -24,23 +24,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Buscar por SKU
     Optional<Product> findBySkuAndIsActiveTrue(String sku);
 
-    // Buscar activos
-    List<Product> findByIsActiveTrue();
-
-    // Buscar por tipo de producto
-    List<Product> findByProductTypeAndIsActiveTrue(ProductType productType);
-
     // Buscar por álbum
     List<Product> findByAlbumAndIsActiveTrue(Album album);
 
     // Buscar por álbum ID
     List<Product> findByAlbumIdAndIsActiveTrue(Long albumId);
-
-    // Buscar por categoría
-    List<Product> findByCategoryIdAndIsActiveTrue(Long categoryId);
-
-    // Buscar productos destacados
-    List<Product> findByFeaturedTrueAndIsActiveTrue();
 
     // Buscar por rango de precios
     @Query("SELECT p FROM Product p WHERE p.price BETWEEN :minPrice AND :maxPrice AND p.isActive = true")
@@ -101,9 +89,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Buscar por velocidad de vinilo
     List<Product> findByVinylSpeedAndIsActiveTrue(VinylSpeed vinylSpeed);
 
-    // Buscar por condición
-    List<Product> findByConditionTypeAndIsActiveTrue(ConditionType conditionType);
-
     // CONSULTAS ESPECÍFICAS PARA DIGITALES
 
     // Buscar por formato de archivo
@@ -122,16 +107,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Valor total del inventario por proveedor
     @Query("SELECT SUM(p.price * p.stockQuantity) FROM Product p WHERE p.provider.id = :providerId AND p.isActive = true")
     BigDecimal getTotalInventoryValueByProvider(@Param("providerId") Long providerId);
-
-    // Productos más populares (aquí asumiríamos que hay una tabla de ventas, por
-    // ahora ordenamos por featured)
-    @Query("SELECT p FROM Product p WHERE p.isActive = true ORDER BY p.featured DESC, p.createdAt DESC")
-    List<Product> findPopularProducts(Pageable pageable);
-
-    /**
-     * Encontrar todos los productos activos de un proveedor específico
-     */
-    List<Product> findByProviderIdAndIsActiveTrue(Long providerId);
 
     /**
      * Encontrar productos de un proveedor con stock menor o igual al especificado
@@ -163,4 +138,290 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Query("SELECT COALESCE(SUM(p.stockQuantity), 0) FROM Product p WHERE p.provider.id = :providerId AND p.isActive = true")
     Long sumStockByProvider(@Param("providerId") Long providerId);
+
+    /**
+     * Verificar si existe un producto con el SKU dado
+     */
+    boolean existsBySku(String sku);
+
+    /**
+     * Encontrar todos los productos de un proveedor específico
+     */
+    List<Product> findByProviderId(Long providerId);
+
+    /**
+     * Encontrar productos destacados de un proveedor
+     */
+    List<Product> findByProviderIdAndFeaturedTrue(Long providerId);
+
+    /**
+     * Encontrar productos destacados y activos de un proveedor
+     */
+    List<Product> findByProviderIdAndFeaturedTrueAndIsActiveTrue(Long providerId);
+
+    /**
+     * Buscar productos por título de álbum o nombre de artista
+     */
+    @Query("SELECT p FROM Product p JOIN p.album a JOIN a.artist ar " +
+            "WHERE (LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(ar.name) LIKE LOWER(CONCAT('%', :query, '%'))) AND p.isActive = true")
+    List<Product> searchByAlbumOrArtist(@Param("query") String query);
+
+    /**
+     * Encontrar productos por categoría
+     */
+    List<Product> findByCategoryIdAndIsActiveTrue(Long categoryId);
+
+    /**
+     * Encontrar productos por artista (a través del álbum)
+     */
+    @Query("SELECT p FROM Product p JOIN p.album a WHERE a.artist.id = :artistId AND p.isActive = true")
+    List<Product> findByArtistIdAndIsActiveTrue(@Param("artistId") Long artistId);
+
+    /**
+     * Encontrar productos por tipo de producto
+     */
+    List<Product> findByProductTypeAndIsActiveTrue(ProductType productType);
+
+    /**
+     * Encontrar productos por condición
+     */
+    List<Product> findByConditionTypeAndIsActiveTrue(ConditionType conditionType);
+
+    /**
+     * Encontrar productos con precio mayor o igual
+     */
+    List<Product> findByPriceGreaterThanEqualAndIsActiveTrue(BigDecimal minPrice);
+
+    /**
+     * Encontrar productos con precio menor o igual
+     */
+    List<Product> findByPriceLessThanEqualAndIsActiveTrue(BigDecimal maxPrice);
+
+    /**
+     * Encontrar productos por año de lanzamiento (a través del álbum)
+     */
+    @Query("SELECT p FROM Product p JOIN p.album a WHERE a.releaseYear BETWEEN :minYear AND :maxYear AND p.isActive = true")
+    List<Product> findByReleaseYearBetweenAndIsActiveTrue(@Param("minYear") Integer minYear,
+            @Param("maxYear") Integer maxYear);
+
+    /**
+     * Encontrar productos por año específico
+     */
+    @Query("SELECT p FROM Product p JOIN p.album a WHERE a.releaseYear = :year AND p.isActive = true")
+    List<Product> findByReleaseYearAndIsActiveTrue(@Param("year") Integer year);
+
+    /**
+     * Encontrar productos sin stock
+     */
+    List<Product> findByStockQuantityEqualsAndIsActiveTrue(Integer stock);
+
+    /**
+     * Encontrar productos destacados con stock
+     */
+    List<Product> findByFeaturedTrueAndStockQuantityGreaterThanAndIsActiveTrue(Integer minStock);
+
+    /**
+     * Encontrar productos destacados activos
+     */
+    List<Product> findByFeaturedTrueAndIsActiveTrue();
+
+    /**
+     * Contar productos por proveedor
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId")
+    Long countByProviderId(@Param("providerId") Long providerId);
+
+    /**
+     * Contar productos por proveedor y estado
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId AND p.isActive = :isActive")
+    Long countByProviderIdAndIsActive(@Param("providerId") Long providerId, @Param("isActive") Boolean isActive);
+
+    /**
+     * Contar productos con stock por proveedor
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId AND p.stockQuantity > 0")
+    Long countInStockByProviderId(@Param("providerId") Long providerId);
+
+    /**
+     * Contar productos sin stock por proveedor
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId AND p.stockQuantity = 0")
+    Long countOutOfStockByProviderId(@Param("providerId") Long providerId);
+
+    /**
+     * Contar productos por tipo y proveedor
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId AND p.productType = :productType")
+    Long countByProviderIdAndProductType(@Param("providerId") Long providerId,
+            @Param("productType") ProductType productType);
+
+    /**
+     * Contar productos por condición y proveedor
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId AND p.conditionType = :conditionType")
+    Long countByProviderIdAndConditionType(@Param("providerId") Long providerId,
+            @Param("conditionType") ConditionType conditionType);
+
+    /**
+     * Obtener suma del valor total del inventario por proveedor (precio * stock)
+     */
+    @Query("SELECT COALESCE(SUM(p.price * p.stockQuantity), 0) FROM Product p WHERE p.provider.id = :providerId AND p.isActive = true")
+    BigDecimal getTotalInventoryValueByProviderId(@Param("providerId") Long providerId);
+
+    /**
+     * Buscar productos con filtros múltiples usando JPQL (más portable que SQL
+     * nativo)
+     */
+    @Query("SELECT DISTINCT p FROM Product p " +
+            "JOIN p.album a " +
+            "JOIN a.artist ar " +
+            "LEFT JOIN a.genre g " +
+            "WHERE (:searchQuery IS NULL OR :searchQuery = '' OR " +
+            "       LOWER(a.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) OR " +
+            "       LOWER(ar.name) LIKE LOWER(CONCAT('%', :searchQuery, '%'))) " +
+            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+            "AND (:genreId IS NULL OR g.id = :genreId) " +
+            "AND (:artistId IS NULL OR ar.id = :artistId) " +
+            "AND (:productType IS NULL OR p.productType = :productType) " +
+            "AND (:conditionType IS NULL OR p.conditionType = :conditionType) " +
+            "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+            "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+            "AND (:minYear IS NULL OR a.releaseYear >= :minYear) " +
+            "AND (:maxYear IS NULL OR a.releaseYear <= :maxYear) " +
+            "AND (:inStockOnly = false OR p.stockQuantity > 0) " +
+            "AND (:featuredOnly = false OR p.featured = true) " +
+            "AND (:activeOnly = false OR p.isActive = true)")
+    List<Product> findWithFilters(@Param("searchQuery") String searchQuery,
+            @Param("categoryId") Long categoryId,
+            @Param("genreId") Long genreId,
+            @Param("artistId") Long artistId,
+            @Param("productType") ProductType productType,
+            @Param("conditionType") ConditionType conditionType,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("minYear") Integer minYear,
+            @Param("maxYear") Integer maxYear,
+            @Param("inStockOnly") Boolean inStockOnly,
+            @Param("featuredOnly") Boolean featuredOnly,
+            @Param("activeOnly") Boolean activeOnly);
+
+    /**
+     * Buscar productos de un proveedor específico con filtros
+     */
+    @Query("SELECT DISTINCT p FROM Product p " +
+            "JOIN p.album a " +
+            "JOIN a.artist ar " +
+            "LEFT JOIN a.genre g " +
+            "WHERE p.provider.id = :providerId " +
+            "AND (:searchQuery IS NULL OR :searchQuery = '' OR " +
+            "     LOWER(a.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) OR " +
+            "     LOWER(ar.name) LIKE LOWER(CONCAT('%', :searchQuery, '%'))) " +
+            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+            "AND (:productType IS NULL OR p.productType = :productType) " +
+            "AND (:conditionType IS NULL OR p.conditionType = :conditionType) " +
+            "AND (:inStockOnly = false OR p.stockQuantity > 0) " +
+            "AND (:featuredOnly = false OR p.featured = true) " +
+            "AND (:activeOnly = false OR p.isActive = true)")
+    List<Product> findProviderProductsWithFilters(@Param("providerId") Long providerId,
+            @Param("searchQuery") String searchQuery,
+            @Param("categoryId") Long categoryId,
+            @Param("productType") ProductType productType,
+            @Param("conditionType") ConditionType conditionType,
+            @Param("inStockOnly") Boolean inStockOnly,
+            @Param("featuredOnly") Boolean featuredOnly,
+            @Param("activeOnly") Boolean activeOnly);
+
+    /**
+     * Obtener productos más recientes
+     */
+    @Query("SELECT p FROM Product p WHERE p.isActive = true ORDER BY p.createdAt DESC")
+    List<Product> findRecentProducts(Pageable pageable);
+
+    /**
+     * Obtener productos más populares (por featured y stock)
+     */
+    @Query("SELECT p FROM Product p WHERE p.isActive = true AND p.stockQuantity > 0 " +
+            "ORDER BY p.featured DESC, p.stockQuantity DESC, p.createdAt DESC")
+    List<Product> findPopularProducts(Pageable pageable);
+
+    /**
+     * Encontrar productos activos
+     */
+    List<Product> findByIsActiveTrue();
+
+    /**
+     * Encontrar productos activos de un proveedor
+     */
+    List<Product> findByProviderIdAndIsActiveTrue(Long providerId);
+
+    /**
+     * Encontrar productos por género (a través del álbum)
+     */
+    @Query("SELECT p FROM Product p JOIN p.album a WHERE a.genre.id = :genreId AND p.isActive = true")
+    List<Product> findByGenreIdAndIsActiveTrue(@Param("genreId") Long genreId);
+
+    /**
+     * Encontrar productos en rango de precio
+     */
+    List<Product> findByPriceBetweenAndIsActiveTrue(BigDecimal minPrice, BigDecimal maxPrice);
+
+    /**
+     * Encontrar productos con stock disponible
+     */
+    List<Product> findByStockQuantityGreaterThanAndIsActiveTrue(Integer minStock);
+
+    /**
+     * Contar productos destacados por proveedor
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.provider.id = :providerId AND p.featured = true")
+    Long countFeaturedByProviderId(@Param("providerId") Long providerId);
+
+    /**
+     * Obtener precio promedio de productos de un proveedor
+     */
+    @Query("SELECT AVG(p.price) FROM Product p WHERE p.provider.id = :providerId AND p.isActive = true")
+    BigDecimal getAveragePriceByProviderId(@Param("providerId") Long providerId);
+
+    /**
+     * Buscar productos con filtros múltiples (consulta nativa para mayor
+     * flexibilidad)
+     */
+    @Query(value = "SELECT p.* FROM products p " +
+            "JOIN albums a ON p.album_id = a.id " +
+            "JOIN artists ar ON a.artist_id = ar.id " +
+            "JOIN categories c ON p.category_id = c.id " +
+            "WHERE (:searchQuery IS NULL OR " +
+            "       LOWER(a.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) OR " +
+            "       LOWER(ar.name) LIKE LOWER(CONCAT('%', :searchQuery, '%'))) " +
+            "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
+            "AND (:genreId IS NULL OR a.genre_id = :genreId) " +
+            "AND (:productType IS NULL OR p.product_type = :productType) " +
+            "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+            "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+            "AND (:minYear IS NULL OR a.release_year >= :minYear) " +
+            "AND (:maxYear IS NULL OR a.release_year <= :maxYear) " +
+            "AND (:inStockOnly = false OR p.stock_quantity > 0) " +
+            "AND (:featuredOnly = false OR p.featured = true) " +
+            "AND (:activeOnly = false OR p.is_active = true) " +
+            "ORDER BY " +
+            "CASE WHEN :sortBy = 'price' AND :sortDirection = 'asc' THEN p.price END ASC, " +
+            "CASE WHEN :sortBy = 'price' AND :sortDirection = 'desc' THEN p.price END DESC, " +
+            "CASE WHEN :sortBy = 'createdAt' AND :sortDirection = 'asc' THEN p.created_at END ASC, " +
+            "CASE WHEN :sortBy = 'createdAt' AND :sortDirection = 'desc' THEN p.created_at END DESC, " +
+            "p.created_at DESC", nativeQuery = true)
+    List<Product> findWithFilters(@Param("searchQuery") String searchQuery,
+            @Param("categoryId") Long categoryId,
+            @Param("genreId") Long genreId,
+            @Param("productType") String productType,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("minYear") Integer minYear,
+            @Param("maxYear") Integer maxYear,
+            @Param("inStockOnly") Boolean inStockOnly,
+            @Param("featuredOnly") Boolean featuredOnly,
+            @Param("activeOnly") Boolean activeOnly,
+            @Param("sortBy") String sortBy,
+            @Param("sortDirection") String sortDirection);
 }
