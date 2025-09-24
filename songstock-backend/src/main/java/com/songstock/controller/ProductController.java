@@ -31,6 +31,10 @@ import com.songstock.entity.UserRole;
 import com.songstock.entity.VerificationStatus;
 import com.songstock.repository.UserRepository;
 import com.songstock.repository.ProviderRepository;
+import com.songstock.dto.ProductCatalogDTO;
+import com.songstock.dto.ProductCatalogUpdateDTO;
+import com.songstock.dto.ProviderCatalogSummaryDTO;
+import java.math.BigDecimal;
 import java.util.List;
 
 import java.math.BigDecimal;
@@ -632,5 +636,192 @@ public class ProductController {
         logger.info("=== PROVIDER ID RETORNADO: {} ===", provider.getId());
         return provider.getId();
     }
+
+    /**
+     * Obtener catálogo completo del proveedor
+     * GET /api/v1/products/catalog/my-catalog
+     */
+    @GetMapping("/catalog/my-catalog")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Mi catálogo", description = "Obtener catálogo completo del proveedor autenticado")
+    public ResponseEntity<ApiResponse<ProviderCatalogSummaryDTO>> getMyProviderCatalog(
+            Authentication authentication) {
+        try {
+            // Obtener el proveedor autenticado
+            Long providerId = getProviderIdFromAuthentication(authentication);
+
+            // Obtener el catálogo del proveedor
+            ProviderCatalogSummaryDTO catalog = productService.getProviderCatalog(providerId);
+
+            ApiResponse<ProviderCatalogSummaryDTO> apiResponse = new ApiResponse<>(
+                    true,
+                    "Catálogo obtenido correctamente",
+                    catalog);
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (RuntimeException e) {
+            ApiResponse<ProviderCatalogSummaryDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    e.getMessage(),
+                    null);
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            ApiResponse<ProviderCatalogSummaryDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Obtener catálogo público para clientes
+     * GET /api/v1/products/catalog/public
+     */
+    @GetMapping("/catalog/public")
+    @Operation(summary = "Catálogo público", description = "Obtener catálogo público visible para clientes")
+    public ResponseEntity<ApiResponse<List<ProductCatalogDTO>>> getPublicCatalog() {
+        try {
+            List<ProductCatalogDTO> catalog = productService.getPublicCatalog();
+
+            String message = catalog.isEmpty()
+                    ? "No hay productos disponibles en el catálogo"
+                    : "Catálogo público obtenido correctamente";
+
+            ApiResponse<List<ProductCatalogDTO>> apiResponse = new ApiResponse<>(
+                    true,
+                    message,
+                    catalog);
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (Exception e) {
+            ApiResponse<List<ProductCatalogDTO>> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Obtener productos destacados del catálogo
+     * GET /api/v1/products/catalog/featured
+     */
+    @GetMapping("/catalog/featured")
+    @Operation(summary = "Productos destacados", description = "Obtener productos destacados del catálogo")
+    public ResponseEntity<ApiResponse<List<ProductCatalogDTO>>> getFeaturedCatalogProducts() {
+        try {
+            List<ProductCatalogDTO> featuredProducts = productService.getFeaturedCatalogProducts();
+
+            String message = featuredProducts.isEmpty()
+                    ? "No hay productos destacados disponibles"
+                    : "Productos destacados obtenidos correctamente";
+
+            ApiResponse<List<ProductCatalogDTO>> apiResponse = new ApiResponse<>(
+                    true,
+                    message,
+                    featuredProducts);
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (Exception e) {
+            ApiResponse<List<ProductCatalogDTO>> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Actualizar producto del catálogo
+     * PUT /api/v1/products/{productId}/catalog
+     */
+    @PutMapping("/{productId}/catalog")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Actualizar catálogo", description = "Actualizar producto en el catálogo del proveedor")
+    public ResponseEntity<ApiResponse<ProductCatalogDTO>> updateCatalogProduct(
+            @PathVariable Long productId,
+            @Valid @RequestBody ProductCatalogUpdateDTO updateDTO,
+            Authentication authentication) {
+        try {
+            // Obtener el proveedor autenticado
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            
+            // Actualizar el producto en el catálogo
+            ProductCatalogDTO response = productService.updateCatalogProduct(productId, providerId, updateDTO);
+            
+            ApiResponse<ProductCatalogDTO> apiResponse = new ApiResponse<>(
+                    true,
+                    "Producto del catálogo actualizado correctamente",
+                    response
+            );
+            
+            return ResponseEntity.ok(apiResponse);
+            
+        } catch (RuntimeException e) {
+            ApiResponse<ProductCatalogDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    e.getMessage(),
+                    null
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            ApiResponse<ProductCatalogDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Activar/desactivar producto en catálogo
+     * PATCH /api/v1/products/{productId}/catalog/toggle-status
+     */
+    @PatchMapping("/{productId}/catalog/toggle-status")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Cambiar estado", description = "Activar o desactivar producto en el catálogo")
+    public ResponseEntity<ApiResponse<ProductCatalogDTO>> toggleProductStatus(
+            @PathVariable Long productId,
+            @RequestParam(required = false) String reason,
+            Authentication authentication) {
+        try {
+            // Obtener el proveedor autenticado
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            
+            // Cambiar estado del producto
+            ProductCatalogDTO response = productService.toggleProductStatus(
+                    productId, providerId, reason != null ? reason : "Cambio de estado solicitado");
+            
+            String message = response.getIsActive() 
+                    ? "Producto activado en el catálogo" 
+                    : "Producto desactivado en el catálogo";
+            
+            ApiResponse<ProductCatalogDTO> apiResponse = new ApiResponse<>(
+                    true,
+                    message,
+                    response
+            );
+            
+            return ResponseEntity.ok(apiResponse);
+            
+        } catch (RuntimeException e) {
+            ApiResponse<ProductCatalogDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    e.getMessage(),
+                    null
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            ApiResponse<ProductCatalogDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error
 
 }
