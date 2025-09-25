@@ -115,4 +115,5 @@ public interface AlbumRepository extends JpaRepository<Album, Long> {
     // Contar productos por álbum
     @Query("SELECT COUNT(p) FROM Product p WHERE p.album.id = :albumId AND p.isActive = true")
     Long countProductsByAlbum(@Param("albumId") Long albumId);
+
 }

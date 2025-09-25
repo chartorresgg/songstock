@@ -23,7 +23,6 @@ import com.songstock.dto.ProviderInventorySummaryDTO;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import com.songstock.entity.User;
 import com.songstock.entity.Provider;
@@ -36,20 +35,15 @@ import com.songstock.dto.ProductCatalogUpdateDTO;
 import com.songstock.dto.ProductCatalogResponseDTO;
 import com.songstock.dto.ProviderCatalogSummaryDTO;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import com.songstock.dto.ProductCatalogCreateDTO;
-import com.songstock.dto.ProductCatalogUpdateDTO;
-import com.songstock.dto.ProductCatalogResponseDTO;
-import com.songstock.dto.ProviderCatalogSummaryDTO;
 import com.songstock.dto.CatalogFilterDTO;
-import com.songstock.entity.ProductType;
 import com.songstock.entity.ConditionType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import java.math.BigDecimal;
 import java.util.List;
-
-import java.math.BigDecimal;
-import java.util.List;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.songstock.dto.AlbumFormatsResponseDTO;
+import com.songstock.dto.AlbumFormatComparisonDTO;
 
 @RestController
 @RequestMapping("/products")
@@ -132,46 +126,6 @@ public class ProductController {
         ProductDTO product = productService.getProductBySku(sku);
 
         return ResponseEntity.ok(ApiResponse.success("Producto obtenido exitosamente", product));
-    }
-
-    /**
-     * ENDPOINT PRINCIPAL PARA LA HISTORIA DE USUARIO:
-     * Obtener formatos alternativos de un producto
-     */
-    @GetMapping("/{id}/alternative-formats")
-    @Operation(summary = "Obtener formatos alternativos", description = "Obtener formatos alternativos de un producto (si es digital muestra vinilo, y viceversa) - Historia de Usuario")
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAlternativeFormats(@PathVariable Long id) {
-        logger.info("REST request to get alternative formats for product ID: {}", id);
-
-        List<ProductDTO> alternatives = productService.getAlternativeFormats(id);
-
-        return ResponseEntity.ok(ApiResponse.success("Formatos alternativos obtenidos exitosamente", alternatives));
-    }
-
-    /**
-     * Verificar si un producto tiene formato alternativo
-     */
-    @GetMapping("/{id}/has-alternative")
-    @Operation(summary = "Verificar formato alternativo", description = "Verificar si un producto tiene formato alternativo disponible")
-    public ResponseEntity<ApiResponse<Boolean>> hasAlternativeFormat(@PathVariable Long id) {
-        logger.info("REST request to check if product {} has alternative format", id);
-
-        boolean hasAlternative = productService.hasAlternativeFormat(id);
-
-        return ResponseEntity.ok(ApiResponse.success("Verificación realizada", hasAlternative));
-    }
-
-    /**
-     * Obtener todos los formatos de un álbum
-     */
-    @GetMapping("/album/{albumId}/all-formats")
-    @Operation(summary = "Todos los formatos de álbum", description = "Obtener todos los formatos disponibles para un álbum específico")
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllFormatsByAlbum(@PathVariable Long albumId) {
-        logger.info("REST request to get all formats for album ID: {}", albumId);
-
-        List<ProductDTO> products = productService.getAllFormatsByAlbum(albumId);
-
-        return ResponseEntity.ok(ApiResponse.success("Formatos obtenidos exitosamente", products));
     }
 
     /**
@@ -266,32 +220,6 @@ public class ProductController {
         logger.info("REST request to get products by price range: {} - {}", minPrice, maxPrice);
 
         List<ProductDTO> products = productService.getProductsByPriceRange(minPrice, maxPrice);
-
-        return ResponseEntity.ok(ApiResponse.success("Productos obtenidos exitosamente", products));
-    }
-
-    /**
-     * Productos digitales con versión en vinilo
-     */
-    @GetMapping("/digital-with-vinyl")
-    @Operation(summary = "Digitales con vinilo", description = "Obtener productos digitales que tienen versión en vinilo")
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getDigitalProductsWithVinylVersion() {
-        logger.info("REST request to get digital products with vinyl version");
-
-        List<ProductDTO> products = productService.getDigitalProductsWithVinylVersion();
-
-        return ResponseEntity.ok(ApiResponse.success("Productos obtenidos exitosamente", products));
-    }
-
-    /**
-     * Productos de vinilo con versión digital
-     */
-    @GetMapping("/vinyl-with-digital")
-    @Operation(summary = "Vinilos con digital", description = "Obtener productos de vinilo que tienen versión digital")
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getVinylProductsWithDigitalVersion() {
-        logger.info("REST request to get vinyl products with digital version");
-
-        List<ProductDTO> products = productService.getVinylProductsWithDigitalVersion();
 
         return ResponseEntity.ok(ApiResponse.success("Productos obtenidos exitosamente", products));
     }
@@ -985,6 +913,295 @@ public class ProductController {
                     null);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
+    }
+
+    /**
+     * ENDPOINT PRINCIPAL PARA LA HISTORIA DE USUARIO:
+     * Obtener formatos alternativos de un producto específico
+     * GET /api/v1/products/{productId}/alternative-formats
+     */
+    @GetMapping("/{productId}/alternative-formats")
+    @Operation(summary = "Obtener formatos alternativos de un producto", description = "Permite al comprador ver si un disco MP3 tiene versión en vinilo y viceversa")
+    @ApiResponses(value = {
+    })
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAlternativeFormats(
+            @Parameter(description = "ID del producto", required = true) @PathVariable Long productId) {
+
+        logger.info("REST request para obtener formatos alternativos del producto ID: {}", productId);
+
+        try {
+            List<ProductDTO> alternativeFormats = productService.getAlternativeFormats(productId);
+
+            String message = alternativeFormats.isEmpty()
+                    ? "Este producto no tiene formatos alternativos disponibles"
+                    : String.format("Se encontraron %d formato(s) alternativo(s)", alternativeFormats.size());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(message, alternativeFormats));
+
+        } catch (Exception e) {
+            logger.error("Error al obtener formatos alternativos para producto ID: {}", productId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al obtener formatos alternativos: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Verificar si un producto tiene formato alternativo
+     * GET /api/v1/products/{productId}/has-alternative
+     */
+    @GetMapping("/{productId}/has-alternative")
+    @Operation(summary = "Verificar disponibilidad de formato alternativo", description = "Verifica rápidamente si existe una versión alternativa del producto")
+    public ResponseEntity<ApiResponse<Boolean>> hasAlternativeFormat(
+            @PathVariable Long productId) {
+
+        logger.info("REST request para verificar formato alternativo del producto ID: {}", productId);
+
+        try {
+            boolean hasAlternative = productService.hasAlternativeFormat(productId);
+
+            String message = hasAlternative
+                    ? "Este producto tiene formato(s) alternativo(s) disponible(s)"
+                    : "Este producto no tiene formatos alternativos";
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(message, hasAlternative));
+
+        } catch (Exception e) {
+            logger.error("Error al verificar formato alternativo para producto ID: {}", productId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al verificar formato alternativo: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Obtener todos los formatos disponibles de un álbum
+     * GET /api/v1/products/album/{albumId}/all-formats
+     */
+    @GetMapping("/album/{albumId}/all-formats")
+    @Operation(summary = "Obtener todos los formatos de un álbum", description = "Muestra todas las versiones disponibles (digital y vinilo) de un álbum específico")
+    public ResponseEntity<ApiResponse<AlbumFormatsResponseDTO>> getAllAlbumFormats(
+            @Parameter(description = "ID del álbum", required = true) @PathVariable Long albumId) {
+
+        logger.info("REST request para obtener todos los formatos del álbum ID: {}", albumId);
+
+        try {
+            List<ProductDTO> allFormats = productService.getAllFormatsByAlbum(albumId);
+
+            if (allFormats.isEmpty()) {
+                AlbumFormatsResponseDTO emptyResponse = new AlbumFormatsResponseDTO();
+                emptyResponse.setAlbumId(albumId);
+                return ResponseEntity.ok(
+                        ApiResponse.success("No se encontraron productos para este álbum", emptyResponse));
+            }
+
+            // Crear respuesta estructurada
+            ProductDTO firstProduct = allFormats.get(0);
+            AlbumFormatsResponseDTO response = new AlbumFormatsResponseDTO();
+            response.setAlbumId(albumId);
+            response.setAlbumTitle(firstProduct.getAlbumTitle());
+            response.setArtistName(firstProduct.getArtistName());
+
+            // Convertir productos a formatos disponibles
+            List<AlbumFormatsResponseDTO.FormatAvailabilityDTO> availableFormats = allFormats.stream()
+                    .map(product -> {
+                        AlbumFormatsResponseDTO.FormatAvailabilityDTO format = new AlbumFormatsResponseDTO.FormatAvailabilityDTO();
+                        format.setProductId(product.getId());
+                        format.setProductType(product.getProductType());
+                        format.setPrice(product.getPrice());
+                        format.setStockQuantity(product.getStockQuantity());
+                        format.setIsActive(product.getIsActive());
+
+                        // Campos específicos por tipo
+                        if (product.isPhysical()) {
+                            format.setVinylSize(
+                                    product.getVinylSize() != null ? product.getVinylSize().toString() : null);
+                            format.setVinylSpeed(
+                                    product.getVinylSpeed() != null ? product.getVinylSpeed().toString() : null);
+                            format.setConditionType(
+                                    product.getConditionType() != null ? product.getConditionType().toString() : null);
+                        } else if (product.isDigital()) {
+                            format.setFileFormat(product.getFileFormat());
+                            // Mapear calidad de audio basado en formato
+                            format.setAudioQuality(mapFileFormatToQuality(product.getFileFormat()));
+                        }
+
+                        return format;
+                    })
+                    .toList();
+
+            response.setAvailableFormats(availableFormats);
+
+            String message = String.format("Álbum disponible en %d formato(s): %s%s",
+                    availableFormats.size(),
+                    response.hasDigitalFormat() ? "Digital" : "",
+                    response.hasVinylFormat() ? (response.hasDigitalFormat() ? " y Vinilo" : "Vinilo") : "");
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(message, response));
+
+        } catch (Exception e) {
+            logger.error("Error al obtener formatos del álbum ID: {}", albumId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al obtener formatos del álbum: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Buscar productos digitales que tienen versión en vinilo
+     * GET /api/v1/products/digital-with-vinyl
+     */
+    @GetMapping("/digital-with-vinyl")
+    @Operation(summary = "Productos digitales con versión en vinilo", description = "Lista productos digitales que también están disponibles en formato vinilo")
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getDigitalProductsWithVinylVersion() {
+
+        logger.info("REST request para obtener productos digitales con versión en vinilo");
+
+        try {
+            List<ProductDTO> digitalWithVinyl = productService.getDigitalProductsWithVinylVersion();
+
+            String message = digitalWithVinyl.isEmpty()
+                    ? "No se encontraron productos digitales con versión en vinilo"
+                    : String.format("Se encontraron %d producto(s) digital(es) con versión en vinilo",
+                            digitalWithVinyl.size());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(message, digitalWithVinyl));
+
+        } catch (Exception e) {
+            logger.error("Error al obtener productos digitales con versión en vinilo", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al buscar productos: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Buscar productos de vinilo que tienen versión digital
+     * GET /api/v1/products/vinyl-with-digital
+     */
+    @GetMapping("/vinyl-with-digital")
+    @Operation(summary = "Productos de vinilo con versión digital", description = "Lista productos de vinilo que también están disponibles en formato digital")
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getVinylProductsWithDigitalVersion() {
+
+        logger.info("REST request para obtener productos de vinilo con versión digital");
+
+        try {
+            List<ProductDTO> vinylWithDigital = productService.getVinylProductsWithDigitalVersion();
+
+            String message = vinylWithDigital.isEmpty()
+                    ? "No se encontraron productos de vinilo con versión digital"
+                    : String.format("Se encontraron %d producto(s) de vinilo con versión digital",
+                            vinylWithDigital.size());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(message, vinylWithDigital));
+
+        } catch (Exception e) {
+            logger.error("Error al obtener productos de vinilo con versión digital", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al buscar productos: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Endpoint para comparar formatos de un álbum específico
+     * GET /api/v1/products/album/{albumId}/format-comparison
+     */
+    @GetMapping("/album/{albumId}/format-comparison")
+    @Operation(summary = "Comparar formatos disponibles de un álbum", description = "Compara precios y características entre formatos digital y vinilo del mismo álbum")
+    public ResponseEntity<ApiResponse<AlbumFormatComparisonDTO>> compareAlbumFormats(
+            @PathVariable Long albumId) {
+
+        logger.info("REST request para comparar formatos del álbum ID: {}", albumId);
+
+        try {
+            List<ProductDTO> allFormats = productService.getAllFormatsByAlbum(albumId);
+
+            if (allFormats.isEmpty()) {
+                return ResponseEntity.ok(
+                        ApiResponse.<AlbumFormatComparisonDTO>success("No se encontraron productos para este álbum",
+                                null));
+            }
+            AlbumFormatComparisonDTO comparison = buildFormatComparison(allFormats);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("Comparación de formatos generada exitosamente", comparison));
+
+        } catch (Exception e) {
+            logger.error("Error al comparar formatos del álbum ID: {}", albumId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al comparar formatos: " + e.getMessage(), null));
+        }
+    }
+
+    // ========== MÉTODOS AUXILIARES ==========
+
+    /**
+     * Mapear formato de archivo a calidad de audio
+     */
+    private String mapFileFormatToQuality(String fileFormat) {
+        if (fileFormat == null)
+            return "Desconocida";
+
+        return switch (fileFormat.toUpperCase()) {
+            case "FLAC" -> "Sin pérdida (Lossless)";
+            case "MP3" -> "Comprimido (320kbps)";
+            case "WAV" -> "Sin compresión";
+            case "AAC" -> "Alta calidad comprimida";
+            case "OGG" -> "Compresión libre";
+            default -> fileFormat.toUpperCase();
+        };
+    }
+
+    /**
+     * Construir comparación de formatos
+     */
+    private AlbumFormatComparisonDTO buildFormatComparison(List<ProductDTO> allFormats) {
+        ProductDTO firstProduct = allFormats.get(0);
+
+        AlbumFormatComparisonDTO comparison = new AlbumFormatComparisonDTO();
+        comparison.setAlbumId(firstProduct.getAlbumId());
+        comparison.setAlbumTitle(firstProduct.getAlbumTitle());
+        comparison.setArtistName(firstProduct.getArtistName());
+
+        // Separar formatos
+        List<ProductDTO> digitalFormats = allFormats.stream()
+                .filter(ProductDTO::isDigital)
+                .toList();
+
+        List<ProductDTO> vinylFormats = allFormats.stream()
+                .filter(ProductDTO::isPhysical)
+                .toList();
+
+        // Encontrar mejores opciones
+        if (!digitalFormats.isEmpty()) {
+            ProductDTO bestDigital = digitalFormats.stream()
+                    .filter(ProductDTO::isInStock)
+                    .min((p1, p2) -> p1.getPrice().compareTo(p2.getPrice()))
+                    .orElse(digitalFormats.get(0));
+            comparison.setBestDigitalOption(bestDigital);
+        }
+
+        if (!vinylFormats.isEmpty()) {
+            ProductDTO bestVinyl = vinylFormats.stream()
+                    .filter(ProductDTO::isInStock)
+                    .min((p1, p2) -> p1.getPrice().compareTo(p2.getPrice()))
+                    .orElse(vinylFormats.get(0));
+            comparison.setBestVinylOption(bestVinyl);
+        }
+
+        comparison.setHasDigitalVersion(!digitalFormats.isEmpty());
+        comparison.setHasVinylVersion(!vinylFormats.isEmpty());
+        comparison.setHasBothFormats(!digitalFormats.isEmpty() && !vinylFormats.isEmpty());
+
+        // Calcular diferencia de precio si ambos formatos están disponibles
+        if (comparison.isHasBothFormats()) {
+            BigDecimal priceDifference = comparison.getBestVinylOption().getPrice()
+                    .subtract(comparison.getBestDigitalOption().getPrice());
+            comparison.setPriceDifference(priceDifference);
+        }
+
+        return comparison;
     }
 
 }

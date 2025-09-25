@@ -1,0 +1,342 @@
+Folder PATH listing for volume OS
+Volume serial number is 268F-4CE1
+C:.
+|   .gitignore
+|   docker-compose.yml
+|   estructura.txt
+|   README.md
+|   
++---.vscode
+|       settings.json
+|       
++---database
+|   |   initial-data.sql
+|   |   schema.sql
+|   |   
+|   \---migrations
+|           V1__Create_initial_schema.sql
+|           V2__Add_sample_data.sql
+|           
++---docs
+|   +---api
+|   +---deployment
+|   +---frontend
+|   \---postman
++---songstock-backend
+|   |   .gitattributes
+|   |   .gitignore
+|   |   mvnw
+|   |   mvnw.cmd
+|   |   pom.xml
+|   |   
+|   +---.mvn
+|   |   \---wrapper
+|   |           maven-wrapper.properties
+|   |           
+|   +---docs
+|   |   \---postman
+|   |           HU-09.postman_collection.json
+|   |           postman_collection.json
+|   |           SongStock-HU-11.postman_collection.json
+|   |           SongStock-HU-12.postman_collection.json
+|   |           
+|   +---src
+|   |   +---main
+|   |   |   +---java
+|   |   |   |   \---com
+|   |   |   |       \---songstock
+|   |   |   |           |   SongStockApplication.java
+|   |   |   |           |   
+|   |   |   |           +---config
+|   |   |   |           |       DataInitializer.java
+|   |   |   |           |       
+|   |   |   |           +---controller
+|   |   |   |           |       AlbumController.java
+|   |   |   |           |       ArtistController.java
+|   |   |   |           |       AuthController.java
+|   |   |   |           |       CategoryController.java
+|   |   |   |           |       DebugController.java
+|   |   |   |           |       GenreController.java
+|   |   |   |           |       ProductCatalogController.java
+|   |   |   |           |       ProductController.java
+|   |   |   |           |       ProviderController.java
+|   |   |   |           |       SimpleTestController.java
+|   |   |   |           |       UserController.java
+|   |   |   |           |       
+|   |   |   |           +---dto
+|   |   |   |           |       AlbumDTO.java
+|   |   |   |           |       AlbumFormatsDTO.java
+|   |   |   |           |       AlbumFormatsResponseDTO.java
+|   |   |   |           |       ApiResponse.java
+|   |   |   |           |       ArtistDTO.java
+|   |   |   |           |       AuthResponseDTO.java
+|   |   |   |           |       CatalogFilterDTO.java
+|   |   |   |           |       CompleteRegistrationDTO.java
+|   |   |   |           |       GenreDTO.java
+|   |   |   |           |       LoginRequestDTO.java
+|   |   |   |           |       ProductBulkUpdateDTO.java
+|   |   |   |           |       ProductCatalogCreateDTO.java
+|   |   |   |           |       ProductCatalogResponseDTO.java
+|   |   |   |           |       ProductCatalogUpdateDTO.java
+|   |   |   |           |       ProductCreateDTO.java
+|   |   |   |           |       ProductDTO.java
+|   |   |   |           |       ProductImageDTO.java
+|   |   |   |           |       ProductInventoryResponseDTO.java
+|   |   |   |           |       ProductInventoryUpdateDTO.java
+|   |   |   |           |       ProductStockAdjustmentDTO.java
+|   |   |   |           |       ProductUpdateDTO.java
+|   |   |   |           |       ProviderCatalogSummaryDTO.java
+|   |   |   |           |       ProviderInventorySummaryDTO.java
+|   |   |   |           |       ProviderInvitationDTO.java
+|   |   |   |           |       ProviderRegistrationDTO.java
+|   |   |   |           |       UserRegistrationDTO.java
+|   |   |   |           |       
+|   |   |   |           +---entity
+|   |   |   |           |       Album.java
+|   |   |   |           |       Artist.java
+|   |   |   |           |       Category.java
+|   |   |   |           |       ConditionType.java
+|   |   |   |           |       Genre.java
+|   |   |   |           |       InvitationStatus.java
+|   |   |   |           |       Product.java
+|   |   |   |           |       ProductImage.java
+|   |   |   |           |       ProductType.java
+|   |   |   |           |       Provider.java
+|   |   |   |           |       ProviderInvitation.java
+|   |   |   |           |       User.java
+|   |   |   |           |       UserRole.java
+|   |   |   |           |       UserSession.java
+|   |   |   |           |       VerificationStatus.java
+|   |   |   |           |       VinylSize.java
+|   |   |   |           |       VinylSpeed.java
+|   |   |   |           |       
+|   |   |   |           +---exception
+|   |   |   |           |       BusinessException.java
+|   |   |   |           |       DuplicateResourceException.java
+|   |   |   |           |       GlobalExceptionHandler.java
+|   |   |   |           |       InventoryException.java
+|   |   |   |           |       ResourceAlreadyExistsException.java
+|   |   |   |           |       ResourceNotFoundException.java
+|   |   |   |           |       
+|   |   |   |           +---mapper
+|   |   |   |           |       AlbumMapper.java
+|   |   |   |           |       ArtistMapper.java
+|   |   |   |           |       GenreMapper.java
+|   |   |   |           |       ProductImageMapper.java
+|   |   |   |           |       ProductMapper.java
+|   |   |   |           |       
+|   |   |   |           +---repository
+|   |   |   |           |       AlbumRepository.java
+|   |   |   |           |       ArtistRepository.java
+|   |   |   |           |       CategoryRepository.java
+|   |   |   |           |       GenreRepository.java
+|   |   |   |           |       ProductImageRepository.java
+|   |   |   |           |       ProductRepository.java
+|   |   |   |           |       ProviderInvitationRepository.java
+|   |   |   |           |       ProviderRepository.java
+|   |   |   |           |       UserRepository.java
+|   |   |   |           |       UserSessionRepository.java
+|   |   |   |           |       
+|   |   |   |           +---security
+|   |   |   |           |       AuthEntryPointJwt.java
+|   |   |   |           |       AuthTokenFilter.java
+|   |   |   |           |       JwtUtils.java
+|   |   |   |           |       UserDetailsImpl.java
+|   |   |   |           |       UserDetailsServiceImpl.java
+|   |   |   |           |       WebSecurityConfig.java
+|   |   |   |           |       
+|   |   |   |           +---service
+|   |   |   |           |       AlbumService.java
+|   |   |   |           |       ArtistService.java
+|   |   |   |           |       AuthService.java
+|   |   |   |           |       CatalogService.java
+|   |   |   |           |       CategoryService.java
+|   |   |   |           |       GenreService.java
+|   |   |   |           |       ProductService.java
+|   |   |   |           |       ProviderService.java
+|   |   |   |           |       UserService.java
+|   |   |   |           |       
+|   |   |   |           +---songstock_backend
+|   |   |   |           |       SongstockBackendApplication.java
+|   |   |   |           |       
+|   |   |   |           \---util
+|   |   |   |                   ApiResponse.java
+|   |   |   |                   
+|   |   |   \---resources
+|   |   |           application-dev.yml
+|   |   |           application-prod.yml
+|   |   |           application.properties
+|   |   |           data.sql
+|   |   |           
+|   |   \---test
+|   |       \---java
+|   |           \---com
+|   |               \---songstock
+|   |                   \---songstock_backend
+|   |                           SongstockBackendApplicationTests.java
+|   |                           
+|   \---target
+|       +---classes
+|       |   |   application-dev.yml
+|       |   |   application-prod.yml
+|       |   |   application.properties
+|       |   |   data.sql
+|       |   |   
+|       |   +---com
+|       |   |   \---songstock
+|       |   |       |   SongStockApplication.class
+|       |   |       |   
+|       |   |       +---config
+|       |   |       |       DataInitializer.class
+|       |   |       |       
+|       |   |       +---controller
+|       |   |       |       AlbumController.class
+|       |   |       |       ArtistController.class
+|       |   |       |       AuthController.class
+|       |   |       |       CategoryController.class
+|       |   |       |       DebugController.class
+|       |   |       |       GenreController.class
+|       |   |       |       ProductCatalogController.class
+|       |   |       |       ProductController.class
+|       |   |       |       ProviderController.class
+|       |   |       |       SimpleTestController.class
+|       |   |       |       UserController.class
+|       |   |       |       
+|       |   |       +---dto
+|       |   |       |       AlbumDTO.class
+|       |   |       |       AlbumFormatsDTO.class
+|       |   |       |       AlbumFormatsResponseDTO$FormatAvailabilityDTO.class
+|       |   |       |       AlbumFormatsResponseDTO.class
+|       |   |       |       ApiResponse.class
+|       |   |       |       ArtistDTO.class
+|       |   |       |       AuthResponseDTO.class
+|       |   |       |       CatalogFilterDTO.class
+|       |   |       |       CompleteRegistrationDTO.class
+|       |   |       |       GenreDTO.class
+|       |   |       |       LoginRequestDTO.class
+|       |   |       |       ProductBulkUpdateDTO$StockOperation.class
+|       |   |       |       ProductBulkUpdateDTO.class
+|       |   |       |       ProductCatalogCreateDTO.class
+|       |   |       |       ProductCatalogResponseDTO.class
+|       |   |       |       ProductCatalogUpdateDTO.class
+|       |   |       |       ProductCreateDTO.class
+|       |   |       |       ProductDTO.class
+|       |   |       |       ProductImageDTO.class
+|       |   |       |       ProductInventoryResponseDTO.class
+|       |   |       |       ProductInventoryUpdateDTO.class
+|       |   |       |       ProductStockAdjustmentDTO$AdjustmentType.class
+|       |   |       |       ProductStockAdjustmentDTO.class
+|       |   |       |       ProductUpdateDTO.class
+|       |   |       |       ProviderCatalogSummaryDTO.class
+|       |   |       |       ProviderInventorySummaryDTO.class
+|       |   |       |       ProviderInvitationDTO.class
+|       |   |       |       ProviderRegistrationDTO.class
+|       |   |       |       UserRegistrationDTO.class
+|       |   |       |       
+|       |   |       +---entity
+|       |   |       |       Album.class
+|       |   |       |       Artist.class
+|       |   |       |       Category.class
+|       |   |       |       ConditionType.class
+|       |   |       |       Genre.class
+|       |   |       |       InvitationStatus.class
+|       |   |       |       Product.class
+|       |   |       |       ProductImage.class
+|       |   |       |       ProductType.class
+|       |   |       |       Provider.class
+|       |   |       |       ProviderInvitation.class
+|       |   |       |       User.class
+|       |   |       |       UserRole.class
+|       |   |       |       UserSession.class
+|       |   |       |       VerificationStatus.class
+|       |   |       |       VinylSize.class
+|       |   |       |       VinylSpeed.class
+|       |   |       |       
+|       |   |       +---exception
+|       |   |       |       BusinessException.class
+|       |   |       |       DuplicateResourceException.class
+|       |   |       |       GlobalExceptionHandler.class
+|       |   |       |       InventoryException.class
+|       |   |       |       ResourceAlreadyExistsException.class
+|       |   |       |       ResourceNotFoundException.class
+|       |   |       |       
+|       |   |       +---mapper
+|       |   |       |       AlbumMapper.class
+|       |   |       |       ArtistMapper.class
+|       |   |       |       GenreMapper.class
+|       |   |       |       ProductImageMapper.class
+|       |   |       |       ProductMapper.class
+|       |   |       |       
+|       |   |       +---repository
+|       |   |       |       AlbumRepository.class
+|       |   |       |       ArtistRepository.class
+|       |   |       |       CategoryRepository.class
+|       |   |       |       GenreRepository.class
+|       |   |       |       ProductImageRepository.class
+|       |   |       |       ProductRepository.class
+|       |   |       |       ProviderInvitationRepository.class
+|       |   |       |       ProviderRepository.class
+|       |   |       |       UserRepository.class
+|       |   |       |       UserSessionRepository.class
+|       |   |       |       
+|       |   |       +---security
+|       |   |       |       AuthEntryPointJwt.class
+|       |   |       |       AuthTokenFilter.class
+|       |   |       |       JwtUtils.class
+|       |   |       |       UserDetailsImpl.class
+|       |   |       |       UserDetailsServiceImpl.class
+|       |   |       |       WebSecurityConfig.class
+|       |   |       |       
+|       |   |       +---service
+|       |   |       |       AlbumService.class
+|       |   |       |       ArtistService.class
+|       |   |       |       AuthService.class
+|       |   |       |       CatalogService$CatalogStatsDTO.class
+|       |   |       |       CatalogService.class
+|       |   |       |       CategoryService.class
+|       |   |       |       GenreService.class
+|       |   |       |       ProductService$ProductStatisticsDTO.class
+|       |   |       |       ProductService.class
+|       |   |       |       ProviderService$ProviderStats.class
+|       |   |       |       ProviderService.class
+|       |   |       |       UserService.class
+|       |   |       |       
+|       |   |       +---songstock_backend
+|       |   |       |       SongstockBackendApplication.class
+|       |   |       |       
+|       |   |       \---util
+|       |   |               ApiResponse.class
+|       |   |               
+|       |   \---META-INF
+|       |           build-info.properties
+|       |           
+|       +---generated-sources
+|       |   \---annotations
+|       +---generated-test-sources
+|       |   \---test-annotations
+|       \---test-classes
+|           \---com
+|               \---songstock
+|                   \---songstock_backend
+|                           SongstockBackendApplicationTests.class
+|                           
+\---songstock-frontend
+    |   .gitignore
+    |   package-lock.json
+    |   package.json
+    |   README.md
+    |   
+    +---public
+    \---src
+        +---components
+        |   +---admin
+        |   +---auth
+        |   +---customer
+        |   +---provider
+        |   \---shared
+        +---context
+        +---hooks
+        +---pages
+        +---services
+        +---styles
+        \---utils

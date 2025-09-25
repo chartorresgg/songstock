@@ -37,6 +37,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
+import com.songstock.dto.AlbumFormatsDTO;
+import com.songstock.dto.AlbumFormatsResponseDTO;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -1107,5 +1114,315 @@ public class ProductService {
         dto.setUpdatedAt(product.getUpdatedAt());
 
         return dto;
+    }
+
+    // ================= MÉTODOS ESPECÍFICOS PARA HISTORIA DE USUARIO
+    // =================
+
+    /**
+     * MÉTODO PRINCIPAL: Obtener formatos alternativos con información completa del
+     * álbum
+     */
+    @Transactional(readOnly = true)
+    public AlbumFormatsResponseDTO getProductAlternativeFormats(Long productId) {
+        logger.info("Obteniendo formatos alternativos para producto ID: {}", productId);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + productId));
+
+        Album album = product.getAlbum();
+
+        // Obtener todos los productos del álbum
+        List<Product> allAlbumProducts = productRepository.findAllFormatsByAlbumId(album.getId());
+
+        // Separar por tipo de formato
+        List<AlbumFormatsResponseDTO.FormatAvailabilityDTO> availableFormats = allAlbumProducts.stream()
+                .map(this::mapToFormatAvailabilityDTO)
+                .collect(Collectors.toList());
+
+        AlbumFormatsResponseDTO response = new AlbumFormatsResponseDTO(
+                album.getId(),
+                album.getTitle(),
+                album.getArtist().getName(),
+                album.getReleaseYear(),
+                availableFormats);
+
+        logger.info("Encontrados {} formatos para álbum '{}'", availableFormats.size(), album.getTitle());
+        return response;
+    }
+
+    /**
+     * Obtener información completa de todos los formatos de un álbum
+     */
+    @Transactional(readOnly = true)
+    public AlbumFormatsDTO getAlbumAllFormats(Long albumId) {
+        logger.info("Obteniendo todos los formatos para álbum ID: {}", albumId);
+
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new ResourceNotFoundException("Álbum no encontrado con ID: " + albumId));
+
+        List<Product> allProducts = productRepository.findAllFormatsByAlbumId(albumId);
+
+        // Separar productos por tipo
+        List<ProductDTO> digitalVersions = allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.DIGITAL)
+                .map(productMapper::toDTO)
+                .collect(Collectors.toList());
+
+        List<ProductDTO> vinylVersions = allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.PHYSICAL)
+                .map(productMapper::toDTO)
+                .collect(Collectors.toList());
+
+        AlbumFormatsDTO albumFormats = new AlbumFormatsDTO(albumId, album.getTitle(), album.getArtist().getName());
+        albumFormats.setGenreName(album.getGenre() != null ? album.getGenre().getName() : null);
+        albumFormats.setReleaseYear(album.getReleaseYear());
+        albumFormats.setDigitalVersions(digitalVersions);
+        albumFormats.setVinylVersions(vinylVersions);
+
+        // Establecer recomendaciones (versión más económica de cada tipo)
+        if (!digitalVersions.isEmpty()) {
+            ProductDTO cheapestDigital = digitalVersions.stream()
+                    .min(Comparator.comparing(ProductDTO::getPrice))
+                    .orElse(null);
+            albumFormats.setRecommendedDigital(cheapestDigital);
+        }
+
+        if (!vinylVersions.isEmpty()) {
+            ProductDTO cheapestVinyl = vinylVersions.stream()
+                    .min(Comparator.comparing(ProductDTO::getPrice))
+                    .orElse(null);
+            albumFormats.setRecommendedVinyl(cheapestVinyl);
+        }
+
+        logger.info("Álbum '{}' tiene {} versiones digitales y {} versiones en vinilo",
+                album.getTitle(), digitalVersions.size(), vinylVersions.size());
+
+        return albumFormats;
+    }
+
+    /**
+     * Obtener álbumes digitales que tienen versión en vinilo
+     */
+    @Transactional(readOnly = true)
+    public List<AlbumFormatsDTO> getDigitalAlbumsWithVinylVersion() {
+        logger.info("Obteniendo álbumes digitales que tienen versión en vinilo");
+
+        List<Product> digitalProducts = productRepository.findByProductTypeAndIsActiveTrue(ProductType.DIGITAL);
+
+        // Agrupar por álbum y filtrar solo los que tienen versión en vinilo
+        Map<Long, Album> albumsWithBothFormats = digitalProducts.stream()
+                .filter(product -> productRepository.hasVinylVersion(product.getAlbum().getId()))
+                .collect(Collectors.toMap(
+                        product -> product.getAlbum().getId(),
+                        Product::getAlbum,
+                        (existing, replacement) -> existing));
+
+        return albumsWithBothFormats.values().stream()
+                .map(album -> getAlbumAllFormats(album.getId()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtener álbumes de vinilo que tienen versión digital
+     */
+    @Transactional(readOnly = true)
+    public List<AlbumFormatsDTO> getVinylAlbumsWithDigitalVersion() {
+        logger.info("Obteniendo álbumes de vinilo que tienen versión digital");
+
+        List<Product> vinylProducts = productRepository.findByProductTypeAndIsActiveTrue(ProductType.PHYSICAL);
+
+        // Agrupar por álbum y filtrar solo los que tienen versión digital
+        Map<Long, Album> albumsWithBothFormats = vinylProducts.stream()
+                .filter(product -> productRepository.hasDigitalVersion(product.getAlbum().getId()))
+                .collect(Collectors.toMap(
+                        product -> product.getAlbum().getId(),
+                        Product::getAlbum,
+                        (existing, replacement) -> existing));
+
+        return albumsWithBothFormats.values().stream()
+                .map(album -> getAlbumAllFormats(album.getId()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Comparar formatos de un álbum con análisis de precios y disponibilidad
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> compareAlbumFormats(Long albumId) {
+        logger.info("Comparando formatos para álbum ID: {}", albumId);
+
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new ResourceNotFoundException("Álbum no encontrado con ID: " + albumId));
+
+        List<Product> allProducts = productRepository.findAllFormatsByAlbumId(albumId);
+
+        Map<String, Object> comparison = new HashMap<>();
+        comparison.put("albumId", albumId);
+        comparison.put("albumTitle", album.getTitle());
+        comparison.put("artistName", album.getArtist().getName());
+
+        // Análisis por formato
+        List<Product> digitalProducts = allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.DIGITAL)
+                .collect(Collectors.toList());
+
+        List<Product> vinylProducts = allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.PHYSICAL)
+                .collect(Collectors.toList());
+
+        // Información de formatos digitales
+        Map<String, Object> digitalInfo = new HashMap<>();
+        digitalInfo.put("available", !digitalProducts.isEmpty());
+        digitalInfo.put("count", digitalProducts.size());
+        if (!digitalProducts.isEmpty()) {
+            digitalInfo.put("priceRange", getPriceRange(digitalProducts));
+            digitalInfo.put("cheapestPrice", digitalProducts.stream()
+                    .map(Product::getPrice)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO));
+            digitalInfo.put("inStockCount", digitalProducts.stream()
+                    .mapToInt(p -> p.getStockQuantity() > 0 ? 1 : 0)
+                    .sum());
+        }
+
+        // Información de formatos en vinilo
+        Map<String, Object> vinylInfo = new HashMap<>();
+        vinylInfo.put("available", !vinylProducts.isEmpty());
+        vinylInfo.put("count", vinylProducts.size());
+        if (!vinylProducts.isEmpty()) {
+            vinylInfo.put("priceRange", getPriceRange(vinylProducts));
+            vinylInfo.put("cheapestPrice", vinylProducts.stream()
+                    .map(Product::getPrice)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO));
+            vinylInfo.put("inStockCount", vinylProducts.stream()
+                    .mapToInt(p -> p.getStockQuantity() > 0 ? 1 : 0)
+                    .sum());
+
+            // Información específica de vinilos
+            Map<String, Long> sizeDistribution = vinylProducts.stream()
+                    .filter(p -> p.getVinylSize() != null)
+                    .collect(Collectors.groupingBy(
+                            p -> p.getVinylSize().toString(),
+                            Collectors.counting()));
+            vinylInfo.put("sizeDistribution", sizeDistribution);
+        }
+
+        comparison.put("digitalFormat", digitalInfo);
+        comparison.put("vinylFormat", vinylInfo);
+
+        // Recomendaciones
+        List<String> recommendations = new ArrayList<>();
+        if (!digitalProducts.isEmpty() && !vinylProducts.isEmpty()) {
+            BigDecimal digitalMinPrice = digitalProducts.stream()
+                    .map(Product::getPrice)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+
+            BigDecimal vinylMinPrice = vinylProducts.stream()
+                    .map(Product::getPrice)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+
+            if (digitalMinPrice.compareTo(vinylMinPrice) < 0) {
+                recommendations.add("El formato digital es más económico");
+            } else {
+                recommendations.add("El formato vinilo ofrece mejor experiencia de colección");
+            }
+
+            long digitalInStock = digitalProducts.stream().filter(p -> p.getStockQuantity() > 0).count();
+            long vinylInStock = vinylProducts.stream().filter(p -> p.getStockQuantity() > 0).count();
+
+            if (digitalInStock > vinylInStock) {
+                recommendations.add("Mejor disponibilidad en formato digital");
+            } else if (vinylInStock > digitalInStock) {
+                recommendations.add("Mejor disponibilidad en formato vinilo");
+            }
+        } else if (!digitalProducts.isEmpty()) {
+            recommendations.add("Solo disponible en formato digital");
+        } else if (!vinylProducts.isEmpty()) {
+            recommendations.add("Solo disponible en formato vinilo");
+        } else {
+            recommendations.add("No hay formatos disponibles actualmente");
+        }
+
+        comparison.put("recommendations", recommendations);
+        comparison.put("hasBothFormats", !digitalProducts.isEmpty() && !vinylProducts.isEmpty());
+
+        return comparison;
+    }
+
+    // ================= MÉTODOS AUXILIARES =================
+
+    /**
+     * Mapear Product a FormatAvailabilityDTO
+     */
+    private AlbumFormatsResponseDTO.FormatAvailabilityDTO mapToFormatAvailabilityDTO(Product product) {
+        AlbumFormatsResponseDTO.FormatAvailabilityDTO dto = new AlbumFormatsResponseDTO.FormatAvailabilityDTO(
+                product.getId(),
+                product.getProductType(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getIsActive());
+
+        // Campos específicos para vinilo
+        if (product.getProductType() == ProductType.PHYSICAL) {
+            if (product.getVinylSize() != null) {
+                dto.setVinylSize(product.getVinylSize().toString());
+            }
+            if (product.getVinylSpeed() != null) {
+                dto.setVinylSpeed(product.getVinylSpeed().toString());
+            }
+            if (product.getConditionType() != null) {
+                dto.setConditionType(product.getConditionType().toString());
+            }
+        }
+
+        // Campos específicos para digital
+        if (product.getProductType() == ProductType.DIGITAL) {
+            dto.setFileFormat(product.getFileFormat());
+            dto.setAudioQuality(determineAudioQuality(product.getFileFormat()));
+        }
+
+        return dto;
+    }
+
+    /**
+     * Determinar calidad de audio basado en el formato
+     */
+    private String determineAudioQuality(String fileFormat) {
+        if (fileFormat == null)
+            return "Unknown";
+
+        return switch (fileFormat.toLowerCase()) {
+            case "flac" -> "Lossless";
+            case "wav" -> "Lossless";
+            case "mp3" -> "Lossy";
+            case "aac" -> "Lossy";
+            case "ogg" -> "Lossy";
+            default -> "Standard";
+        };
+    }
+
+    /**
+     * Obtener rango de precios de una lista de productos
+     */
+    private Map<String, BigDecimal> getPriceRange(List<Product> products) {
+        if (products.isEmpty()) {
+            return Map.of("min", BigDecimal.ZERO, "max", BigDecimal.ZERO);
+        }
+
+        BigDecimal minPrice = products.stream()
+                .map(Product::getPrice)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal maxPrice = products.stream()
+                .map(Product::getPrice)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        return Map.of("min", minPrice, "max", maxPrice);
     }
 }

@@ -1,0 +1,542 @@
+{
+    "info": {
+      "name": "SongStock - Historia de Usuario: Formatos Alternativos",
+      "description": "Colección para probar la funcionalidad 'Como comprador, quiero ver si un disco MP3 tiene versión en vinilo para decidir qué formato comprar'",
+      "version": "1.0.0",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+      {
+        "key": "base_url",
+        "value": "http://localhost:8080/api/v1",
+        "type": "string"
+      },
+      {
+        "key": "auth_token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ],
+    "item": [
+      {
+        "name": "01 - Autenticación",
+        "item": [
+          {
+            "name": "Login - Obtener JWT Token",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"username\": \"catalog_provider\",\n  \"password\": \"password123\"\n}"
+              },
+              "url": {
+                "raw": "{{base_url}}/auth/login",
+                "host": ["{{base_url}}"],
+                "path": ["auth", "login"]
+              }
+            },
+            "response": []
+          }
+        ]
+      },
+      {
+        "name": "02 - Historia de Usuario: Formatos Alternativos",
+        "item": [
+          {
+            "name": "HU-01: Obtener formatos alternativos de un producto",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/1/alternative-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "1", "alternative-formats"]
+              },
+              "description": "Endpoint principal: Si el producto ID 1 es digital, muestra versiones en vinilo disponibles (y viceversa)"
+            },
+            "response": [
+              {
+                "name": "Éxito - Formatos alternativos encontrados",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Se encontraron 2 formato(s) alternativo(s)\",\n  \"data\": [\n    {\n      \"id\": 2,\n      \"albumId\": 1,\n      \"albumTitle\": \"Abbey Road\",\n      \"artistName\": \"The Beatles\",\n      \"sku\": \"ABBEY-VINYL-001\",\n      \"productType\": \"PHYSICAL\",\n      \"conditionType\": \"NEW\",\n      \"price\": 45.99,\n      \"stockQuantity\": 15,\n      \"vinylSize\": \"TWELVE_INCH\",\n      \"vinylSpeed\": \"THIRTY_THREE_RPM\",\n      \"weightGrams\": 180,\n      \"isActive\": true,\n      \"featured\": true\n    }\n  ]\n}"
+              },
+              {
+                "name": "Sin formatos alternativos",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Este producto no tiene formatos alternativos disponibles\",\n  \"data\": []\n}"
+              },
+              {
+                "name": "Producto no encontrado",
+                "status": "Not Found",
+                "code": 404,
+                "body": "{\n  \"success\": false,\n  \"message\": \"Error al obtener formatos alternativos: Producto no encontrado con ID: 999\",\n  \"data\": null\n}"
+              }
+            ]
+          },
+          {
+            "name": "HU-02: Verificar si tiene formato alternativo",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/1/has-alternative",
+                "host": ["{{base_url}}"],
+                "path": ["products", "1", "has-alternative"]
+              },
+              "description": "Verificación rápida: ¿Existe una versión alternativa de este producto?"
+            },
+            "response": [
+              {
+                "name": "Tiene formato alternativo",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Este producto tiene formato(s) alternativo(s) disponible(s)\",\n  \"data\": true\n}"
+              },
+              {
+                "name": "No tiene formato alternativo",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Este producto no tiene formatos alternativos\",\n  \"data\": false\n}"
+              }
+            ]
+          },
+          {
+            "name": "HU-03: Obtener todos los formatos de un álbum",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/album/1/all-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "album", "1", "all-formats"]
+              },
+              "description": "Muestra todas las versiones disponibles (digital y vinilo) de un álbum específico"
+            },
+            "response": [
+              {
+                "name": "Álbum con múltiples formatos",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Álbum disponible en 3 formato(s): Digital y Vinilo\",\n  \"data\": {\n    \"albumId\": 1,\n    \"albumTitle\": \"Abbey Road\",\n    \"artistName\": \"The Beatles\",\n    \"releaseYear\": 1969,\n    \"availableFormats\": [\n      {\n        \"productId\": 1,\n        \"productType\": \"DIGITAL\",\n        \"price\": 12.99,\n        \"stockQuantity\": 9999,\n        \"isActive\": true,\n        \"fileFormat\": \"MP3\",\n        \"audioQuality\": \"Comprimido (320kbps)\"\n      },\n      {\n        \"productId\": 2,\n        \"productType\": \"PHYSICAL\",\n        \"price\": 45.99,\n        \"stockQuantity\": 15,\n        \"isActive\": true,\n        \"vinylSize\": \"TWELVE_INCH\",\n        \"vinylSpeed\": \"THIRTY_THREE_RPM\",\n        \"conditionType\": \"NEW\"\n      },\n      {\n        \"productId\": 3,\n        \"productType\": \"PHYSICAL\",\n        \"price\": 65.99,\n        \"stockQuantity\": 5,\n        \"isActive\": true,\n        \"vinylSize\": \"TWELVE_INCH\",\n        \"vinylSpeed\": \"THIRTY_THREE_RPM\",\n        \"conditionType\": \"MINT\"\n      }\n    ]\n  }\n}"
+              }
+            ]
+          },
+          {
+            "name": "HU-04: Productos digitales con versión en vinilo",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/digital-with-vinyl",
+                "host": ["{{base_url}}"],
+                "path": ["products", "digital-with-vinyl"]
+              },
+              "description": "Lista todos los productos digitales que también están disponibles en formato vinilo"
+            },
+            "response": [
+              {
+                "name": "Lista de productos digitales con vinilo",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Se encontraron 5 producto(s) digital(es) con versión en vinilo\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"albumId\": 1,\n      \"albumTitle\": \"Abbey Road\",\n      \"artistName\": \"The Beatles\",\n      \"sku\": \"ABBEY-MP3-001\",\n      \"productType\": \"DIGITAL\",\n      \"price\": 12.99,\n      \"stockQuantity\": 9999,\n      \"fileFormat\": \"MP3\",\n      \"fileSizeMb\": 120,\n      \"isActive\": true\n    },\n    {\n      \"id\": 4,\n      \"albumId\": 2,\n      \"albumTitle\": \"The Dark Side of the Moon\",\n      \"artistName\": \"Pink Floyd\",\n      \"sku\": \"DSOTM-FLAC-001\",\n      \"productType\": \"DIGITAL\",\n      \"price\": 15.99,\n      \"stockQuantity\": 9999,\n      \"fileFormat\": \"FLAC\",\n      \"fileSizeMb\": 450,\n      \"isActive\": true\n    }\n  ]\n}"
+              }
+            ]
+          },
+          {
+            "name": "HU-05: Productos de vinilo con versión digital",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/vinyl-with-digital",
+                "host": ["{{base_url}}"],
+                "path": ["products", "vinyl-with-digital"]
+              },
+              "description": "Lista todos los productos de vinilo que también están disponibles en formato digital"
+            }
+          },
+          {
+            "name": "HU-06: Comparar formatos de un álbum",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/album/1/format-comparison",
+                "host": ["{{base_url}}"],
+                "path": ["products", "album", "1", "format-comparison"]
+              },
+              "description": "Compara precios y características entre formatos digital y vinilo del mismo álbum"
+            },
+            "response": [
+              {
+                "name": "Comparación de formatos",
+                "status": "OK",
+                "code": 200,
+                "body": "{\n  \"success\": true,\n  \"message\": \"Comparación de formatos generada exitosamente\",\n  \"data\": {\n    \"albumId\": 1,\n    \"albumTitle\": \"Abbey Road\",\n    \"artistName\": \"The Beatles\",\n    \"hasDigitalVersion\": true,\n    \"hasVinylVersion\": true,\n    \"hasBothFormats\": true,\n    \"bestDigitalOption\": {\n      \"id\": 1,\n      \"productType\": \"DIGITAL\",\n      \"price\": 12.99,\n      \"stockQuantity\": 9999,\n      \"fileFormat\": \"MP3\"\n    },\n    \"bestVinylOption\": {\n      \"id\": 2,\n      \"productType\": \"PHYSICAL\",\n      \"price\": 45.99,\n      \"stockQuantity\": 15,\n      \"vinylSize\": \"TWELVE_INCH\",\n      \"conditionType\": \"NEW\"\n    },\n    \"priceDifference\": 33.00\n  }\n}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "03 - Casos de Prueba Específicos",
+        "item": [
+          {
+            "name": "CP-01: Producto solo en digital (sin vinilo)",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/10/alternative-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "10", "alternative-formats"]
+              },
+              "description": "Producto que existe solo en formato digital"
+            }
+          },
+          {
+            "name": "CP-02: Producto solo en vinilo (sin digital)",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/15/alternative-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "15", "alternative-formats"]
+              },
+              "description": "Producto que existe solo en formato vinilo"
+            }
+          },
+          {
+            "name": "CP-03: Álbum con múltiples versiones de vinilo",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/album/1/all-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "album", "1", "all-formats"]
+              },
+              "description": "Álbum con versión digital + múltiples versiones de vinilo (nuevo, usado, diferentes tamaños)"
+            }
+          },
+          {
+            "name": "CP-04: Búsqueda con filtros - Solo productos con ambos formatos",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/digital-with-vinyl?inStock=true&maxPrice=20",
+                "host": ["{{base_url}}"],
+                "path": ["products", "digital-with-vinyl"],
+                "query": [
+                  {
+                    "key": "inStock",
+                    "value": "true"
+                  },
+                  {
+                    "key": "maxPrice",
+                    "value": "20"
+                  }
+                ]
+              },
+              "description": "Filtrar productos digitales con vinilo que estén en stock y por debajo de cierto precio"
+            }
+          }
+        ]
+      },
+      {
+        "name": "04 - Datos de Prueba",
+        "item": [
+          {
+            "name": "Crear Artista - The Beatles",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"The Beatles\",\n  \"country\": \"United Kingdom\",\n  \"formedYear\": 1960,\n  \"bio\": \"Legendary British rock band\",\n  \"isActive\": false\n}"
+              },
+              "url": {
+                "raw": "{{base_url}}/artists",
+                "host": ["{{base_url}}"],
+                "path": ["artists"]
+              }
+            }
+          },
+          {
+            "name": "Crear Álbum - Abbey Road",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"title\": \"Abbey Road\",\n  \"artistId\": 1,\n  \"genreId\": 1,\n  \"releaseYear\": 1969,\n  \"label\": \"Apple Records\",\n  \"catalogNumber\": \"PCS 7088\",\n  \"durationMinutes\": 47,\n  \"description\": \"The eleventh studio album by The Beatles\"\n}"
+              },
+              "url": {
+                "raw": "{{base_url}}/albums",
+                "host": ["{{base_url}}"],
+                "path": ["albums"]
+              }
+            }
+          },
+          {
+            "name": "Crear Producto Digital - Abbey Road MP3",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"albumId\": 1,\n  \"providerId\": 1,\n  \"categoryId\": 1,\n  \"sku\": \"ABBEY-MP3-001\",\n  \"productType\": \"DIGITAL\",\n  \"conditionType\": \"NEW\",\n  \"price\": 12.99,\n  \"stockQuantity\": 9999,\n  \"fileFormat\": \"MP3\",\n  \"fileSizeMb\": 120,\n  \"isActive\": true,\n  \"featured\": true\n}"
+              },
+              "url": {
+                "raw": "{{base_url}}/products/catalog",
+                "host": ["{{base_url}}"],
+                "path": ["products", "catalog"]
+              }
+            }
+          },
+          {
+            "name": "Crear Producto Vinilo - Abbey Road Vinyl",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"albumId\": 1,\n  \"providerId\": 1,\n  \"categoryId\": 1,\n  \"sku\": \"ABBEY-VINYL-001\",\n  \"productType\": \"PHYSICAL\",\n  \"conditionType\": \"NEW\",\n  \"price\": 45.99,\n  \"stockQuantity\": 15,\n  \"vinylSize\": \"TWELVE_INCH\",\n  \"vinylSpeed\": \"THIRTY_THREE_RPM\",\n  \"weightGrams\": 180,\n  \"isActive\": true,\n  \"featured\": true\n}"
+              },
+              "url": {
+                "raw": "{{base_url}}/products/catalog",
+                "host": ["{{base_url}}"],
+                "path": ["products", "catalog"]
+              }
+            }
+          },
+          {
+            "name": "Crear Producto Vinilo Premium - Abbey Road Audiophile",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"albumId\": 1,\n  \"providerId\": 1,\n  \"categoryId\": 1,\n  \"sku\": \"ABBEY-VINYL-PREMIUM-001\",\n  \"productType\": \"PHYSICAL\",\n  \"conditionType\": \"MINT\",\n  \"price\": 89.99,\n  \"stockQuantity\": 5,\n  \"vinylSize\": \"TWELVE_INCH\",\n  \"vinylSpeed\": \"THIRTY_THREE_RPM\",\n  \"weightGrams\": 200,\n  \"isActive\": true,\n  \"featured\": false\n}"
+              },
+              "url": {
+                "raw": "{{base_url}}/products/catalog",
+                "host": ["{{base_url}}"],
+                "path": ["products", "catalog"]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "05 - Validaciones y Edge Cases",
+        "item": [
+          {
+            "name": "Error: Producto inexistente",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/99999/alternative-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "99999", "alternative-formats"]
+              },
+              "description": "Debe retornar error 404"
+            }
+          },
+          {
+            "name": "Error: Álbum inexistente",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{auth_token}}"
+                }
+              ],
+              "url": {
+                "raw": "{{base_url}}/products/album/99999/all-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "album", "99999", "all-formats"]
+              },
+              "description": "Debe manejar graciosamente álbum inexistente"
+            }
+          },
+          {
+            "name": "Sin autenticación",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{base_url}}/products/1/alternative-formats",
+                "host": ["{{base_url}}"],
+                "path": ["products", "1", "alternative-formats"]
+              },
+              "description": "Debe retornar error 401 si no está autenticado"
+            }
+          }
+        ]
+      }
+    ],
+    "auth": {
+      "type": "bearer",
+      "bearer": [
+        {
+          "key": "token",
+          "value": "{{auth_token}}",
+          "type": "string"
+        }
+      ]
+    },
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "// Script para obtener token automáticamente si está vacío",
+            "if (!pm.environment.get('auth_token')) {",
+            "    console.log('No hay token, ejecutar login primero');",
+            "}"
+          ]
+        }
+      },
+      {
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "// Tests automáticos para todas las respuestas",
+            "pm.test('Status code should be 200 or 201', function () {",
+            "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+            "});",
+            "",
+            "pm.test('Response should have success property', function () {",
+            "    const jsonData = pm.response.json();",
+            "    pm.expect(jsonData).to.have.property('success');",
+            "});",
+            "",
+            "pm.test('Response time is less than 2000ms', function () {",
+            "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+            "});"
+          ]
+        }
+      }
+    ]
+  }
