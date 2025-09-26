@@ -1,3 +1,4 @@
+// ================= ARCHIVO: UserRegistrationDTO.java (ACTUALIZACIÓN) =================
 package com.songstock.dto;
 
 import com.songstock.entity.UserRole;
@@ -25,7 +26,7 @@ public class UserRegistrationDTO {
 
     private String phone;
 
-    @NotNull(message = "Rol es requerido")
+    // Cambiar a String para manejar tanto "CUSTOMER" como UserRole.CUSTOMER
     private UserRole role;
 
     // Constructors
@@ -97,5 +98,17 @@ public class UserRegistrationDTO {
 
     public void setRole(UserRole role) {
         this.role = role;
+    }
+
+    // Método de conveniencia para setear role desde String
+    public void setRoleFromString(String roleString) {
+        if (roleString != null) {
+            try {
+                this.role = UserRole.valueOf(roleString.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Si el string no es válido, asignar CUSTOMER por defecto
+                this.role = UserRole.CUSTOMER;
+            }
+        }
     }
 }

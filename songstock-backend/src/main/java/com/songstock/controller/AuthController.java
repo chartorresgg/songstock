@@ -3,6 +3,9 @@ package com.songstock.controller;
 import com.songstock.dto.*;
 import com.songstock.entity.User;
 import com.songstock.service.AuthService;
+import com.songstock.service.UserService;
+import com.songstock.service.PasswordResetService;
+import com.songstock.entity.UserRole;
 import com.songstock.service.ProviderService;
 import com.songstock.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import com.songstock.entity.ProviderInvitation;
+import com.songstock.dto.PasswordResetDTO;
+import com.songstock.dto.ResetPasswordDTO;
+import com.songstock.entity.PasswordResetToken;
+import com.songstock.repository.PasswordResetTokenRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
+import java.time.LocalDateTime;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -45,6 +54,12 @@ public class AuthController {
     // Servicio de proveedores (invitaciones, registro, validación)
     @Autowired
     ProviderService providerService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private PasswordResetService passwordResetService;
 
     /**
      * Endpoint de prueba CORS.
@@ -210,5 +225,132 @@ public class AuthController {
             logger.error("Error in debug-admin endpoint", e);
             return ResponseEntity.status(500).body(error);
         }
+    }
+
+    // ================= AGREGAR ESTE MÉTODO AL AuthController.java
+    // =================
+
+    /**
+     * Registro de usuario regular (CUSTOMER).
+     * Permite a un usuario registrarse como cliente/comprador.
+     * No requiere verificación de administrador.
+     *
+     * @param userRequest datos del usuario a registrar
+     * @return mensaje de confirmación
+     */
+    @PostMapping("/register-user")
+    public ResponseEntity<ApiResponse<String>> registerUser(
+            @Valid @RequestBody UserRegistrationDTO userRequest) {
+
+        logger.info("User registration attempt for: {}", userRequest.getUsername());
+
+        try {
+            // Asegurar que el role sea CUSTOMER
+            userRequest.setRole(UserRole.CUSTOMER);
+
+            // Usar el UserService para crear el usuario
+            userService.createUser(userRequest);
+
+            logger.info("User registered successfully: {}", userRequest.getUsername());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Usuario registrado exitosamente. Ya puedes iniciar sesión."));
+
+        } catch (Exception e) {
+            logger.error("User registration failed for: {}", userRequest.getUsername(), e);
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("Error en registro: " + e.getMessage()));
+        }
+    }
+
+    // Agregar estas inyecciones junto con las otras @Autowired:
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    /**
+     * Solicitar restablecimiento de contraseña.
+     * Envía un token de recuperación al email del usuario.
+     *
+     * @param request datos con el email del usuario
+     * @return mensaje de confirmación
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(
+            @Valid @RequestBody PasswordResetDTO request) {
+
+        logger.info("Password reset request for email: {}", request.getEmail());
+
+        try {
+            // USAR EL SERVICIO en lugar del repositorio directamente
+            passwordResetService.createPasswordResetToken(request.getEmail());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Si el email existe en nuestro sistema, recibirás instrucciones para restablecer tu contraseña."));
+
+        } catch (Exception e) {
+            logger.error("Error processing password reset for: {}", request.getEmail(), e);
+            return ResponseEntity.status(500).body(
+                    ApiResponse.error("Error interno del servidor"));
+        }
+    }
+
+    /**
+     * Restablecer contraseña usando token.
+     *
+     * @param request datos con token y nueva contraseña
+     * @return mensaje de confirmación
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @Valid @RequestBody ResetPasswordDTO request) {
+
+        logger.info("Password reset attempt with token: {}", request.getToken());
+
+        try {
+            // USAR EL SERVICIO en lugar del repositorio directamente
+            passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña."));
+
+        } catch (Exception e) {
+            logger.error("Error resetting password with token: {}", request.getToken(), e);
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * Limpiar tokens expirados y usados.
+     * Este método se puede llamar periódicamente o mediante un scheduler.
+     *
+     * @return cantidad de tokens eliminados
+     */
+    @PostMapping("/cleanup-tokens")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<String>> cleanupExpiredTokens() {
+        try {
+            passwordResetTokenRepository.deleteExpiredAndUsedTokens(LocalDateTime.now());
+            logger.info("Expired and used password reset tokens cleaned up");
+
+            return ResponseEntity.ok(ApiResponse.success("Tokens expirados eliminados exitosamente"));
+        } catch (Exception e) {
+            logger.error("Error cleaning up expired tokens", e);
+            return ResponseEntity.status(500).body(
+                    ApiResponse.error("Error interno del servidor"));
+        }
+    }
+
+    /**
+     * Generar un token seguro para restablecimiento de contraseña.
+     *
+     * @return token aleatorio de 32 caracteres
+     */
+    private String generateSecureToken() {
+        // Generar token aleatorio seguro
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        byte[] bytes = new byte[24];
+        random.nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

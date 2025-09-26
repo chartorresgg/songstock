@@ -1,7 +1,7 @@
-export const API_BASE_URL = 'http://localhost:8080/api/v1';  // ⭐ AGREGADO /api/v1
+export const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 export const API_ENDPOINTS = {
-  // Auth endpoints - SIN prefijo adicional porque ya está en BASE_URL
+  // Auth endpoints
   LOGIN: '/auth/login',
   REGISTER_USER: '/auth/register-user',
   REGISTER_PROVIDER: '/auth/register-provider',
@@ -9,13 +9,13 @@ export const API_ENDPOINTS = {
   TEST_CORS: '/auth/test-cors',
   TEST: '/auth/test',
   
-  // Provider endpoints  
-  PROVIDERS: '/providers',
-  VERIFY_PROVIDER: '/admin/providers/{id}/verify',
-  
   // User endpoints
   USERS: '/users',
   USER_PROFILE: '/users/profile',
+  
+  // Provider endpoints  
+  PROVIDERS: '/providers',
+  VERIFY_PROVIDER: '/admin/providers/{id}/verify',
   
   // Admin endpoints
   ADMIN_USERS: '/admin/users',

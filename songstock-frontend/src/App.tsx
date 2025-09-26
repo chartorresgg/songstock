@@ -1,66 +1,46 @@
+// ================= ARCHIVO: src/App.tsx (CORREGIDO) =================
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
-import ProtectedRoute from './components/ProtectedRoute'; // Importación corregida
+import ProtectedRoute from './components/ProtectedRoute';
 
-// Pages
+// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
+import RegisterUserPage from './pages/auth/RegisterUserPage';
 import RegisterProviderPage from './pages/auth/RegisterProviderPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import Layout from './components/layout/Layout';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';  // AGREGAR
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';    // AGREGAR
 
-// Admin Pages (placeholder for now)
+// Dashboard
+import DashboardPage from './pages/dashboard/DashboardPage';
+
+// Placeholder pages for routes
 const AdminUsersPage = () => (
-  <Layout>
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-        <p className="text-blue-700">
-          Página en desarrollo. Aquí podrás gestionar todos los usuarios de la plataforma.
-        </p>
-      </div>
-    </div>
-  </Layout>
+  <div className="p-8">
+    <h1 className="text-2xl font-bold">Gestión de Usuarios (Admin)</h1>
+    <p>Página en desarrollo...</p>
+  </div>
 );
 
 const AdminProvidersPage = () => (
-  <Layout>
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Gestión de Proveedores</h1>
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-        <p className="text-blue-700">
-          Página en desarrollo. Aquí podrás verificar y gestionar proveedores.
-        </p>
-      </div>
-    </div>
-  </Layout>
+  <div className="p-8">
+    <h1 className="text-2xl font-bold">Gestión de Proveedores (Admin)</h1>
+    <p>Página en desarrollo...</p>
+  </div>
 );
 
-// Provider Pages (placeholder for now)
 const ProviderProductsPage = () => (
-  <Layout>
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Mis Productos</h1>
-      <div className="bg-green-50 border border-green-200 rounded-md p-4">
-        <p className="text-green-700">
-          Página en desarrollo. Aquí podrás gestionar tu catálogo de productos.
-        </p>
-      </div>
-    </div>
-  </Layout>
+  <div className="p-8">
+    <h1 className="text-2xl font-bold">Mis Productos (Proveedor)</h1>
+    <p>Página en desarrollo...</p>
+  </div>
 );
 
 const CatalogPage = () => (
-  <Layout>
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Catálogo de Productos</h1>
-      <div className="bg-purple-50 border border-purple-200 rounded-md p-4">
-        <p className="text-purple-700">
-          Página en desarrollo. Aquí podrás explorar todos los productos disponibles.
-        </p>
-      </div>
-    </div>
-  </Layout>
+  <div className="p-8">
+    <h1 className="text-2xl font-bold">Catálogo de Productos</h1>
+    <p>Página en desarrollo...</p>
+  </div>
 );
 
 function App() {
@@ -68,11 +48,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🎵</div>
-          <div className="text-lg text-gray-600">Cargando SongSto...</div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Cargando aplicación...</div>
       </div>
     );
   }
@@ -82,7 +59,12 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register-user" element={<RegisterUserPage />} />
         <Route path="/register-provider" element={<RegisterProviderPage />} />
+        
+        {/* AGREGAR ESTAS RUTAS PARA RESET PASSWORD */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         
         {/* Protected Routes */}
         <Route
@@ -132,21 +114,17 @@ function App() {
         <Route
           path="*"
           element={
-            <Layout>
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🎵</div>
-                <h2 className="text-2xl font-bold text-gray-900">Página no encontrada</h2>
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold">Página no encontrada</h2>
                 <p className="text-gray-600 mt-2">La página que buscas no existe.</p>
-                <div className="mt-6">
-                  <button 
-                    onClick={() => window.history.back()}
-                    className="text-blue-600 hover:text-blue-500"
-                  >
-                    ← Volver atrás
-                  </button>
+                <div className="mt-4">
+                  <a href="/login" className="text-blue-600 hover:text-blue-500">
+                    Ir al Login
+                  </a>
                 </div>
               </div>
-            </Layout>
+            </div>
           }
         />
       </Routes>

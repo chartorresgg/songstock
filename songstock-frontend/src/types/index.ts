@@ -8,16 +8,6 @@ export interface User {
   createdAt: string;
 }
 
-export interface Provider {
-  id: number;
-  businessName: string;
-  contactEmail: string;
-  phoneNumber: string;
-  businessDescription: string;
-  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
-  isActive: boolean;
-}
-
 export interface AuthResponse {
   token: string;
   refreshToken: string;
@@ -41,6 +31,18 @@ export interface LoginRequest {
   password: string;
 }
 
+// Registro de Usuario Regular (Customer)
+export interface UserRegistration {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: 'CUSTOMER';
+}
+
+// Registro de Proveedor
 export interface ProviderRegistration {
   username: string;
   email: string;

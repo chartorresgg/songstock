@@ -25,7 +25,9 @@ public class WebConfig implements WebMvcConfigurer {
         logger.info("Configuring CORS mappings");
 
         registry.addMapping("/**") // Aplica a todas las rutas
-                .allowedOriginPatterns("*") // Permite cualquier origen
+                .allowedOriginPatterns("http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "null") // Permite cualquier origen
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD") // Métodos permitidos
                 .allowedHeaders("*") // Cualquier cabecera
                 .allowCredentials(true) // Permitir credenciales

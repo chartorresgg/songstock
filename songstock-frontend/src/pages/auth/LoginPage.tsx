@@ -1,4 +1,4 @@
-// ================= ARCHIVO: src/pages/auth/LoginPage.tsx (CORRECCIÓN SINTAXIS) =================
+// ================= ARCHIVO: src/pages/auth/LoginPage.tsx (CORREGIDO) =================
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -77,6 +77,16 @@ const LoginPage: React.FC = () => {
               required
             />
             
+            {/* AGREGAR ESTE BLOQUE: Enlace de ¿Olvidaste tu contraseña? */}
+            <div className="text-right">
+              <Link 
+                to="/forgot-password" 
+                className="text-sm text-blue-600 hover:text-blue-500"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
+            
             <Button
               type="submit"
               className="w-full"
@@ -88,7 +98,13 @@ const LoginPage: React.FC = () => {
           
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              ¿Eres un nuevo proveedor?{' '}
+              ¿No tienes cuenta?{' '}
+              <Link to="/register-user" className="text-blue-600 hover:text-blue-500">
+                Crear cuenta de usuario
+              </Link>
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              ¿Quieres vender discos?{' '}
               <Link to="/register-provider" className="text-blue-600 hover:text-blue-500">
                 Registrar cuenta de proveedor
               </Link>

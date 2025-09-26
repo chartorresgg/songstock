@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users") // SIN /api/v1 porque ya está en context-path
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class UserController {
 
     @Autowired
@@ -92,4 +91,5 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("Usuario eliminado exitosamente"));
     }
+
 }

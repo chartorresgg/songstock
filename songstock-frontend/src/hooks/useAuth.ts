@@ -24,6 +24,10 @@ export const useAuth = () => {
     setUser(null);
   };
 
+  const registerUser = async (data: any) => {
+    return await authService.registerUser(data);
+  };
+
   const registerProvider = async (data: any) => {
     return await authService.registerProvider(data);
   };
@@ -33,6 +37,7 @@ export const useAuth = () => {
     loading,
     login,
     logout,
+    registerUser,
     registerProvider,
     isAuthenticated: authService.isAuthenticated(),
   };

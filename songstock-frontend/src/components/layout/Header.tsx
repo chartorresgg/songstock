@@ -1,3 +1,4 @@
+// ================= ARCHIVO: src/components/layout/Header.tsx (ACTUALIZADO) =================
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -39,9 +40,18 @@ const Header: React.FC = () => {
                     Iniciar Sesión
                   </Button>
                 </Link>
-                <Link to="/register-provider">
+                <Link to="/register-user">
                   <Button variant="primary" size="sm">
-                    Registrar Proveedor
+                    Registrarse
+                  </Button>
+                </Link>
+                <Link to="/register-provider">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    style={{ backgroundColor: '#059669', color: 'white' }}
+                  >
+                    Vender Discos
                   </Button>
                 </Link>
               </div>
