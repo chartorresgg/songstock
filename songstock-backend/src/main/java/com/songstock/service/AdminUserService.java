@@ -16,12 +16,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Servicio para la gestión administrativa de usuarios, proveedores
+ * y estadísticas relacionadas con la plataforma.
+ *
+ * Proporciona funcionalidades de:
+ * - Administración de usuarios (CRUD, activación/desactivación, filtros).
+ * - Gestión de proveedores (verificación, estadísticas, top ranking).
+ * - Generación de estadísticas para dashboards administrativos.
+ */
 @Service
 @Transactional
 public class AdminUserService {
@@ -43,29 +51,30 @@ public class AdminUserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // ========== GESTIÓN DE USUARIOS ==========
+    // ============================================================
+    // =============== GESTIÓN DE USUARIOS ====================
+    // ============================================================
 
     /**
-     * Obtener todos los usuarios con filtros y paginación
+     * Obtiene todos los usuarios aplicando filtros, búsqueda por texto,
+     * rol, estado y paginación.
+     *
+     * @param filterDTO Objeto con filtros de búsqueda y paginación.
+     * @return Página de {@link UserManagementResponseDTO} con los resultados.
      */
     @Transactional(readOnly = true)
     public Page<UserManagementResponseDTO> getAllUsers(UserSearchFilterDTO filterDTO) {
         logger.info("Obteniendo usuarios con filtros: query={}, role={}, isActive={}",
                 filterDTO.getSearchQuery(), filterDTO.getRole(), filterDTO.getIsActive());
 
-        // Crear Pageable con ordenamiento
         Sort sort = Sort.by(
                 "desc".equalsIgnoreCase(filterDTO.getSortDirection())
                         ? Sort.Direction.DESC
                         : Sort.Direction.ASC,
                 filterDTO.getSortBy());
 
-        Pageable pageable = PageRequest.of(
-                filterDTO.getPage(),
-                filterDTO.getSize(),
-                sort);
+        Pageable pageable = PageRequest.of(filterDTO.getPage(), filterDTO.getSize(), sort);
 
-        // Buscar usuarios con filtros
         Page<User> userPage = userRepository.findUsersWithFilters(
                 filterDTO.getSearchQuery(),
                 filterDTO.getRole(),
@@ -75,7 +84,6 @@ public class AdminUserService {
                 filterDTO.getCreatedBefore(),
                 pageable);
 
-        // Convertir a DTO con información adicional
         return userPage.map(user -> {
             UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(user);
             enrichUserDTO(dto, user);
@@ -84,7 +92,12 @@ public class AdminUserService {
     }
 
     /**
-     * Obtener usuario específico por ID con información completa
+     * Obtiene la información detallada de un usuario por su ID,
+     * incluyendo datos del proveedor si aplica.
+     *
+     * @param userId ID del usuario.
+     * @return DTO con información completa del usuario.
+     * @throws ResourceNotFoundException Si no existe el usuario.
      */
     @Transactional(readOnly = true)
     public UserManagementResponseDTO getUserById(Long userId) {
@@ -97,7 +110,7 @@ public class AdminUserService {
 
         Object[] data = result.get();
         User user = (User) data[0];
-        Provider provider = (Provider) data[1]; // Puede ser null si no es proveedor
+        Provider provider = (Provider) data[1]; // Puede ser null
 
         UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(user);
 
@@ -106,17 +119,20 @@ public class AdminUserService {
             dto.setBusinessName(provider.getBusinessName());
             dto.setVerificationStatus(provider.getVerificationStatus());
             dto.setVerificationDate(provider.getVerificationDate());
-
-            // Obtener estadísticas de productos
-            Long productCount = productRepository.countActiveProductsByProvider(provider.getId());
-            dto.setTotalProducts(productCount.intValue());
+            dto.setTotalProducts(productRepository.countActiveProductsByProvider(provider.getId()).intValue());
         }
 
         return dto;
     }
 
     /**
-     * Editar usuario existente
+     * Edita los datos de un usuario existente.
+     *
+     * @param userId  ID del usuario.
+     * @param editDTO DTO con nuevos valores.
+     * @return Usuario actualizado como {@link UserManagementResponseDTO}.
+     * @throws ResourceNotFoundException  Si no se encuentra el usuario.
+     * @throws DuplicateResourceException Si el username o email ya están en uso.
      */
     public UserManagementResponseDTO updateUser(Long userId, UserEditDTO editDTO) {
         logger.info("Actualizando usuario ID: {} con datos: {}", userId, editDTO.getUsername());
@@ -124,21 +140,17 @@ public class AdminUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + userId));
 
-        // Validar username único (si cambió)
-        if (!user.getUsername().equals(editDTO.getUsername())) {
-            if (!userRepository.isUsernameAvailableForUpdate(editDTO.getUsername(), userId)) {
-                throw new DuplicateResourceException("El username ya está en uso: " + editDTO.getUsername());
-            }
+        // Validaciones de unicidad
+        if (!user.getUsername().equals(editDTO.getUsername())
+                && !userRepository.isUsernameAvailableForUpdate(editDTO.getUsername(), userId)) {
+            throw new DuplicateResourceException("El username ya está en uso: " + editDTO.getUsername());
+        }
+        if (!user.getEmail().equals(editDTO.getEmail())
+                && !userRepository.isEmailAvailableForUpdate(editDTO.getEmail(), userId)) {
+            throw new DuplicateResourceException("El email ya está en uso: " + editDTO.getEmail());
         }
 
-        // Validar email único (si cambió)
-        if (!user.getEmail().equals(editDTO.getEmail())) {
-            if (!userRepository.isEmailAvailableForUpdate(editDTO.getEmail(), userId)) {
-                throw new DuplicateResourceException("El email ya está en uso: " + editDTO.getEmail());
-            }
-        }
-
-        // Actualizar campos
+        // Actualización de campos
         user.setFirstName(editDTO.getFirstName());
         user.setLastName(editDTO.getLastName());
         user.setUsername(editDTO.getUsername());
@@ -150,8 +162,7 @@ public class AdminUserService {
 
         User savedUser = userRepository.save(user);
 
-        logger.info("Usuario actualizado exitosamente - ID: {}, Razón: {}",
-                userId, editDTO.getUpdateReason());
+        logger.info("Usuario actualizado exitosamente - ID: {}, Razón: {}", userId, editDTO.getUpdateReason());
 
         UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(savedUser);
         enrichUserDTO(dto, savedUser);
@@ -159,7 +170,12 @@ public class AdminUserService {
     }
 
     /**
-     * Activar/Desactivar usuario
+     * Activa o desactiva un usuario según su estado actual.
+     *
+     * @param userId ID del usuario.
+     * @param reason Razón de la operación.
+     * @return Usuario actualizado como {@link UserManagementResponseDTO}.
+     * @throws ResourceNotFoundException Si no se encuentra el usuario.
      */
     public UserManagementResponseDTO toggleUserStatus(Long userId, String reason) {
         logger.info("Cambiando estado del usuario ID: {}", userId);
@@ -182,7 +198,13 @@ public class AdminUserService {
     }
 
     /**
-     * Eliminar usuario (soft delete)
+     * Realiza un "soft delete" de un usuario, es decir, lo desactiva en vez de
+     * eliminarlo físicamente.
+     *
+     * @param userId ID del usuario.
+     * @param reason Razón de la eliminación.
+     * @throws ResourceNotFoundException Si no se encuentra el usuario.
+     * @throws BusinessException         Si el usuario tiene productos asociados.
      */
     public void deleteUser(Long userId, String reason) {
         logger.info("Eliminando usuario ID: {}", userId);
@@ -190,7 +212,6 @@ public class AdminUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + userId));
 
-        // Verificar si el usuario puede ser eliminado
         if (!userRepository.canUserBeDeleted(userId)) {
             throw new BusinessException("El usuario no puede ser eliminado porque tiene productos asociados");
         }
@@ -202,18 +223,20 @@ public class AdminUserService {
         logger.info("Usuario eliminado (soft delete) - ID: {}, Razón: {}", userId, reason);
     }
 
-    // ========== GESTIÓN ESPECÍFICA DE PROVEEDORES ==========
+    // ============================================================
+    // ============= GESTIÓN DE PROVEEDORES ===================
+    // ============================================================
 
     /**
-     * Obtener proveedores pendientes de verificación
+     * Obtiene la lista de proveedores pendientes de verificación.
+     *
+     * @return Lista de proveedores en espera de verificación.
      */
     @Transactional(readOnly = true)
     public List<UserManagementResponseDTO> getPendingProviders() {
         logger.info("Obteniendo proveedores pendientes de verificación");
 
-        List<User> pendingUsers = userRepository.findPendingProviders();
-
-        return pendingUsers.stream()
+        return userRepository.findPendingProviders().stream()
                 .map(user -> {
                     UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(user);
                     enrichUserDTO(dto, user);
@@ -223,7 +246,13 @@ public class AdminUserService {
     }
 
     /**
-     * Actualizar estado de verificación de proveedor
+     * Actualiza el estado de verificación de un proveedor.
+     *
+     * @param userId        ID del usuario proveedor.
+     * @param managementDTO DTO con la información de verificación.
+     * @return Usuario proveedor actualizado.
+     * @throws ResourceNotFoundException Si el usuario o proveedor no existen.
+     * @throws BusinessException         Si el usuario no tiene rol de proveedor.
      */
     public UserManagementResponseDTO updateProviderVerification(Long userId, ProviderManagementDTO managementDTO) {
         logger.info("Actualizando verificación del proveedor - Usuario ID: {}, Estado: {}",
@@ -239,16 +268,14 @@ public class AdminUserService {
         Provider provider = providerRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Información de proveedor no encontrada"));
 
-        // Actualizar estado de verificación
         VerificationStatus previousStatus = provider.getVerificationStatus();
         provider.setVerificationStatus(managementDTO.getVerificationStatus());
 
-        if (managementDTO.getVerificationStatus() == VerificationStatus.VERIFIED ||
-                managementDTO.getVerificationStatus() == VerificationStatus.REJECTED) {
+        if (managementDTO.getVerificationStatus() == VerificationStatus.VERIFIED
+                || managementDTO.getVerificationStatus() == VerificationStatus.REJECTED) {
             provider.setVerificationDate(LocalDateTime.now());
         }
 
-        // Actualizar información adicional si se proporciona
         if (managementDTO.getBusinessName() != null) {
             provider.setBusinessName(managementDTO.getBusinessName());
         }
@@ -259,7 +286,7 @@ public class AdminUserService {
         provider.setUpdatedAt(LocalDateTime.now());
         providerRepository.save(provider);
 
-        logger.info("Verificación de proveedor actualizada - ID: {}, Estado anterior: {}, Nuevo estado: {}, Razón: {}",
+        logger.info("Verificación actualizada - ID: {}, Estado anterior: {}, Nuevo estado: {}, Razón: {}",
                 userId, previousStatus, managementDTO.getVerificationStatus(), managementDTO.getChangeReason());
 
         UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(user);
@@ -267,10 +294,14 @@ public class AdminUserService {
         return dto;
     }
 
-    // ========== ESTADÍSTICAS Y DASHBOARD ==========
+    // ============================================================
+    // ============ ESTADÍSTICAS Y DASHBOARD ==================
+    // ============================================================
 
     /**
-     * Obtener estadísticas para dashboard administrativo
+     * Genera las estadísticas principales para el dashboard administrativo.
+     *
+     * @return DTO con métricas de usuarios, proveedores y productos.
      */
     @Transactional(readOnly = true)
     public AdminDashboardDTO getDashboardStatistics() {
@@ -278,7 +309,7 @@ public class AdminUserService {
 
         AdminDashboardDTO dashboard = new AdminDashboardDTO();
 
-        // Estadísticas de usuarios
+        // Usuarios
         Object[] userStats = userRepository.getUserStatistics();
         if (userStats != null && userStats.length > 0) {
             dashboard.setTotalUsers((Long) userStats[0]);
@@ -289,7 +320,7 @@ public class AdminUserService {
             dashboard.setInactiveUsers((Long) userStats[5]);
         }
 
-        // Estadísticas de proveedores
+        // Proveedores
         Object[] providerStats = userRepository.getProviderStatistics();
         if (providerStats != null && providerStats.length > 0) {
             dashboard.setVerifiedProviders((Long) providerStats[0]);
@@ -297,19 +328,16 @@ public class AdminUserService {
             dashboard.setRejectedProviders((Long) providerStats[2]);
         }
 
-        // Estadísticas de productos
+        // Productos
         dashboard.setTotalProducts(productRepository.count());
         dashboard.setActiveProducts((long) productRepository.findByIsActiveTrue().size());
         dashboard.setDigitalProducts(productRepository.countByProductType(ProductType.DIGITAL));
         dashboard.setPhysicalProducts(productRepository.countByProductType(ProductType.PHYSICAL));
 
-        // Estadísticas del mes actual
+        // Estadísticas mensuales
         LocalDateTime startOfMonth = YearMonth.now().atDay(1).atStartOfDay();
         dashboard.setUsersRegisteredThisMonth(userRepository.countUsersRegisteredThisMonth(startOfMonth));
         dashboard.setProvidersVerifiedThisMonth(userRepository.countProvidersVerifiedThisMonth(startOfMonth));
-
-        // Obtener productos creados este mes (assumiendo que existe el método)
-        // dashboard.setProductsCreatedThisMonth(productRepository.countProductsCreatedThisMonth(startOfMonth));
 
         logger.info("Estadísticas generadas - Total usuarios: {}, Proveedores verificados: {}",
                 dashboard.getTotalUsers(), dashboard.getVerifiedProviders());
@@ -318,15 +346,16 @@ public class AdminUserService {
     }
 
     /**
-     * Buscar usuarios con texto libre
+     * Busca usuarios por texto libre en username, email o nombres.
+     *
+     * @param query Texto de búsqueda.
+     * @return Lista de usuarios coincidentes.
      */
     @Transactional(readOnly = true)
     public List<UserManagementResponseDTO> searchUsers(String query) {
         logger.info("Buscando usuarios con query: {}", query);
 
-        List<User> users = userRepository.searchUsers(query);
-
-        return users.stream()
+        return userRepository.searchUsers(query).stream()
                 .map(user -> {
                     UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(user);
                     enrichUserDTO(dto, user);
@@ -336,16 +365,17 @@ public class AdminUserService {
     }
 
     /**
-     * Obtener usuarios registrados recientemente
+     * Obtiene los usuarios registrados recientemente dentro de un rango de días.
+     *
+     * @param days Número de días atrás desde la fecha actual.
+     * @return Lista de usuarios recientes.
      */
     @Transactional(readOnly = true)
     public List<UserManagementResponseDTO> getRecentUsers(int days) {
         logger.info("Obteniendo usuarios registrados en los últimos {} días", days);
 
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
-        List<User> users = userRepository.findRecentUsers(cutoffDate);
-
-        return users.stream()
+        return userRepository.findRecentUsers(cutoffDate).stream()
                 .map(user -> {
                     UserManagementResponseDTO dto = userManagementMapper.toManagementResponseDTO(user);
                     enrichUserDTO(dto, user);
@@ -355,7 +385,10 @@ public class AdminUserService {
     }
 
     /**
-     * Obtener top proveedores por número de productos
+     * Obtiene el ranking de proveedores con más productos.
+     *
+     * @param limit Número máximo de resultados.
+     * @return Lista de proveedores top con su número de productos.
      */
     @Transactional(readOnly = true)
     public List<UserManagementResponseDTO> getTopProviders(int limit) {
@@ -377,44 +410,45 @@ public class AdminUserService {
                 .toList();
     }
 
-    // ========== MÉTODOS AUXILIARES ==========
+    // ============================================================
+    // =============== MÉTODOS AUXILIARES =====================
+    // ============================================================
 
     /**
-     * Enriquecer DTO con información adicional
+     * Enriquecer DTO de usuario con información de proveedor
+     * o estadísticas adicionales según el rol.
+     *
+     * @param dto  DTO a enriquecer.
+     * @param user Entidad usuario base.
      */
     private void enrichUserDTO(UserManagementResponseDTO dto, User user) {
         if (user.getRole() == UserRole.PROVIDER) {
-            Optional<Provider> providerOpt = providerRepository.findByUserId(user.getId());
-            if (providerOpt.isPresent()) {
-                Provider provider = providerOpt.get();
+            providerRepository.findByUserId(user.getId()).ifPresent(provider -> {
                 dto.setProviderId(provider.getId());
                 dto.setBusinessName(provider.getBusinessName());
                 dto.setVerificationStatus(provider.getVerificationStatus());
                 dto.setVerificationDate(provider.getVerificationDate());
-
-                // Contar productos del proveedor
-                Long productCount = productRepository.countActiveProductsByProvider(provider.getId());
-                dto.setTotalProducts(productCount.intValue());
-            }
+                dto.setTotalProducts(productRepository.countActiveProductsByProvider(provider.getId()).intValue());
+            });
         }
 
-        // Para compradores, podrían agregarse estadísticas de pedidos en el futuro
+        // Futuro: estadísticas de clientes (pedidos, etc.)
         if (user.getRole() == UserRole.CUSTOMER) {
             // dto.setTotalOrders(orderRepository.countByCustomerId(user.getId()));
         }
     }
 
     /**
-     * Validar permisos para operación administrativa
+     * Valida permisos y reglas de seguridad para operaciones administrativas.
+     *
+     * @param operation Tipo de operación (ej: deactivate).
+     * @param userId    ID del usuario afectado.
+     * @throws BusinessException Si se intenta desactivar al último admin activo.
      */
     private void validateAdminOperation(String operation, Long userId) {
         logger.debug("Validando operación administrativa: {} para usuario: {}", operation, userId);
 
-        // Aquí podrían agregarse validaciones específicas
-        // Por ejemplo, evitar que un admin se desactive a sí mismo
-
         if ("deactivate".equals(operation)) {
-            // Verificar que no sea el último admin activo
             Long activeAdmins = userRepository.countByRole(UserRole.ADMIN);
             if (activeAdmins <= 1) {
                 throw new BusinessException("No se puede desactivar el último administrador activo");

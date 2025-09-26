@@ -19,203 +19,211 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controlador REST para gestionar operaciones relacionadas con los álbumes.
+ * Proporciona endpoints para crear, obtener, actualizar, eliminar y consultar
+ * álbumes según diferentes criterios.
+ */
 @RestController
 @RequestMapping("/albums")
 @Tag(name = "Albums", description = "Gestión de Álbumes")
 public class AlbumController {
-    
+
+    // Logger para registrar eventos e información de las peticiones REST
     private static final Logger logger = LoggerFactory.getLogger(AlbumController.class);
-    
+
+    // Servicio encargado de la lógica de negocio para álbumes
     @Autowired
     private AlbumService albumService;
-    
+
     /**
-     * Crear un nuevo álbum
+     * Crear un nuevo álbum.
+     * Solo accesible para ADMIN o PROVIDER.
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Crear álbum", description = "Crear un nuevo álbum")
     public ResponseEntity<ApiResponse<AlbumDTO>> createAlbum(@Valid @RequestBody AlbumDTO albumDTO) {
         logger.info("REST request to create album: {}", albumDTO.getTitle());
-        
+
         AlbumDTO createdAlbum = albumService.createAlbum(albumDTO);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Álbum creado exitosamente", createdAlbum));
     }
-    
+
     /**
-     * Obtener todos los álbumes activos
+     * Obtener todos los álbumes activos.
      */
     @GetMapping
     @Operation(summary = "Listar álbumes", description = "Obtener todos los álbumes activos")
     public ResponseEntity<ApiResponse<List<AlbumDTO>>> getAllAlbums() {
         logger.info("REST request to get all active albums");
-        
+
         List<AlbumDTO> albums = albumService.getAllActiveAlbums();
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbumes obtenidos exitosamente", albums));
     }
-    
+
     /**
-     * Obtener álbumes con paginación
+     * Obtener álbumes con paginación.
      */
     @GetMapping("/paginated")
     @Operation(summary = "Listar álbumes paginados", description = "Obtener álbumes con paginación")
     public ResponseEntity<ApiResponse<Page<AlbumDTO>>> getAlbums(Pageable pageable) {
         logger.info("REST request to get albums with pagination");
-        
+
         Page<AlbumDTO> albumsPage = albumService.getAlbums(pageable);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbumes obtenidos exitosamente", albumsPage));
     }
-    
+
     /**
-     * Obtener álbum por ID
+     * Obtener álbum por ID.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Obtener álbum", description = "Obtener un álbum por su ID")
     public ResponseEntity<ApiResponse<AlbumDTO>> getAlbumById(@PathVariable Long id) {
         logger.info("REST request to get album by ID: {}", id);
-        
+
         AlbumDTO album = albumService.getAlbumById(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbum obtenido exitosamente", album));
     }
-    
+
     /**
      * ENDPOINT PRINCIPAL PARA LA HISTORIA DE USUARIO:
-     * Obtener todos los formatos disponibles de un álbum
+     * Obtener todos los formatos disponibles de un álbum (digital y vinilo).
      */
     @GetMapping("/{id}/formats")
-    @Operation(
-        summary = "Obtener formatos de álbum", 
-        description = "Obtener todos los formatos disponibles (digital y vinilo) de un álbum específico - Historia de Usuario principal"
-    )
+    @Operation(summary = "Obtener formatos de álbum", description = "Obtener todos los formatos disponibles (digital y vinilo) de un álbum específico - Historia de Usuario principal")
     public ResponseEntity<ApiResponse<AlbumFormatsDTO>> getAlbumFormats(@PathVariable Long id) {
         logger.info("REST request to get album formats for ID: {}", id);
-        
+
         AlbumFormatsDTO formats = albumService.getAlbumFormats(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Formatos del álbum obtenidos exitosamente", formats));
     }
-    
+
     /**
-     * Verificar si un álbum tiene versión en vinilo
+     * Verificar si un álbum tiene versión en vinilo.
      */
     @GetMapping("/{id}/has-vinyl")
     @Operation(summary = "Verificar versión vinilo", description = "Verificar si un álbum tiene versión en vinilo")
     public ResponseEntity<ApiResponse<Boolean>> hasVinylVersion(@PathVariable Long id) {
         logger.info("REST request to check if album {} has vinyl version", id);
-        
+
         boolean hasVinyl = albumService.hasVinylVersion(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Verificación realizada", hasVinyl));
     }
-    
+
     /**
-     * Verificar si un álbum tiene versión digital
+     * Verificar si un álbum tiene versión digital.
      */
     @GetMapping("/{id}/has-digital")
     @Operation(summary = "Verificar versión digital", description = "Verificar si un álbum tiene versión digital")
     public ResponseEntity<ApiResponse<Boolean>> hasDigitalVersion(@PathVariable Long id) {
         logger.info("REST request to check if album {} has digital version", id);
-        
+
         boolean hasDigital = albumService.hasDigitalVersion(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Verificación realizada", hasDigital));
     }
-    
+
     /**
-     * Buscar álbumes por título
+     * Buscar álbumes por título.
      */
     @GetMapping("/search")
     @Operation(summary = "Buscar álbumes", description = "Buscar álbumes por título")
     public ResponseEntity<ApiResponse<List<AlbumDTO>>> searchAlbums(@RequestParam String title) {
         logger.info("REST request to search albums by title: {}", title);
-        
+
         List<AlbumDTO> albums = albumService.searchAlbumsByTitle(title);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Búsqueda realizada exitosamente", albums));
     }
-    
+
     /**
-     * Obtener álbumes por artista
+     * Obtener álbumes por artista.
      */
     @GetMapping("/artist/{artistId}")
     @Operation(summary = "Álbumes por artista", description = "Obtener álbumes por artista")
     public ResponseEntity<ApiResponse<List<AlbumDTO>>> getAlbumsByArtist(@PathVariable Long artistId) {
         logger.info("REST request to get albums by artist ID: {}", artistId);
-        
+
         List<AlbumDTO> albums = albumService.getAlbumsByArtist(artistId);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbumes obtenidos exitosamente", albums));
     }
-    
+
     /**
-     * Obtener álbumes por género
+     * Obtener álbumes por género.
      */
     @GetMapping("/genre/{genreId}")
     @Operation(summary = "Álbumes por género", description = "Obtener álbumes por género")
     public ResponseEntity<ApiResponse<List<AlbumDTO>>> getAlbumsByGenre(@PathVariable Long genreId) {
         logger.info("REST request to get albums by genre ID: {}", genreId);
-        
+
         List<AlbumDTO> albums = albumService.getAlbumsByGenre(genreId);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbumes obtenidos exitosamente", albums));
     }
-    
+
     /**
-     * Obtener álbumes por año
+     * Obtener álbumes por año de lanzamiento.
      */
     @GetMapping("/year/{year}")
     @Operation(summary = "Álbumes por año", description = "Obtener álbumes por año de lanzamiento")
     public ResponseEntity<ApiResponse<List<AlbumDTO>>> getAlbumsByYear(@PathVariable Integer year) {
         logger.info("REST request to get albums by year: {}", year);
-        
+
         List<AlbumDTO> albums = albumService.getAlbumsByReleaseYear(year);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbumes obtenidos exitosamente", albums));
     }
-    
+
     /**
-     * Obtener álbumes que tienen ambos formatos
+     * Obtener álbumes que tienen ambos formatos (digital y vinilo).
      */
     @GetMapping("/both-formats")
     @Operation(summary = "Álbumes con ambos formatos", description = "Obtener álbumes que tienen versión digital y vinilo")
     public ResponseEntity<ApiResponse<List<AlbumDTO>>> getAlbumsWithBothFormats() {
         logger.info("REST request to get albums with both formats");
-        
+
         List<AlbumDTO> albums = albumService.getAlbumsWithBothFormats();
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbumes obtenidos exitosamente", albums));
     }
-    
+
     /**
-     * Actualizar álbum
+     * Actualizar un álbum existente.
+     * Solo accesible para ADMIN o PROVIDER.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Actualizar álbum", description = "Actualizar un álbum existente")
-    public ResponseEntity<ApiResponse<AlbumDTO>> updateAlbum(@PathVariable Long id, @Valid @RequestBody AlbumDTO albumDTO) {
+    public ResponseEntity<ApiResponse<AlbumDTO>> updateAlbum(@PathVariable Long id,
+            @Valid @RequestBody AlbumDTO albumDTO) {
         logger.info("REST request to update album ID: {}", id);
-        
+
         AlbumDTO updatedAlbum = albumService.updateAlbum(id, albumDTO);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbum actualizado exitosamente", updatedAlbum));
     }
-    
+
     /**
-     * Eliminar álbum
+     * Eliminar un álbum (soft delete).
+     * Solo accesible para ADMIN.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Eliminar álbum", description = "Eliminar un álbum (soft delete)")
     public ResponseEntity<ApiResponse<Void>> deleteAlbum(@PathVariable Long id) {
         logger.info("REST request to delete album ID: {}", id);
-        
+
         albumService.deleteAlbum(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Álbum eliminado exitosamente", null));
     }
 }

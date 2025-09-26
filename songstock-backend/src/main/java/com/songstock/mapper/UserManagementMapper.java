@@ -11,13 +11,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Mapper para conversiones entre entidades User/Provider y DTOs administrativos
+ * Mapper responsable de realizar conversiones entre:
+ * - Entidades (User, Provider)
+ * - DTOs administrativos usados en la capa de servicios/controladores.
  */
 @Component
 public class UserManagementMapper {
 
     /**
-     * Convertir User a UserManagementResponseDTO
+     * Convierte un objeto User en un UserManagementResponseDTO.
+     * Contiene información básica del usuario.
+     *
+     * @param user entidad User
+     * @return UserManagementResponseDTO con datos mapeados
      */
     public UserManagementResponseDTO toManagementResponseDTO(User user) {
         if (user == null) {
@@ -26,7 +32,7 @@ public class UserManagementMapper {
 
         UserManagementResponseDTO dto = new UserManagementResponseDTO();
 
-        // Campos básicos del usuario
+        // Mapeo de campos básicos del usuario
         dto.setId(user.getId());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
@@ -42,7 +48,12 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir User con Provider a UserManagementResponseDTO completo
+     * Convierte un User y su Provider asociado en un UserManagementResponseDTO
+     * completo.
+     *
+     * @param user     entidad User
+     * @param provider entidad Provider asociada al usuario
+     * @return UserManagementResponseDTO con información de usuario + proveedor
      */
     public UserManagementResponseDTO toManagementResponseDTO(User user, Provider provider) {
         UserManagementResponseDTO dto = toManagementResponseDTO(user);
@@ -58,7 +69,11 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir lista de Users a lista de UserManagementResponseDTO
+     * Convierte una lista de entidades User en una lista de
+     * UserManagementResponseDTO.
+     *
+     * @param users lista de entidades User
+     * @return lista de DTOs convertidos
      */
     public List<UserManagementResponseDTO> toManagementResponseDTOList(List<User> users) {
         if (users == null) {
@@ -71,7 +86,11 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir UserEditDTO a User (para actualizaciones)
+     * Actualiza un objeto User existente con los valores recibidos en UserEditDTO.
+     * Se usa típicamente en operaciones de actualización.
+     *
+     * @param user    entidad User a actualizar
+     * @param editDTO DTO con nuevos valores
      */
     public void updateUserFromEditDTO(User user, UserEditDTO editDTO) {
         if (user == null || editDTO == null) {
@@ -91,7 +110,11 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir ProviderManagementDTO a Provider (para actualizaciones)
+     * Actualiza un objeto Provider existente con los valores de
+     * ProviderManagementDTO.
+     *
+     * @param provider      entidad Provider a actualizar
+     * @param managementDTO DTO con datos administrativos de provider
      */
     public void updateProviderFromManagementDTO(Provider provider, ProviderManagementDTO managementDTO) {
         if (provider == null || managementDTO == null) {
@@ -101,42 +124,37 @@ public class UserManagementMapper {
         if (managementDTO.getVerificationStatus() != null) {
             provider.setVerificationStatus(managementDTO.getVerificationStatus());
         }
-
         if (managementDTO.getBusinessName() != null) {
             provider.setBusinessName(managementDTO.getBusinessName());
         }
-
         if (managementDTO.getTaxId() != null) {
             provider.setTaxId(managementDTO.getTaxId());
         }
-
         if (managementDTO.getAddress() != null) {
             provider.setAddress(managementDTO.getAddress());
         }
-
         if (managementDTO.getCity() != null) {
             provider.setCity(managementDTO.getCity());
         }
-
         if (managementDTO.getState() != null) {
             provider.setState(managementDTO.getState());
         }
-
         if (managementDTO.getCountry() != null) {
             provider.setCountry(managementDTO.getCountry());
         }
-
         if (managementDTO.getPostalCode() != null) {
             provider.setPostalCode(managementDTO.getPostalCode());
         }
-
         if (managementDTO.getCommissionRate() != null) {
             provider.setCommissionRate(managementDTO.getCommissionRate());
         }
     }
 
     /**
-     * Convertir UserEditDTO a User básico (para creación)
+     * Convierte un UserEditDTO en una entidad User (usado en creación).
+     *
+     * @param editDTO DTO con información del usuario
+     * @return entidad User
      */
     public User toUser(UserEditDTO editDTO) {
         if (editDTO == null) {
@@ -156,8 +174,12 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir Object[] (resultado de query) a UserManagementResponseDTO
-     * Útil para queries que retornan User + Provider + estadísticas
+     * Convierte un arreglo de objetos (resultado de query compleja) en
+     * UserManagementResponseDTO.
+     * El arreglo suele contener: User, Provider y estadísticas asociadas.
+     *
+     * @param queryResult resultado de query en forma de Object[]
+     * @return DTO con datos de usuario y proveedor
      */
     public UserManagementResponseDTO toManagementResponseDTO(Object[] queryResult) {
         if (queryResult == null || queryResult.length < 1) {
@@ -167,7 +189,7 @@ public class UserManagementMapper {
         User user = (User) queryResult[0];
         UserManagementResponseDTO dto = toManagementResponseDTO(user);
 
-        // Si hay información del proveedor
+        // Si incluye información de Provider
         if (queryResult.length > 1 && queryResult[1] != null) {
             Provider provider = (Provider) queryResult[1];
             dto.setProviderId(provider.getId());
@@ -176,7 +198,7 @@ public class UserManagementMapper {
             dto.setVerificationDate(provider.getVerificationDate());
         }
 
-        // Si hay estadísticas adicionales
+        // Si incluye estadísticas de productos
         if (queryResult.length > 2 && queryResult[2] != null) {
             Long productCount = (Long) queryResult[2];
             dto.setTotalProducts(productCount.intValue());
@@ -186,7 +208,9 @@ public class UserManagementMapper {
     }
 
     /**
-     * Crear UserSearchFilterDTO con valores por defecto
+     * Crea un filtro de búsqueda de usuarios con valores por defecto.
+     *
+     * @return filtro con configuración inicial
      */
     public UserSearchFilterDTO createDefaultFilter() {
         UserSearchFilterDTO filter = new UserSearchFilterDTO();
@@ -198,7 +222,17 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir filtros de request parameters a UserSearchFilterDTO
+     * Convierte parámetros de request en un objeto UserSearchFilterDTO.
+     *
+     * @param searchQuery        texto de búsqueda
+     * @param role               rol (string -> enum)
+     * @param isActive           estado activo/inactivo
+     * @param verificationStatus estado de verificación (string -> enum)
+     * @param sortBy             campo de ordenamiento
+     * @param sortDirection      dirección de ordenamiento (asc/desc)
+     * @param page               número de página
+     * @param size               tamaño de página
+     * @return filtro de búsqueda
      */
     public UserSearchFilterDTO toFilterDTO(String searchQuery,
             String role,
@@ -212,24 +246,24 @@ public class UserManagementMapper {
 
         filter.setSearchQuery(searchQuery);
 
-        // Convertir role string a enum
+        // Validar y convertir role a enum
         if (role != null && !role.isEmpty()) {
             try {
                 filter.setRole(UserRole.valueOf(role.toUpperCase()));
             } catch (IllegalArgumentException e) {
-                // Si el rol no es válido, se ignora
+                // Rol inválido → se ignora
             }
         }
 
         filter.setIsActive(isActive);
 
-        // Convertir verification status string a enum
+        // Validar y convertir verificationStatus a enum
         if (verificationStatus != null && !verificationStatus.isEmpty()) {
             try {
                 filter.setVerificationStatus(
                         com.songstock.entity.VerificationStatus.valueOf(verificationStatus.toUpperCase()));
             } catch (IllegalArgumentException e) {
-                // Si el status no es válido, se ignora
+                // Estado inválido → se ignora
             }
         }
 
@@ -242,7 +276,10 @@ public class UserManagementMapper {
     }
 
     /**
-     * Crear DTO de resumen de usuario (para listas)
+     * Convierte un User a un DTO de resumen con información básica.
+     *
+     * @param user entidad User
+     * @return DTO con resumen de datos
      */
     public UserSummaryDTO toSummaryDTO(User user) {
         if (user == null) {
@@ -260,12 +297,16 @@ public class UserManagementMapper {
     }
 
     /**
-     * Convertir estadísticas de query a AdminDashboardDTO
+     * Convierte estadísticas crudas de queries en un AdminDashboardDTO.
+     *
+     * @param userStats     estadísticas de usuarios
+     * @param providerStats estadísticas de proveedores
+     * @return DTO con resumen del dashboard administrativo
      */
     public AdminDashboardDTO toAdminDashboardDTO(Object[] userStats, Object[] providerStats) {
         AdminDashboardDTO dashboard = new AdminDashboardDTO();
 
-        // Estadísticas de usuarios
+        // Datos de usuarios
         if (userStats != null && userStats.length >= 6) {
             dashboard.setTotalUsers((Long) userStats[0]);
             dashboard.setTotalAdmins((Long) userStats[1]);
@@ -275,7 +316,7 @@ public class UserManagementMapper {
             dashboard.setInactiveUsers((Long) userStats[5]);
         }
 
-        // Estadísticas de proveedores
+        // Datos de proveedores
         if (providerStats != null && providerStats.length >= 3) {
             dashboard.setVerifiedProviders((Long) providerStats[0]);
             dashboard.setPendingProviders((Long) providerStats[1]);
@@ -286,7 +327,10 @@ public class UserManagementMapper {
     }
 
     /**
-     * Validar campos requeridos en UserEditDTO
+     * Valida si un DTO de edición de usuario tiene los campos requeridos.
+     *
+     * @param editDTO DTO a validar
+     * @return true si es válido, false en caso contrario
      */
     public boolean isValidEditDTO(UserEditDTO editDTO) {
         if (editDTO == null) {
@@ -301,7 +345,10 @@ public class UserManagementMapper {
     }
 
     /**
-     * Sanitizar campos de texto (remover espacios extra, etc.)
+     * Normaliza valores de texto de un UserEditDTO
+     * (ejemplo: eliminar espacios, pasar a minúsculas).
+     *
+     * @param editDTO DTO a sanitizar
      */
     public void sanitizeEditDTO(UserEditDTO editDTO) {
         if (editDTO == null) {
@@ -311,19 +358,15 @@ public class UserManagementMapper {
         if (editDTO.getFirstName() != null) {
             editDTO.setFirstName(editDTO.getFirstName().trim());
         }
-
         if (editDTO.getLastName() != null) {
             editDTO.setLastName(editDTO.getLastName().trim());
         }
-
         if (editDTO.getUsername() != null) {
             editDTO.setUsername(editDTO.getUsername().trim().toLowerCase());
         }
-
         if (editDTO.getEmail() != null) {
             editDTO.setEmail(editDTO.getEmail().trim().toLowerCase());
         }
-
         if (editDTO.getPhone() != null) {
             editDTO.setPhone(editDTO.getPhone().trim());
         }
@@ -331,7 +374,8 @@ public class UserManagementMapper {
 }
 
 /**
- * DTO auxiliar para resúmenes de usuarios
+ * DTO auxiliar para representar un resumen de usuario
+ * en listados o reportes básicos.
  */
 class UserSummaryDTO {
     private Long id;
@@ -342,6 +386,9 @@ class UserSummaryDTO {
     private Boolean isActive;
     private java.time.LocalDateTime createdAt;
 
+    /**
+     * Constructor con todos los parámetros.
+     */
     public UserSummaryDTO(Long id, String fullName, String username, String email,
             String role, Boolean isActive, java.time.LocalDateTime createdAt) {
         this.id = id;
@@ -353,7 +400,8 @@ class UserSummaryDTO {
         this.createdAt = createdAt;
     }
 
-    // Getters y setters
+    // Getters y setters ----------------------
+
     public Long getId() {
         return id;
     }

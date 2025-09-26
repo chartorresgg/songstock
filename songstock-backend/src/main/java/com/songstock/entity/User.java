@@ -10,68 +10,104 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Entidad que representa a los usuarios dentro del sistema.
+ * Un usuario puede ser de tipo ADMIN, PROVIDER o CUSTOMER (según
+ * {@link UserRole}).
+ * Contiene información personal, credenciales y relaciones con proveedores y
+ * sesiones.
+ */
 @Entity
 @Table(name = "users")
 public class User {
 
+    /** Identificador único del usuario (Primary Key). */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Nombre de usuario único. */
     @Column(unique = true, nullable = false, length = 50)
     @NotBlank(message = "Username es requerido")
     @Size(min = 3, max = 50, message = "Username debe tener entre 3 y 50 caracteres")
     private String username;
 
+    /** Correo electrónico único y obligatorio. */
     @Column(unique = true, nullable = false, length = 100)
     @NotBlank(message = "Email es requerido")
     @Email(message = "Email debe ser válido")
     private String email;
 
+    /**
+     * Contraseña encriptada del usuario.
+     * Se marca con {@link JsonProperty.Access#WRITE_ONLY} para que no se exponga en
+     * respuestas JSON.
+     */
     @Column(nullable = false)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "Password es requerido")
     @Size(min = 6, message = "Password debe tener al menos 6 caracteres")
     private String password;
 
+    /** Nombre del usuario. */
     @Column(name = "first_name", nullable = false, length = 50)
     @NotBlank(message = "Nombre es requerido")
     private String firstName;
 
+    /** Apellido del usuario. */
     @Column(name = "last_name", nullable = false, length = 50)
     @NotBlank(message = "Apellido es requerido")
     private String lastName;
 
+    /** Teléfono de contacto del usuario. */
     @Column(length = 20)
     private String phone;
 
+    /** Rol del usuario dentro del sistema (ADMIN, PROVIDER o CUSTOMER). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role = UserRole.CUSTOMER;
 
+    /** Estado de la cuenta (activa o inactiva). */
     @Column(name = "is_active")
     private Boolean isActive = true;
 
+    /** Fecha de creación del registro (se asigna automáticamente). */
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * Fecha de última actualización del registro (se actualiza automáticamente).
+     */
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** Relación 1:1 con {@link Provider}, si el usuario es un proveedor. */
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private Provider provider;
 
+    /**
+     * Relación 1:N con {@link UserSession}, para manejar sesiones activas del
+     * usuario.
+     */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<UserSession> sessions;
 
-    // Constructors
+    // -----------------------------
+    // Constructores
+    // -----------------------------
+
+    /** Constructor vacío requerido por JPA. */
     public User() {
     }
 
+    /**
+     * Constructor con parámetros principales.
+     */
     public User(String username, String email, String password, String firstName, String lastName, UserRole role) {
         this.username = username;
         this.email = email;
@@ -81,7 +117,10 @@ public class User {
         this.role = role;
     }
 
-    // Getters and Setters
+    // -----------------------------
+    // Getters y Setters
+    // -----------------------------
+
     public Long getId() {
         return id;
     }

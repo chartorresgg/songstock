@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 
+/**
+ * Servicio de autenticación de usuarios.
+ * Maneja login, generación de tokens JWT, creación de sesiones y logout.
+ */
 @Service
 @Transactional
 public class AuthService {
@@ -34,7 +38,11 @@ public class AuthService {
     @Autowired
     JwtUtils jwtUtils;
 
+    /**
+     * Autenticar usuario y generar tokens (JWT + Refresh).
+     */
     public AuthResponseDTO authenticateUser(LoginRequestDTO loginRequest, HttpServletRequest request) {
+        // Autenticación con Spring Security
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getUsernameOrEmail(),
@@ -42,13 +50,17 @@ public class AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        // Datos del usuario autenticado
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        // Generación de tokens
         String jwt = jwtUtils.generateJwtToken(authentication);
         String refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
 
+        // Obtener usuario desde BD
         User user = userService.getUserById(userDetails.getId());
 
-        // Crear sesión
+        // Crear sesión en base de datos
         UserSession session = new UserSession();
         session.setUser(user);
         session.setSessionToken(jwt);
@@ -59,6 +71,7 @@ public class AuthService {
 
         userSessionRepository.save(session);
 
+        // Retornar DTO con tokens y datos del usuario
         return new AuthResponseDTO(
                 jwt,
                 refreshToken,
@@ -69,14 +82,23 @@ public class AuthService {
                 jwtUtils.getExpirationTime());
     }
 
+    /**
+     * Cerrar sesión actual (invalida un token específico).
+     */
     public void logout(String token) {
         userSessionRepository.deactivateSession(token);
     }
 
+    /**
+     * Cerrar todas las sesiones activas de un usuario.
+     */
     public void logoutAllSessions(Long userId) {
         userSessionRepository.deactivateAllUserSessions(userId);
     }
 
+    /**
+     * Obtener IP del cliente, considerando cabecera X-Forwarded-For.
+     */
     private String getClientIpAddress(HttpServletRequest request) {
         String xForwardedForHeader = request.getHeader("X-Forwarded-For");
         if (xForwardedForHeader == null) {

@@ -7,65 +7,92 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad que representa una invitación enviada a un posible proveedor.
+ * Almacena información del negocio, datos personales y el estado del proceso de
+ * invitación.
+ */
 @Entity
 @Table(name = "provider_invitations")
 public class ProviderInvitation {
 
+    /** Identificador único de la invitación. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Correo electrónico del proveedor invitado. */
     @Column(nullable = false)
     @NotBlank(message = "Email es requerido")
     @Email(message = "Email debe ser válido")
     private String email;
 
+    /** Nombre del negocio del proveedor invitado. */
     @Column(name = "business_name", nullable = false)
     @NotBlank(message = "Nombre del negocio es requerido")
     private String businessName;
 
+    /** Nombre del contacto principal. */
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
+    /** Apellido del contacto principal. */
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
+    /** Teléfono de contacto del proveedor. */
     private String phone;
 
+    /** Token único que identifica la invitación. */
     @Column(name = "invitation_token", unique = true, nullable = false)
     private String invitationToken;
 
+    /** Fecha de expiración de la invitación. */
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
+    /** Estado actual de la invitación (PENDING, ACCEPTED, REJECTED). */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private InvitationStatus status = InvitationStatus.PENDING;
 
+    /** ID del administrador que envió la invitación. */
     @Column(name = "invited_by", nullable = false)
-    private Long invitedBy; // Admin user ID
+    private Long invitedBy;
 
+    /** ID del proveedor que completó el registro (cuando aplica). */
     @Column(name = "completed_by")
-    private Long completedBy; // Provider user ID when completed
+    private Long completedBy;
 
+    /** Mensaje opcional de invitación. */
     @Column(columnDefinition = "TEXT")
     private String message;
 
+    /** Fecha en que se creó la invitación. */
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    /** Fecha de última actualización de la invitación. */
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** Fecha en que la invitación fue completada. */
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    // Constructors
+    // -----------------------------
+    // Constructores
+    // -----------------------------
+
+    /** Constructor vacío requerido por JPA. */
     public ProviderInvitation() {
     }
 
+    /**
+     * Constructor con los campos principales.
+     */
     public ProviderInvitation(String email, String businessName, String firstName,
             String lastName, Long invitedBy, String invitationToken,
             LocalDateTime expiresAt) {
@@ -78,7 +105,10 @@ public class ProviderInvitation {
         this.expiresAt = expiresAt;
     }
 
-    // Getters and Setters - COPIAR TODOS del artifact anterior
+    // -----------------------------
+    // Getters y Setters
+    // -----------------------------
+
     public Long getId() {
         return id;
     }

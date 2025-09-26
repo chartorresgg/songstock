@@ -14,29 +14,44 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import com.songstock.entity.ProviderInvitation;
+
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Controlador encargado de gestionar la autenticación, registro de proveedores
+ * y endpoints relacionados con la seguridad de usuarios.
+ */
 @RestController
-@RequestMapping("/auth")
-// REMOVEMOS LAS ANOTACIONES CORS COMPLEJAS - EL FILTRO SE ENCARGA
+@RequestMapping("/auth") // Prefijo base para todos los endpoints de autenticación
+// 🔹 Anotaciones CORS removidas, ya que el filtro global maneja la
+// configuración
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    // Repositorio de usuarios para consultas directas
     @Autowired
     private UserRepository userRepository;
 
+    // Encoder de contraseñas (BCrypt, etc.)
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // Servicio de autenticación (maneja login, logout, JWT)
     @Autowired
     AuthService authService;
 
+    // Servicio de proveedores (invitaciones, registro, validación)
     @Autowired
     ProviderService providerService;
 
-    // ⭐ ENDPOINT DE PRUEBA CORS
+    /**
+     * Endpoint de prueba CORS.
+     * Verifica que las configuraciones CORS estén funcionando correctamente.
+     *
+     * @return respuesta con mensaje y metadata
+     */
     @PostMapping("/test-cors")
     public ResponseEntity<Map<String, String>> testCors() {
         logger.info("Test CORS endpoint called");
@@ -47,12 +62,25 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Endpoint de prueba general del controlador.
+     *
+     * @return mensaje simple confirmando funcionamiento
+     */
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         logger.info("Test endpoint called");
         return ResponseEntity.ok("AuthController is working!");
     }
 
+    /**
+     * Autenticación de usuario.
+     * Recibe credenciales (username/email + password) y devuelve un token JWT.
+     *
+     * @param loginRequest credenciales de inicio de sesión
+     * @param request      request HTTP para obtener metadata (ej. IP, headers)
+     * @return token JWT si las credenciales son válidas
+     */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponseDTO>> authenticateUser(
             @Valid @RequestBody LoginRequestDTO loginRequest,
@@ -74,6 +102,14 @@ public class AuthController {
         }
     }
 
+    /**
+     * Registro de proveedor.
+     * Permite a un usuario registrarse como proveedor, quedando pendiente
+     * de verificación por un administrador.
+     *
+     * @param providerRequest datos del proveedor a registrar
+     * @return mensaje de confirmación
+     */
     @PostMapping("/register-provider")
     public ResponseEntity<ApiResponse<String>> registerProvider(
             @Valid @RequestBody ProviderRegistrationDTO providerRequest) {
@@ -93,6 +129,13 @@ public class AuthController {
         }
     }
 
+    /**
+     * Cierra la sesión del usuario.
+     * Elimina o invalida el token JWT del request.
+     *
+     * @param request request HTTP con encabezado de autorización
+     * @return mensaje de confirmación
+     */
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logoutUser(HttpServletRequest request) {
         String token = parseJwt(request);
@@ -103,6 +146,12 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Sesión cerrada exitosamente"));
     }
 
+    /**
+     * Extrae el token JWT desde el header Authorization del request.
+     *
+     * @param request request HTTP
+     * @return token JWT sin el prefijo "Bearer ", o null si no existe
+     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
         if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
@@ -111,13 +160,24 @@ public class AuthController {
         return null;
     }
 
+    /**
+     * Obtiene la información de una invitación de proveedor.
+     *
+     * @param token token único de invitación
+     * @return información de la invitación
+     */
     @GetMapping("/invitation/{token}")
     public ResponseEntity<ApiResponse<ProviderInvitation>> getInvitationInfo(@PathVariable String token) {
         ProviderInvitation invitation = providerService.getInvitationByToken(token);
         return ResponseEntity.ok(ApiResponse.success("Información de invitación obtenida", invitation));
     }
 
-    // ENDPOINTS DE DEBUG - REMOVER EN PRODUCCIÓN
+    /**
+     * Endpoint de depuración para verificar existencia del usuario "admin".
+     * Devuelve información sensible (⚠️ solo para DEBUG, remover en producción).
+     *
+     * @return información del usuario admin si existe
+     */
     @GetMapping("/debug-admin")
     public ResponseEntity<Map<String, Object>> debugAdmin() {
         logger.info("Debug admin user called");

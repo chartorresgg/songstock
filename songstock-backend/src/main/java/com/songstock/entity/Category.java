@@ -10,38 +10,45 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Entidad que representa una categoría de productos.
+ * 
+ * - Ejemplo: Vinilos, CDs, Merchandising.
+ * - Cada categoría puede tener múltiples productos asociados.
+ */
 @Entity
 @Table(name = "categories")
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id; // Identificador único
 
     @Column(unique = true, nullable = false, length = 50)
     @NotBlank(message = "Nombre de la categoría es requerido")
     @Size(max = 50, message = "Nombre no puede exceder 50 caracteres")
-    private String name;
+    private String name; // Nombre de la categoría
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String description; // Descripción opcional
 
     @Column(name = "is_active")
-    private Boolean isActive = true;
+    private Boolean isActive = true; // Estado de actividad
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt; // Fecha de creación
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt; // Fecha de última actualización
 
+    // Relación One-to-Many con Product
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Product> products;
 
-    // Constructors
+    // ================= Constructores =================
     public Category() {
     }
 
@@ -50,7 +57,7 @@ public class Category {
         this.description = description;
     }
 
-    // Getters and Setters
+    // ================= Getters y Setters =================
     public Long getId() {
         return id;
     }

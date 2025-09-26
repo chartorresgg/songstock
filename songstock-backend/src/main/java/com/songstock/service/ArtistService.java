@@ -17,39 +17,45 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Servicio que maneja la lógica de negocio relacionada con los artistas.
+ * Incluye creación, actualización, eliminación (soft delete) y búsquedas
+ * personalizadas.
+ */
 @Service
 @Transactional
 public class ArtistService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ArtistService.class);
-    
+
     @Autowired
     private ArtistRepository artistRepository;
-    
+
     @Autowired
     private ArtistMapper artistMapper;
-    
+
     /**
-     * Crear un nuevo artista
+     * Crear un nuevo artista, validando que no exista otro con el mismo nombre.
      */
     public ArtistDTO createArtist(ArtistDTO artistDTO) {
         logger.info("Creando nuevo artista: {}", artistDTO.getName());
-        
-        // Verificar si ya existe un artista con el mismo nombre
+
+        // Validar duplicados por nombre (case insensitive)
         Optional<Artist> existingArtist = artistRepository.findByNameIgnoreCase(artistDTO.getName());
         if (existingArtist.isPresent()) {
             throw new DuplicateResourceException("Ya existe un artista con el nombre: " + artistDTO.getName());
         }
-        
+
+        // Guardar nuevo artista
         Artist artist = artistMapper.toEntity(artistDTO);
         Artist savedArtist = artistRepository.save(artist);
-        
+
         logger.info("Artista creado exitosamente con ID: {}", savedArtist.getId());
         return artistMapper.toDTO(savedArtist);
     }
-    
+
     /**
-     * Obtener todos los artistas activos
+     * Obtener todos los artistas activos (isActive = true).
      */
     @Transactional(readOnly = true)
     public List<ArtistDTO> getAllActiveArtists() {
@@ -57,9 +63,9 @@ public class ArtistService {
         List<Artist> artists = artistRepository.findByIsActiveTrue();
         return artistMapper.toDTOList(artists);
     }
-    
+
     /**
-     * Obtener artistas con paginación
+     * Obtener artistas con paginación.
      */
     @Transactional(readOnly = true)
     public Page<ArtistDTO> getArtists(Pageable pageable) {
@@ -67,9 +73,9 @@ public class ArtistService {
         Page<Artist> artistPage = artistRepository.findByIsActiveTrue(pageable);
         return artistPage.map(artistMapper::toDTO);
     }
-    
+
     /**
-     * Obtener artista por ID
+     * Obtener artista por su ID.
      */
     @Transactional(readOnly = true)
     public ArtistDTO getArtistById(Long id) {
@@ -78,9 +84,9 @@ public class ArtistService {
                 .orElseThrow(() -> new ResourceNotFoundException("Artista no encontrado con ID: " + id));
         return artistMapper.toDTO(artist);
     }
-    
+
     /**
-     * Buscar artistas por nombre
+     * Buscar artistas cuyo nombre contenga una subcadena.
      */
     @Transactional(readOnly = true)
     public List<ArtistDTO> searchArtistsByName(String name) {
@@ -88,9 +94,9 @@ public class ArtistService {
         List<Artist> artists = artistRepository.findByNameContainingIgnoreCase(name);
         return artistMapper.toDTOList(artists);
     }
-    
+
     /**
-     * Obtener artistas por país
+     * Obtener artistas filtrados por país.
      */
     @Transactional(readOnly = true)
     public List<ArtistDTO> getArtistsByCountry(String country) {
@@ -98,48 +104,50 @@ public class ArtistService {
         List<Artist> artists = artistRepository.findByCountryIgnoreCaseAndIsActiveTrue(country);
         return artistMapper.toDTOList(artists);
     }
-    
+
     /**
-     * Actualizar artista
+     * Actualizar información de un artista.
+     * Valida duplicados en caso de cambio de nombre.
      */
     public ArtistDTO updateArtist(Long id, ArtistDTO artistDTO) {
         logger.info("Actualizando artista con ID: {}", id);
-        
+
         Artist existingArtist = artistRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Artista no encontrado con ID: " + id));
-        
-        // Verificar si el nuevo nombre ya existe en otro artista
+
+        // Validar duplicado de nombre
         if (!existingArtist.getName().equalsIgnoreCase(artistDTO.getName())) {
             Optional<Artist> duplicateArtist = artistRepository.findByNameIgnoreCase(artistDTO.getName());
             if (duplicateArtist.isPresent()) {
                 throw new DuplicateResourceException("Ya existe un artista con el nombre: " + artistDTO.getName());
             }
         }
-        
+
+        // Mapear cambios y guardar
         artistMapper.updateEntity(existingArtist, artistDTO);
         Artist updatedArtist = artistRepository.save(existingArtist);
-        
+
         logger.info("Artista actualizado exitosamente con ID: {}", updatedArtist.getId());
         return artistMapper.toDTO(updatedArtist);
     }
-    
+
     /**
-     * Eliminar artista (soft delete)
+     * Eliminar un artista (soft delete: se marca como inactivo).
      */
     public void deleteArtist(Long id) {
         logger.info("Eliminando artista con ID: {}", id);
-        
+
         Artist artist = artistRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Artista no encontrado con ID: " + id));
-        
+
         artist.setIsActive(false);
         artistRepository.save(artist);
-        
+
         logger.info("Artista eliminado exitosamente con ID: {}", id);
     }
-    
+
     /**
-     * Obtener artistas que tienen álbumes
+     * Obtener artistas que tengan al menos un álbum asociado.
      */
     @Transactional(readOnly = true)
     public List<ArtistDTO> getArtistsWithAlbums() {

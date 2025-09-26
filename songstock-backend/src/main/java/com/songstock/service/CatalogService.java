@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Servicio especializado para operaciones de catálogo público
- * Maneja la lógica de búsqueda y filtrado de productos para clientes
+ * Servicio especializado en el catálogo público.
+ * Permite búsqueda, filtrado, productos relacionados y estadísticas.
  */
 @Service
 @Transactional
@@ -30,16 +30,16 @@ public class CatalogService {
     private ProductRepository productRepository;
 
     @Autowired
-    private ProductService productService; // Para reutilizar métodos de mapeo
+    private ProductService productService; // Reutilización de lógica de mapeo
 
     /**
-     * Buscar productos en el catálogo público con paginación
+     * Buscar productos en el catálogo aplicando filtros y paginación.
      */
     @Transactional(readOnly = true)
     public Page<ProductCatalogResponseDTO> searchCatalogProducts(CatalogFilterDTO filterDTO, Pageable pageable) {
         logger.info("Buscando productos en catálogo con filtros: {}", filterDTO);
 
-        // Usar el método de búsqueda con filtros del repository
+        // Obtener productos aplicando filtros (query dinámica en repository)
         List<Product> products = productRepository.findWithFilters(
                 filterDTO.getSearchQuery(),
                 filterDTO.getCategoryId(),
@@ -60,35 +60,24 @@ public class CatalogService {
                 .map(this::mapToCatalogResponseDTO)
                 .collect(Collectors.toList());
 
-        // Aplicar paginación manual (idealmente se haría en la query)
+        // Aplicar paginación manual
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), productDTOs.size());
-
         List<ProductCatalogResponseDTO> pageContent = productDTOs.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, productDTOs.size());
     }
 
     /**
-     * Obtener productos más recientes del catálogo
+     * Obtener los productos más recientes (limitados por parámetro).
      */
     @Transactional(readOnly = true)
     public List<ProductCatalogResponseDTO> getLatestProducts(int limit) {
         List<Product> products = productRepository.findWithFilters(
-                null, // searchQuery
-                null, // categoryId
-                null, // genreId
-                null, // productType
-                null, // minPrice
-                null, // maxPrice
-                null, // minYear
-                null, // maxYear
-                true, // inStockOnly
-                false, // featuredOnly
-                true, // activeOnly
-                "createdAt", // sortBy
-                "desc" // sortDirection
-        );
+                null, null, null, null,
+                null, null, null, null,
+                true, false, true,
+                "createdAt", "desc");
 
         return products.stream()
                 .limit(limit)
@@ -97,7 +86,7 @@ public class CatalogService {
     }
 
     /**
-     * Obtener productos relacionados (mismo artista o género)
+     * Obtener productos relacionados con uno dado (mismo género/artista).
      */
     @Transactional(readOnly = true)
     public List<ProductCatalogResponseDTO> getRelatedProducts(Long productId, int limit) {
@@ -108,30 +97,21 @@ public class CatalogService {
 
         // Buscar productos del mismo género
         List<Product> relatedProducts = productRepository.findWithFilters(
-                null, // searchQuery
-                null, // categoryId
-                product.getAlbum().getGenre() != null ? product.getAlbum().getGenre().getId() : null, // genreId
-                null, // productType
-                null, // minPrice
-                null, // maxPrice
-                null, // minYear
-                null, // maxYear
-                true, // inStockOnly
-                false, // featuredOnly
-                true, // activeOnly
-                "createdAt", // sortBy
-                "desc" // sortDirection
-        );
+                null, null,
+                product.getAlbum().getGenre() != null ? product.getAlbum().getGenre().getId() : null,
+                null, null, null, null, null,
+                true, false, true,
+                "createdAt", "desc");
 
         return relatedProducts.stream()
-                .filter(p -> !p.getId().equals(productId)) // Excluir el producto actual
+                .filter(p -> !p.getId().equals(productId)) // Excluir el actual
                 .limit(limit)
                 .map(this::mapToCatalogResponseDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Obtener estadísticas del catálogo público
+     * Obtener estadísticas generales del catálogo.
      */
     @Transactional(readOnly = true)
     public CatalogStatsDTO getCatalogStats() {
@@ -139,17 +119,14 @@ public class CatalogService {
 
         CatalogStatsDTO stats = new CatalogStatsDTO();
         stats.setTotalProducts(allActiveProducts.size());
-        stats.setProductsInStock((int) allActiveProducts.stream()
-                .filter(p -> p.getStockQuantity() > 0).count());
-        stats.setFeaturedProducts((int) allActiveProducts.stream()
-                .filter(Product::getFeatured).count());
+        stats.setProductsInStock((int) allActiveProducts.stream().filter(p -> p.getStockQuantity() > 0).count());
+        stats.setFeaturedProducts((int) allActiveProducts.stream().filter(Product::getFeatured).count());
 
         return stats;
     }
 
     /**
-     * Mapear Product a ProductCatalogResponseDTO
-     * (Reutiliza la lógica del ProductService o implementa aquí)
+     * Conversión de entidad Product a DTO para catálogo.
      */
     private ProductCatalogResponseDTO mapToCatalogResponseDTO(Product product) {
         ProductCatalogResponseDTO dto = new ProductCatalogResponseDTO();
@@ -157,7 +134,7 @@ public class CatalogService {
         dto.setId(product.getId());
         dto.setSku(product.getSku());
 
-        // Información del álbum
+        // Información de álbum y artista
         dto.setAlbumId(product.getAlbum().getId());
         dto.setAlbumTitle(product.getAlbum().getTitle());
         dto.setArtistName(product.getAlbum().getArtist().getName());
@@ -170,32 +147,30 @@ public class CatalogService {
         dto.setStockQuantity(product.getStockQuantity());
         dto.setIsAvailable(product.getStockQuantity() > 0);
 
-        // Información específica de vinilos
-        if (product.getVinylSize() != null) {
+        // Campos específicos de vinilos
+        if (product.getVinylSize() != null)
             dto.setVinylSize(product.getVinylSize().toString());
-        }
-        if (product.getVinylSpeed() != null) {
+        if (product.getVinylSpeed() != null)
             dto.setVinylSpeed(product.getVinylSpeed().toString());
-        }
         dto.setWeightGrams(product.getWeightGrams());
 
-        // Información específica de digitales
+        // Campos específicos de productos digitales
         dto.setFileFormat(product.getFileFormat());
         dto.setFileSizeMb(product.getFileSizeMb());
 
-        // Información adicional
+        // Info adicional
         dto.setFeatured(product.getFeatured());
         dto.setIsActive(product.getIsActive());
 
-        // Información del proveedor
+        // Info de proveedor
         dto.setProviderId(product.getProvider().getId());
         dto.setProviderBusinessName(product.getProvider().getBusinessName());
 
-        // Información de categoría
+        // Info de categoría
         dto.setCategoryId(product.getCategory().getId());
         dto.setCategoryName(product.getCategory().getName());
 
-        // Información de género (si existe)
+        // Info de género
         if (product.getAlbum().getGenre() != null) {
             dto.setGenreId(product.getAlbum().getGenre().getId());
             dto.setGenreName(product.getAlbum().getGenre().getName());
@@ -209,7 +184,7 @@ public class CatalogService {
     }
 
     /**
-     * DTO para estadísticas del catálogo
+     * DTO auxiliar para estadísticas del catálogo.
      */
     public static class CatalogStatsDTO {
         private Integer totalProducts;
