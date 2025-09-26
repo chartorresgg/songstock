@@ -28,6 +28,23 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
     Optional<Provider> findByUserId(Long userId);
 
     /**
+     * Contadores por estado de verificación
+     */
+    Long countByVerificationStatus(VerificationStatus verificationStatus);
+
+    /**
+     * Contadores por estado de verificación usando String (para compatibilidad)
+     */
+    @Query("SELECT COUNT(p) FROM Provider p WHERE p.verificationStatus = :status")
+    Long countByVerificationStatus(@Param("status") String status);
+
+    /**
+     * Encontrar proveedores por estado con límite
+     */
+    @Query("SELECT p FROM Provider p WHERE p.verificationStatus = :status ORDER BY p.createdAt DESC")
+    List<Provider> findByVerificationStatusWithLimit(@Param("status") String status);
+
+    /**
      * Obtiene una lista de proveedores por su estado de verificación.
      *
      * @param verificationStatus Estado de verificación (ej. PENDING, VERIFIED,
@@ -91,4 +108,30 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
      */
     @Query("SELECT COUNT(p) FROM Provider p WHERE p.verificationStatus = 'VERIFIED'")
     Long countVerifiedProviders();
+
+    /**
+     * Top proveedores (por ejemplo, por número de productos - necesitarás ajustar
+     * según tu modelo)
+     */
+    @Query("SELECT p FROM Provider p " +
+            "LEFT JOIN User u ON p.user.id = u.id " +
+            "WHERE u.isActive = true AND p.verificationStatus = 'VERIFIED' " +
+            "ORDER BY p.createdAt DESC")
+    List<Provider> findTopActiveProviders();
+
+    /**
+     * Proveedores pendientes más antiguos
+     */
+    @Query("SELECT p FROM Provider p " +
+            "WHERE p.verificationStatus = 'PENDING' " +
+            "ORDER BY p.createdAt ASC")
+    List<Provider> findOldestPendingProviders();
+
+    /**
+     * Estadísticas adicionales por estado
+     */
+    @Query("SELECT p.verificationStatus as status, COUNT(p) as count " +
+            "FROM Provider p " +
+            "GROUP BY p.verificationStatus")
+    List<Object[]> getProviderStatusStatistics();
 }

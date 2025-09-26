@@ -173,5 +173,180 @@ export const authAPI = {
   }
 };
 
+export const adminUserAPI = {
+  /**
+   * Obtiene lista paginada de usuarios con filtros
+   */
+  getAllUsers: async (filters: {
+    role?: string;
+    isActive?: string;
+    search?: string;
+    verificationStatus?: string;
+    sortBy?: string;
+    sortDirection?: string;
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const params = new URLSearchParams();
+      
+      if (filters.role) params.append('role', filters.role);
+      if (filters.isActive !== undefined) params.append('isActive', filters.isActive);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.verificationStatus) params.append('verificationStatus', filters.verificationStatus);
+      if (filters.sortBy) params.append('sortBy', filters.sortBy);
+      if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
+      if (filters.page !== undefined) params.append('page', filters.page.toString());
+      if (filters.size !== undefined) params.append('size', filters.size.toString());
+
+      const response = await api.get(`/admin/users?${params.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting users:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener usuarios');
+    }
+  },
+
+  /**
+   * Obtiene un usuario específico por ID
+   */
+  getUserById: async (userId: number): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting user by ID:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener usuario');
+    }
+  },
+
+  /**
+   * Actualiza un usuario
+   */
+  updateUser: async (userId: number, userData: {
+    username: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    role: string;
+    isActive: boolean;
+    newPassword?: string;
+    updateReason: string;
+  }): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.put(`/admin/users/${userId}`, userData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      throw new Error(error.response?.data?.message || 'Error al actualizar usuario');
+    }
+  },
+
+  /**
+   * Elimina un usuario (soft delete)
+   */
+  deleteUser: async (userId: number, reason: string): Promise<ApiResponse<string>> => {
+    try {
+      const response = await api.delete(`/admin/users/${userId}?reason=${encodeURIComponent(reason)}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      throw new Error(error.response?.data?.message || 'Error al eliminar usuario');
+    }
+  },
+
+  /**
+   * Activa o desactiva un usuario
+   */
+  toggleUserStatus: async (userId: number, reason: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.patch(`/admin/users/${userId}/toggle-status?reason=${encodeURIComponent(reason)}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error toggling user status:', error);
+      throw new Error(error.response?.data?.message || 'Error al cambiar estado del usuario');
+    }
+  },
+
+  /**
+   * Obtiene estadísticas de usuarios
+   */
+  getStatistics: async (): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get('/admin/users/statistics');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting user statistics:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener estadísticas');
+    }
+  },
+
+  /**
+   * Busca usuarios por texto libre
+   */
+  searchUsers: async (query: string): Promise<ApiResponse<any[]>> => {
+    try {
+      const response = await api.get(`/admin/users/search?q=${encodeURIComponent(query)}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error searching users:', error);
+      throw new Error(error.response?.data?.message || 'Error en búsqueda de usuarios');
+    }
+  },
+
+  /**
+   * Obtiene usuarios por rol específico
+   */
+  getUsersByRole: async (role: string): Promise<ApiResponse<any[]>> => {
+    try {
+      const response = await api.get(`/admin/users/by-role/${role}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting users by role:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener usuarios por rol');
+    }
+  },
+
+  /**
+   * Obtiene proveedores pendientes de verificación
+   */
+  getPendingProviders: async (): Promise<ApiResponse<any[]>> => {
+    try {
+      const response = await api.get('/admin/users/providers/pending');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting pending providers:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener proveedores pendientes');
+    }
+  },
+
+  /**
+   * Obtiene usuarios recientes
+   */
+  getRecentUsers: async (): Promise<ApiResponse<any[]>> => {
+    try {
+      const response = await api.get('/admin/users/recent');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting recent users:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener usuarios recientes');
+    }
+  },
+
+  /**
+   * Endpoint de prueba para verificar acceso administrativo
+   */
+  testAdminAccess: async (): Promise<ApiResponse<string>> => {
+    try {
+      const response = await api.get('/admin/users/test');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error testing admin access:', error);
+      throw new Error(error.response?.data?.message || 'Error de acceso administrativo');
+    }
+  }
+};
+
 // Exportar la instancia de axios por defecto
 export default api;

@@ -14,6 +14,8 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';    // AGREGAR
 // Dashboard
 import DashboardPage from './pages/dashboard/DashboardPage';
 
+import AdminUsersManagementPage from './pages/admin/AdminUsersPage';
+
 // Placeholder pages for routes
 const AdminUsersPage = () => (
   <div className="p-8">
@@ -61,8 +63,6 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register-user" element={<RegisterUserPage />} />
         <Route path="/register-provider" element={<RegisterProviderPage />} />
-        
-        {/* AGREGAR ESTAS RUTAS PARA RESET PASSWORD */}
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         
@@ -81,7 +81,7 @@ function App() {
           path="/admin/users"
           element={
             <ProtectedRoute requiredRole="ADMIN">
-              <AdminUsersPage />
+              <AdminUsersManagementPage />
             </ProtectedRoute>
           }
         />

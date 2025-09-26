@@ -352,4 +352,51 @@ public interface UserRepository extends JpaRepository<User, Long> {
                         "WHERE u.isActive = :isActive " +
                         "ORDER BY u.createdAt DESC")
         List<Object[]> findUsersWithAggregatedInfo(@Param("isActive") Boolean isActive);
+
+        Long countByRoleAndIsActive(UserRole role, Boolean isActive);
+
+        Long countByCreatedAtAfter(LocalDateTime date);
+
+        /**
+         * Búsqueda de texto libre en múltiples campos
+         */
+        List<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+                        String username, String email, String firstName, String lastName);
+
+        Page<User> findByRoleAndIsActive(UserRole role, Boolean isActive, Pageable pageable);
+
+        /**
+         * Usuarios recientes
+         */
+        List<User> findTop10ByOrderByCreatedAtDesc();
+
+        List<User> findByCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime date);
+
+        /**
+         * Verificar existencia para evitar duplicados
+         */
+        boolean existsByUsernameAndIdNot(String username, Long id);
+
+        boolean existsByEmailAndIdNot(String email, Long id);
+
+        /**
+         * Usuarios activos por rol (para verificaciones de seguridad)
+         */
+        @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.isActive = true")
+        Long countActiveUsersByRole(@Param("role") UserRole role);
+
+        /**
+         * Últimos usuarios registrados con límite
+         */
+        @Query("SELECT u FROM User u ORDER BY u.createdAt DESC")
+        List<User> findRecentUsers(Pageable pageable);
+
+        /**
+         * Buscar usuarios con provider information
+         */
+        @Query("SELECT u FROM User u " +
+                        "LEFT JOIN Provider p ON u.id = p.user.id " +
+                        "WHERE u.role = 'PROVIDER' " +
+                        "AND (:status IS NULL OR p.verificationStatus = :status)")
+        List<User> findProvidersByVerificationStatus(@Param("status") String status);
 }
