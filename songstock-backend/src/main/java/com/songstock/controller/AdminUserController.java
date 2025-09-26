@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/admin/users")
+@RequestMapping("/admin/users")
 @Tag(name = "Admin User Management", description = "Gestión administrativa de usuarios, compradores y proveedores")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {

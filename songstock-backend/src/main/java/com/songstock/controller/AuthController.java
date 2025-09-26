@@ -1,7 +1,7 @@
 package com.songstock.controller;
 
 import com.songstock.dto.*;
-import com.songstock.entity.User; // AGREGAR ESTE IMPORT
+import com.songstock.entity.User;
 import com.songstock.service.AuthService;
 import com.songstock.service.ProviderService;
 import com.songstock.repository.UserRepository;
@@ -11,9 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder; // AGREGAR ESTE IMPORT
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import com.songstock.entity.ProviderInvitation;
 import java.util.Map;
@@ -21,7 +19,7 @@ import java.util.HashMap;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
+// REMOVEMOS LAS ANOTACIONES CORS COMPLEJAS - EL FILTRO SE ENCARGA
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -30,7 +28,7 @@ public class AuthController {
     private UserRepository userRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder; // AGREGAR ESTA INYECCIÓN
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     AuthService authService;
@@ -38,20 +36,21 @@ public class AuthController {
     @Autowired
     ProviderService providerService;
 
-    // ENDPOINT DE PRUEBA SIMPLE
+    // ⭐ ENDPOINT DE PRUEBA CORS
+    @PostMapping("/test-cors")
+    public ResponseEntity<Map<String, String>> testCors() {
+        logger.info("Test CORS endpoint called");
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "CORS funcionando correctamente");
+        response.put("timestamp", java.time.LocalDateTime.now().toString());
+        response.put("status", "success");
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         logger.info("Test endpoint called");
         return ResponseEntity.ok("AuthController is working!");
-    }
-
-    @PostMapping("/test-password")
-    public ResponseEntity<String> testPassword(@RequestBody Map<String, String> request) {
-        String rawPassword = request.get("password");
-        String storedHash = "$2a$10$..."; // El hash de la BD
-
-        boolean matches = passwordEncoder.matches(rawPassword, storedHash);
-        return ResponseEntity.ok("Password matches: " + matches);
     }
 
     @PostMapping("/login")
@@ -104,6 +103,21 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Sesión cerrada exitosamente"));
     }
 
+    private String parseJwt(HttpServletRequest request) {
+        String headerAuth = request.getHeader("Authorization");
+        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
+        }
+        return null;
+    }
+
+    @GetMapping("/invitation/{token}")
+    public ResponseEntity<ApiResponse<ProviderInvitation>> getInvitationInfo(@PathVariable String token) {
+        ProviderInvitation invitation = providerService.getInvitationByToken(token);
+        return ResponseEntity.ok(ApiResponse.success("Información de invitación obtenida", invitation));
+    }
+
+    // ENDPOINTS DE DEBUG - REMOVER EN PRODUCCIÓN
     @GetMapping("/debug-admin")
     public ResponseEntity<Map<String, Object>> debugAdmin() {
         logger.info("Debug admin user called");
@@ -122,7 +136,6 @@ public class AuthController {
                 debug.put("passwordStartsWith", admin.getPassword().substring(0, 10) + "...");
                 debug.put("passwordIsBCrypt", admin.getPassword().startsWith("$2"));
 
-                // Verificar si el password es correcto
                 boolean passwordMatches = passwordEncoder.matches("admin123", admin.getPassword());
                 debug.put("passwordMatches", passwordMatches);
             } else {
@@ -138,32 +151,4 @@ public class AuthController {
             return ResponseEntity.status(500).body(error);
         }
     }
-
-    @GetMapping("/generate-hash")
-    public ResponseEntity<Map<String, String>> generateHash() {
-        String rawPassword = "admin123";
-        String hash = passwordEncoder.encode(rawPassword);
-
-        Map<String, String> result = new HashMap<>();
-        result.put("rawPassword", rawPassword);
-        result.put("generatedHash", hash);
-        result.put("verification", String.valueOf(passwordEncoder.matches(rawPassword, hash)));
-
-        return ResponseEntity.ok(result);
-    }
-
-    private String parseJwt(HttpServletRequest request) {
-        String headerAuth = request.getHeader("Authorization");
-        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
-        }
-        return null;
-    }
-
-    @GetMapping("/invitation/{token}")
-    public ResponseEntity<ApiResponse<ProviderInvitation>> getInvitationInfo(@PathVariable String token) {
-        ProviderInvitation invitation = providerService.getInvitationByToken(token);
-        return ResponseEntity.ok(ApiResponse.success("Información de invitación obtenida", invitation));
-    }
-
 }
