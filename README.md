@@ -36,7 +36,7 @@ Permite a proveedores gestionar catálogos, inventarios y ventas, mientras compr
 ## 🛠️ Stack Tecnológico
 
 - **Backend:** Java 17, Spring Boot 3.2, Spring Security
-- **Frontend**: React / Tailwind CSS
+- **Frontend**: React / CSS
 - **Base de Datos:** MySQL 8.0 con JPA/Hibernate
 - **Autenticación:** JWT (JSON Web Tokens)
 - **Documentación:** OpenAPI/Swagger
@@ -52,12 +52,15 @@ Permite a proveedores gestionar catálogos, inventarios y ventas, mientras compr
 - ☑️ Maven 3.8+
 - ☑️ MySQL 8.0+
 - ☑️ Git
+- ☑️ Postman
+- ☑️ SpringBoot
+
 
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/vinyl-store-backend.git
-cd vinyl-store-backend
+git clone https://github.com/chartorresgg/songstock.git
+cd songstock
 ```
 
 ### 2. Configurar Base de Datos
@@ -67,10 +70,10 @@ cd vinyl-store-backend
 mysql -u root -p
 
 -- Crear base de datos
-CREATE DATABASE vinyl_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE song_stock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Crear usuario (opcional)
-CREATE USER 'vinylstore_user'@'localhost' IDENTIFIED BY 'secure_password';
+CREATE USER 'song_stock_user'@'localhost' IDENTIFIED BY 'secure_password';
 GRANT ALL PRIVILEGES ON vinyl_store.* TO 'vinylstore_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
