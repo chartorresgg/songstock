@@ -105,6 +105,22 @@ mvn test
 
 # Ejecutar aplicación
 mvn spring-boot:run
+
+
+### 6. Ejecución del backend
+
+Ruta: songstock\songstock-backend>
+Ejecutar clase: SongStockApplication.java
+
+### 7. Ejecución del frontend
+
+Ruta: songstock\songstock-frontend>
+Comando de ejecución: npm run dev
+
+### 8. Acceso como administrador
+
+Usuario: admin
+Contraseña: admin123
 ```
 
 ## 🔧 Configuración
