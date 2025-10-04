@@ -1,5 +1,7 @@
 package com.songstock.controller;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageRequest;
 import com.songstock.dto.ProductDTO;
 import com.songstock.entity.ProductType;
 import com.songstock.service.ProductService;
@@ -33,6 +35,8 @@ import com.songstock.repository.ProviderRepository;
 import com.songstock.dto.ProductCatalogCreateDTO;
 import com.songstock.dto.ProductCatalogUpdateDTO;
 import com.songstock.dto.ProductCatalogResponseDTO;
+import com.songstock.dto.QuickMetricsDTO;
+import com.songstock.dto.ProductBulkUpdateDTO;
 import com.songstock.dto.ProviderCatalogSummaryDTO;
 import org.springframework.web.bind.annotation.PostMapping;
 import com.songstock.dto.CatalogFilterDTO;
@@ -1202,6 +1206,159 @@ public class ProductController {
         }
 
         return comparison;
+    }
+
+    // Agregar estos endpoints al ProductController existente
+
+    /**
+     * Obtener catálogo completo del proveedor con paginación
+     * GET /api/v1/products/catalog/my-products
+     */
+    @GetMapping("/catalog/my-products")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Mi catálogo de productos", description = "Obtener todos los productos del proveedor autenticado con paginación")
+    public ResponseEntity<ApiResponse<Page<ProductCatalogResponseDTO>>> getMyProducts(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            @RequestParam(required = false) String searchQuery,
+            @RequestParam(required = false) Boolean activeOnly,
+            Authentication authentication) {
+        try {
+            // Obtener el proveedor autenticado
+            Long providerId = getProviderIdFromAuthentication(authentication);
+
+            // Crear Pageable
+            Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+            Pageable pageable = PageRequest.of(page, size, sort);
+
+            // Obtener productos con filtros
+            Page<ProductCatalogResponseDTO> products = productService.getProviderProductsWithPagination(
+                    providerId, pageable, searchQuery, activeOnly);
+
+            ApiResponse<Page<ProductCatalogResponseDTO>> apiResponse = new ApiResponse<>(
+                    true,
+                    "Catálogo obtenido exitosamente",
+                    products);
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (Exception e) {
+            logger.error("Error al obtener catálogo del proveedor", e);
+            ApiResponse<Page<ProductCatalogResponseDTO>> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Obtener estadísticas rápidas del catálogo del proveedor
+     * GET /api/v1/products/catalog/quick-stats
+     */
+    @GetMapping("/catalog/quick-stats")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Estadísticas rápidas del catálogo", description = "Obtener métricas básicas del catálogo del proveedor")
+    public ResponseEntity<ApiResponse<QuickMetricsDTO>> getQuickCatalogStats(
+            Authentication authentication) {
+        try {
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            QuickMetricsDTO stats = productService.getProviderQuickStats(providerId);
+
+            ApiResponse<QuickMetricsDTO> apiResponse = new ApiResponse<>(
+                    true,
+                    "Estadísticas obtenidas exitosamente",
+                    stats);
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (Exception e) {
+            logger.error("Error al obtener estadísticas del proveedor", e);
+            ApiResponse<QuickMetricsDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Actualización masiva de precios
+     * PATCH /api/v1/products/catalog/bulk-update-prices
+     */
+    @PatchMapping("/catalog/bulk-update-prices")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Actualización masiva de precios", description = "Actualizar precios de múltiples productos")
+    public ResponseEntity<ApiResponse<List<ProductCatalogResponseDTO>>> bulkUpdatePrices(
+            @Valid @RequestBody ProductBulkUpdateDTO bulkUpdateDTO,
+            Authentication authentication) {
+        try {
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            List<ProductCatalogResponseDTO> updatedProducts = productService.bulkUpdatePrices(
+                    providerId, bulkUpdateDTO);
+
+            ApiResponse<List<ProductCatalogResponseDTO>> apiResponse = new ApiResponse<>(
+                    true,
+                    String.format("Se actualizaron %d productos exitosamente", updatedProducts.size()),
+                    updatedProducts);
+
+            return ResponseEntity.ok(apiResponse);
+
+        } catch (RuntimeException e) {
+            ApiResponse<List<ProductCatalogResponseDTO>> errorResponse = new ApiResponse<>(
+                    false,
+                    e.getMessage(),
+                    null);
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Error en actualización masiva de precios", e);
+            ApiResponse<List<ProductCatalogResponseDTO>> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Duplicar producto (crear copia con SKU diferente)
+     * POST /api/v1/products/{productId}/duplicate
+     */
+    @PostMapping("/{productId}/duplicate")
+    @PreAuthorize("hasRole('PROVIDER')")
+    @Operation(summary = "Duplicar producto", description = "Crear una copia de un producto existente")
+    public ResponseEntity<ApiResponse<ProductCatalogResponseDTO>> duplicateProduct(
+            @PathVariable Long productId,
+            @RequestParam String newSku,
+            Authentication authentication) {
+        try {
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            ProductCatalogResponseDTO duplicatedProduct = productService.duplicateProduct(
+                    providerId, productId, newSku);
+
+            ApiResponse<ProductCatalogResponseDTO> apiResponse = new ApiResponse<>(
+                    true,
+                    "Producto duplicado exitosamente",
+                    duplicatedProduct);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(apiResponse);
+
+        } catch (RuntimeException e) {
+            ApiResponse<ProductCatalogResponseDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    e.getMessage(),
+                    null);
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Error al duplicar producto", e);
+            ApiResponse<ProductCatalogResponseDTO> errorResponse = new ApiResponse<>(
+                    false,
+                    "Error interno del servidor",
+                    null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
 }

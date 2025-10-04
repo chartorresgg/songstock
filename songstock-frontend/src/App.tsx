@@ -1,48 +1,53 @@
-// ================= ARCHIVO: src/App.tsx (CORREGIDO) =================
+// src/App.tsx (CORREGIDO)
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/layout/Layout';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterUserPage from './pages/auth/RegisterUserPage';
 import RegisterProviderPage from './pages/auth/RegisterProviderPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';  // AGREGAR
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';    // AGREGAR
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Dashboard
 import DashboardPage from './pages/dashboard/DashboardPage';
 
+// Admin Pages
 import AdminUsersManagementPage from './pages/admin/AdminUsersPage';
 
-// Placeholder pages for routes
-const AdminUsersPage = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold">Gestión de Usuarios (Admin)</h1>
-    <p>Página en desarrollo...</p>
-  </div>
-);
+// Provider Pages
+import { CatalogManagementPage } from './pages/provider/CatalogManagementPage';
 
+// Placeholder pages for routes
 const AdminProvidersPage = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold">Gestión de Proveedores (Admin)</h1>
-    <p>Página en desarrollo...</p>
-  </div>
+  <Layout>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Gestión de Proveedores (Admin)</h1>
+      <p>Página en desarrollo...</p>
+    </div>
+  </Layout>
 );
 
 const ProviderProductsPage = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold">Mis Productos (Proveedor)</h1>
-    <p>Página en desarrollo...</p>
-  </div>
+  <Layout>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Mis Productos (Proveedor)</h1>
+      <p>Página en desarrollo...</p>
+    </div>
+  </Layout>
 );
 
 const CatalogPage = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold">Catálogo de Productos</h1>
-    <p>Página en desarrollo...</p>
-  </div>
+  <Layout>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Catálogo de Productos</h1>
+      <p>Página en desarrollo...</p>
+    </div>
+  </Layout>
 );
 
 function App() {
@@ -66,7 +71,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         
-        {/* Protected Routes */}
+        {/* Protected Routes - Cualquier usuario autenticado */}
         <Route
           path="/dashboard"
           element={
@@ -76,7 +81,7 @@ function App() {
           }
         />
         
-        {/* Admin Routes */}
+        {/* Admin Routes - Solo ADMIN */}
         <Route
           path="/admin/users"
           element={
@@ -94,7 +99,17 @@ function App() {
           }
         />
         
-        {/* Provider Routes */}
+        {/* Provider Routes - Solo PROVIDER */}
+        <Route
+          path="/provider/catalog"
+          element={
+            <ProtectedRoute requiredRole="PROVIDER">
+              <Layout>
+                <CatalogManagementPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/provider/products"
           element={
@@ -104,7 +119,7 @@ function App() {
           }
         />
         
-        {/* Public Catalog */}
+        {/* Public Catalog - Accesible para todos */}
         <Route path="/catalog" element={<CatalogPage />} />
         
         {/* Default redirect */}

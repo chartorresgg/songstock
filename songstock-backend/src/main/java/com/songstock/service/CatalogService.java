@@ -35,25 +35,43 @@ public class CatalogService {
     /**
      * Buscar productos en el catálogo aplicando filtros y paginación.
      */
+    /**
+     * Buscar productos en el catálogo aplicando filtros y paginación.
+     */
     @Transactional(readOnly = true)
     public Page<ProductCatalogResponseDTO> searchCatalogProducts(CatalogFilterDTO filterDTO, Pageable pageable) {
         logger.info("Buscando productos en catálogo con filtros: {}", filterDTO);
 
-        // Obtener productos aplicando filtros (query dinámica en repository)
+        // Obtener productos aplicando filtros con los parámetros correctos
         List<Product> products = productRepository.findWithFilters(
                 filterDTO.getSearchQuery(),
                 filterDTO.getCategoryId(),
                 filterDTO.getGenreId(),
-                filterDTO.getProductType() != null ? filterDTO.getProductType().toString() : null,
+                null, // artistId - agregar a CatalogFilterDTO si lo necesitas
+                filterDTO.getProductType(), // Ya es ProductType, no convertir a String
+                filterDTO.getConditionType(),
                 filterDTO.getMinPrice(),
                 filterDTO.getMaxPrice(),
                 filterDTO.getMinYear(),
                 filterDTO.getMaxYear(),
                 filterDTO.getInStockOnly() != null ? filterDTO.getInStockOnly() : false,
                 filterDTO.getFeaturedOnly() != null ? filterDTO.getFeaturedOnly() : false,
-                filterDTO.getActiveOnly() != null ? filterDTO.getActiveOnly() : true,
-                filterDTO.getSortBy() != null ? filterDTO.getSortBy() : "createdAt",
-                filterDTO.getSortDirection() != null ? filterDTO.getSortDirection() : "desc");
+                filterDTO.getActiveOnly() != null ? filterDTO.getActiveOnly() : true);
+
+        // Aplicar ordenamiento manual (ya que el método del repository no lo soporta)
+        if ("price".equals(filterDTO.getSortBy())) {
+            if ("asc".equals(filterDTO.getSortDirection())) {
+                products.sort((p1, p2) -> p1.getPrice().compareTo(p2.getPrice()));
+            } else {
+                products.sort((p1, p2) -> p2.getPrice().compareTo(p1.getPrice()));
+            }
+        } else if ("createdAt".equals(filterDTO.getSortBy())) {
+            if ("asc".equals(filterDTO.getSortDirection())) {
+                products.sort((p1, p2) -> p1.getCreatedAt().compareTo(p2.getCreatedAt()));
+            } else {
+                products.sort((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()));
+            }
+        }
 
         // Mapear a DTOs
         List<ProductCatalogResponseDTO> productDTOs = products.stream()
@@ -74,10 +92,12 @@ public class CatalogService {
     @Transactional(readOnly = true)
     public List<ProductCatalogResponseDTO> getLatestProducts(int limit) {
         List<Product> products = productRepository.findWithFilters(
+                null, null, null, null, null, null,
                 null, null, null, null,
-                null, null, null, null,
-                true, false, true,
-                "createdAt", "desc");
+                true, false, true);
+
+        // Ordenar por fecha de creación (más recientes primero)
+        products.sort((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()));
 
         return products.stream()
                 .limit(limit)
@@ -99,9 +119,11 @@ public class CatalogService {
         List<Product> relatedProducts = productRepository.findWithFilters(
                 null, null,
                 product.getAlbum().getGenre() != null ? product.getAlbum().getGenre().getId() : null,
-                null, null, null, null, null,
-                true, false, true,
-                "createdAt", "desc");
+                null, null, null, null, null, null, null,
+                true, false, true);
+
+        // Ordenar por fecha de creación
+        relatedProducts.sort((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()));
 
         return relatedProducts.stream()
                 .filter(p -> !p.getId().equals(productId)) // Excluir el actual

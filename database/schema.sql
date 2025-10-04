@@ -1,5 +1,5 @@
-CREATE DATABASE vinyl_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE vinyl_store;
+CREATE DATABASE song_stock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE song_stock;
 
 -- Tabla de usuarios (administradores y proveedores)
 CREATE TABLE users (

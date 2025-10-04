@@ -1,3 +1,5 @@
+// src/components/ui/ConfirmModal.tsx
+
 import React from 'react';
 import Button from './Button';
 
@@ -8,7 +10,8 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;  // Hacer opcional
+  onClose?: () => void;   // Agregar onClose como alternativa
   type?: 'primary' | 'danger';
   loading?: boolean;
 }
@@ -21,22 +24,49 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = 'Cancelar',
   onConfirm,
   onCancel,
+  onClose,
   type = 'primary',
   loading = false
 }) => {
   if (!isOpen) return null;
 
+  // Usar onCancel si está definido, sino usar onClose
+  const handleCancel = onCancel || onClose || (() => {});
+
   const iconColor = type === 'danger' ? 'text-red-600' : 'text-blue-600';
   const iconBg = type === 'danger' ? 'bg-red-100' : 'bg-blue-100';
+
+  // Función para cerrar modal al hacer click en el overlay
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleCancel();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
+        onClick={handleOverlayClick}
+      />
       
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full transform transition-all">
+          {/* Botón X para cerrar */}
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={handleCancel}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              disabled={loading}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
           <div className="p-6">
             {/* Icon */}
             <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${iconBg} mb-4`}>
@@ -65,7 +95,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <div className="flex space-x-3">
               <Button
                 variant="secondary"
-                onClick={onCancel}
+                onClick={handleCancel}
                 disabled={loading}
                 className="flex-1"
               >

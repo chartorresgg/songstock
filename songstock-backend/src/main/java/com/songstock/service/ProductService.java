@@ -1,12 +1,16 @@
 package com.songstock.service;
 
 import com.songstock.dto.ProductDTO;
+import java.math.RoundingMode;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
 import com.songstock.entity.*;
 import com.songstock.exception.ResourceNotFoundException;
 import com.songstock.exception.DuplicateResourceException;
 import com.songstock.exception.BusinessException;
 import com.songstock.mapper.ProductMapper;
 import com.songstock.repository.*;
+import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +26,9 @@ import com.songstock.dto.ProductCatalogCreateDTO;
 import com.songstock.dto.ProductCatalogUpdateDTO;
 import com.songstock.dto.ProductCatalogResponseDTO;
 import com.songstock.dto.ProviderCatalogSummaryDTO;
+import com.songstock.dto.ProductBulkUpdateDTO;
 import com.songstock.dto.CatalogFilterDTO;
+import com.songstock.dto.QuickMetricsDTO;
 import com.songstock.entity.Album;
 import com.songstock.entity.Category;
 import com.songstock.entity.Provider;
@@ -31,20 +37,12 @@ import com.songstock.entity.ProductType;
 import com.songstock.entity.ConditionType;
 import com.songstock.repository.AlbumRepository;
 import com.songstock.repository.CategoryRepository;
-import java.math.RoundingMode;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
 import com.songstock.dto.AlbumFormatsDTO;
 import com.songstock.dto.AlbumFormatsResponseDTO;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Comparator;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -908,10 +906,13 @@ public class ProductService {
         summary.setUsedProducts(summary.getTotalProducts() - summary.getNewProducts());
 
         // Calcular precio promedio
-        BigDecimal averagePrice = allProducts.stream()
-                .map(Product::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(allProducts.size()), 2, RoundingMode.HALF_UP);
+        BigDecimal averagePrice = BigDecimal.ZERO;
+        if (!allProducts.isEmpty()) {
+            BigDecimal totalPrice = allProducts.stream()
+                    .map(Product::getPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            averagePrice = totalPrice.divide(BigDecimal.valueOf(allProducts.size()), 2, RoundingMode.HALF_UP);
+        }
         summary.setAveragePrice(averagePrice);
 
         // Calcular valor total del catálogo
@@ -1425,4 +1426,443 @@ public class ProductService {
 
         return Map.of("min", minPrice, "max", maxPrice);
     }
+
+    // Agregar estos métodos al ProductService existente
+
+    /**
+     * Obtener productos del proveedor con paginación y filtros
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductCatalogResponseDTO> getProviderProductsWithPagination(
+            Long providerId, Pageable pageable, String searchQuery, Boolean activeOnly) {
+
+        logger.info("Obteniendo productos del proveedor {} con paginación", providerId);
+
+        // Validar que el proveedor existe
+        if (!providerRepository.existsById(providerId)) {
+            throw new RuntimeException("Proveedor no encontrado con ID: " + providerId);
+        }
+
+        // Obtener productos con filtros
+        Page<Product> productsPage;
+
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            // Búsqueda con filtro de texto
+            if (activeOnly != null && activeOnly) {
+                productsPage = productRepository
+                        .findByProviderIdAndIsActiveTrueAndAlbumTitleContainingIgnoreCaseOrAlbumArtistNameContainingIgnoreCase(
+                                providerId, searchQuery, pageable); // ← CORREGIDO: solo 3 parámetros
+            } else {
+                productsPage = productRepository
+                        .findByProviderIdAndAlbumTitleContainingIgnoreCaseOrAlbumArtistNameContainingIgnoreCase(
+                                providerId, searchQuery, pageable); // ← CORREGIDO: solo 3 parámetros
+            }
+        } else {
+            // Sin filtro de texto
+            if (activeOnly != null && activeOnly) {
+                productsPage = productRepository.findByProviderIdAndIsActiveTrue(providerId, pageable);
+            } else {
+                productsPage = productRepository.findByProviderId(providerId, pageable);
+            }
+        }
+
+        // Mapear a DTOs
+        return productsPage.map(this::mapToCatalogResponseDTO);
+    }
+
+    /**
+     * Obtener estadísticas rápidas del proveedor
+     */
+    @Transactional(readOnly = true)
+    public QuickMetricsDTO getProviderQuickStats(Long providerId) {
+        logger.info("Obteniendo estadísticas rápidas para proveedor ID: {}", providerId);
+
+        // Validar que el proveedor existe
+        if (!providerRepository.existsById(providerId)) {
+            throw new RuntimeException("Proveedor no encontrado con ID: " + providerId);
+        }
+
+        // Obtener todos los productos del proveedor
+        List<Product> allProducts = productRepository.findByProviderId(providerId);
+
+        if (allProducts.isEmpty()) {
+            return new QuickMetricsDTO(0, 0, 0, 0, 0, 0,
+                    BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
+        }
+
+        // Calcular métricas
+        Integer totalProducts = allProducts.size();
+        Integer activeProducts = (int) allProducts.stream().filter(Product::getIsActive).count();
+        Integer inactiveProducts = totalProducts - activeProducts;
+        Integer productsInStock = (int) allProducts.stream().filter(p -> p.getStockQuantity() > 0).count();
+        Integer productsOutOfStock = totalProducts - productsInStock;
+        Integer featuredProducts = (int) allProducts.stream().filter(Product::getFeatured).count();
+
+        Integer physicalProducts = (int) allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.PHYSICAL).count();
+        Integer digitalProducts = (int) allProducts.stream()
+                .filter(p -> p.getProductType() == ProductType.DIGITAL).count();
+
+        // Calcular valor total del catálogo
+        BigDecimal totalCatalogValue = allProducts.stream()
+                .map(p -> p.getPrice().multiply(BigDecimal.valueOf(p.getStockQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calcular precio promedio
+        BigDecimal averagePrice = BigDecimal.ZERO;
+        if (!allProducts.isEmpty()) {
+            BigDecimal totalPrice = allProducts.stream()
+                    .map(Product::getPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            averagePrice = totalPrice.divide(BigDecimal.valueOf(allProducts.size()), 2, RoundingMode.HALF_UP);
+        }
+
+        return new QuickMetricsDTO(totalProducts, activeProducts, inactiveProducts,
+                productsInStock, productsOutOfStock, featuredProducts,
+                totalCatalogValue, averagePrice, physicalProducts, digitalProducts);
+    }
+
+    /**
+     * Actualización masiva de precios
+     */
+    @Transactional
+    public List<ProductCatalogResponseDTO> bulkUpdatePrices(Long providerId, ProductBulkUpdateDTO bulkUpdateDTO) {
+        logger.info("Realizando actualización masiva para proveedor ID: {}, productos: {}",
+                providerId, bulkUpdateDTO.getProductIds().size());
+
+        // Validar que el proveedor existe
+        if (!providerRepository.existsById(providerId)) {
+            throw new RuntimeException("Proveedor no encontrado con ID: " + providerId);
+        }
+
+        // Obtener todos los productos a actualizar
+        List<Product> productsToUpdate = productRepository.findAllById(bulkUpdateDTO.getProductIds());
+
+        // Validar que todos los productos pertenecen al proveedor
+        List<Product> invalidProducts = productsToUpdate.stream()
+                .filter(p -> !p.getProvider().getId().equals(providerId))
+                .collect(Collectors.toList());
+
+        if (!invalidProducts.isEmpty()) {
+            throw new RuntimeException("Algunos productos no pertenecen al proveedor autenticado");
+        }
+
+        // Guardar todos los productos actualizados
+        List<Product> updatedProducts = productsToUpdate;
+        List<Product> savedProducts = productRepository.saveAll(updatedProducts);
+
+        logger.info("Actualización masiva completada - {} productos actualizados, Razón: {}",
+                savedProducts.size(), bulkUpdateDTO.getReason());
+
+        // Mapear a DTOs de respuesta
+        return savedProducts.stream()
+                .map(this::mapToCatalogResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Duplicar un producto existente
+     */
+    @Transactional
+    public ProductCatalogResponseDTO duplicateProduct(Long providerId, Long productId, String newSku) {
+        logger.info("Duplicando producto ID: {} para proveedor ID: {} con nuevo SKU: {}",
+                productId, providerId, newSku);
+
+        // Validar que el producto existe
+        Product originalProduct = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
+
+        // Validar que el producto pertenece al proveedor
+        if (!originalProduct.getProvider().getId().equals(providerId)) {
+            throw new RuntimeException("No tienes permisos para duplicar este producto");
+        }
+
+        // Validar que el nuevo SKU no existe
+        if (productRepository.existsBySku(newSku)) {
+            throw new RuntimeException("Ya existe un producto con SKU: " + newSku);
+        }
+
+        // Crear nuevo producto duplicando el original
+        Product duplicatedProduct = new Product();
+        duplicatedProduct.setAlbum(originalProduct.getAlbum());
+        duplicatedProduct.setProvider(originalProduct.getProvider());
+        duplicatedProduct.setCategory(originalProduct.getCategory());
+        duplicatedProduct.setSku(newSku);
+        duplicatedProduct.setProductType(originalProduct.getProductType());
+        duplicatedProduct.setConditionType(originalProduct.getConditionType());
+        duplicatedProduct.setPrice(originalProduct.getPrice());
+        duplicatedProduct.setStockQuantity(0); // Nuevo producto empieza sin stock
+
+        // Copiar campos específicos según el tipo
+        if (originalProduct.getProductType() == ProductType.PHYSICAL) {
+            duplicatedProduct.setVinylSize(originalProduct.getVinylSize());
+            duplicatedProduct.setVinylSpeed(originalProduct.getVinylSpeed());
+            duplicatedProduct.setWeightGrams(originalProduct.getWeightGrams());
+        } else if (originalProduct.getProductType() == ProductType.DIGITAL) {
+            duplicatedProduct.setFileFormat(originalProduct.getFileFormat());
+            duplicatedProduct.setFileSizeMb(originalProduct.getFileSizeMb());
+        }
+
+        duplicatedProduct.setFeatured(false); // No destacado por defecto
+        duplicatedProduct.setIsActive(true);
+        duplicatedProduct.setCreatedAt(LocalDateTime.now());
+        duplicatedProduct.setUpdatedAt(LocalDateTime.now());
+
+        // Guardar el producto duplicado
+        Product savedProduct = productRepository.save(duplicatedProduct);
+
+        logger.info("Producto duplicado exitosamente - ID original: {}, ID nuevo: {}, SKU nuevo: {}",
+                productId, savedProduct.getId(), newSku);
+
+        return mapToCatalogResponseDTO(savedProduct);
+    }
+
+    // Métodos auxiliares para repositorio (agregar a ProductRepository.java)
+
+    // En ProductRepository.java, agregar estos métodos:
+    /*
+     * @Query("SELECT p FROM Product p WHERE p.provider.id = :providerId AND p.isActive = true "
+     * +
+     * "AND (LOWER(p.album.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) " +
+     * "OR LOWER(p.album.artist.name) LIKE LOWER(CONCAT('%', :searchQuery, '%')))")
+     * Page<Product>
+     * findByProviderIdAndIsActiveTrueAndAlbumTitleContainingIgnoreCaseOrAlbumArtistNameContainingIgnoreCase(
+     * 
+     * @Param("providerId") Long providerId,
+     * 
+     * @Param("searchQuery") String searchQuery1,
+     * 
+     * @Param("searchQuery") String searchQuery2,
+     * Pageable pageable);
+     * 
+     * @Query("SELECT p FROM Product p WHERE p.provider.id = :providerId " +
+     * "AND (LOWER(p.album.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) " +
+     * "OR LOWER(p.album.artist.name) LIKE LOWER(CONCAT('%', :searchQuery, '%')))")
+     * Page<Product>
+     * findByProviderIdAndAlbumTitleContainingIgnoreCaseOrAlbumArtistNameContainingIgnoreCase(
+     * 
+     * @Param("providerId") Long providerId,
+     * 
+     * @Param("searchQuery") String searchQuery1,
+     * 
+     * @Param("searchQuery") String searchQuery2,
+     * Pageable pageable);
+     * 
+     * Page<Product> findByProviderIdAndIsActiveTrue(Long providerId, Pageable
+     * pageable);
+     * Page<Product> findByProviderId(Long providerId, Pageable pageable);
+     */
+
+    /**
+     * Actualizar múltiples productos de forma masiva
+     */
+    @Transactional
+    public List<ProductInventoryResponseDTO> bulkUpdateProducts(Long providerId, ProductBulkUpdateDTO bulkUpdateDTO) {
+        logger.info("Iniciando actualización masiva de {} productos para proveedor: {}",
+                bulkUpdateDTO.getProductIds().size(), providerId);
+
+        // Validar que el proveedor existe
+        if (!providerRepository.existsById(providerId)) {
+            throw new RuntimeException("Proveedor no encontrado con ID: " + providerId);
+        }
+
+        // Obtener productos y validar ownership
+        List<Product> productsToUpdate = new ArrayList<>();
+        for (Long productId : bulkUpdateDTO.getProductIds()) {
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
+
+            // Validar que el producto pertenece al proveedor
+            if (!product.getProvider().getId().equals(providerId)) {
+                throw new RuntimeException("No tienes permisos para actualizar el producto ID: " + productId);
+            }
+
+            productsToUpdate.add(product);
+        }
+
+        // Aplicar actualizaciones según el tipo
+        List<Product> updatedProducts = new ArrayList<>();
+
+        for (Product product : productsToUpdate) {
+            switch (bulkUpdateDTO.getUpdateType()) {
+                case PRICE_INCREASE_PERCENTAGE:
+                    if (bulkUpdateDTO.getValue() != null) {
+                        BigDecimal increaseAmount = product.getPrice()
+                                .multiply(bulkUpdateDTO.getValue())
+                                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                        product.setPrice(product.getPrice().add(increaseAmount));
+                    }
+                    break;
+
+                case PRICE_DECREASE_PERCENTAGE:
+                    if (bulkUpdateDTO.getValue() != null) {
+                        BigDecimal decreaseAmount = product.getPrice()
+                                .multiply(bulkUpdateDTO.getValue())
+                                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                        BigDecimal newPrice = product.getPrice().subtract(decreaseAmount);
+                        // Asegurar que el precio no sea negativo
+                        product.setPrice(newPrice.max(BigDecimal.ZERO));
+                    }
+                    break;
+
+                case PRICE_SET_FIXED:
+                    if (bulkUpdateDTO.getValue() != null) {
+                        product.setPrice(bulkUpdateDTO.getValue());
+                    }
+                    break;
+
+                case STOCK_SET:
+                    if (bulkUpdateDTO.getStockQuantity() != null) {
+                        product.setStockQuantity(bulkUpdateDTO.getStockQuantity());
+                    }
+                    break;
+
+                case STOCK_INCREMENT:
+                    if (bulkUpdateDTO.getStockQuantity() != null) {
+                        int newStock = product.getStockQuantity() + bulkUpdateDTO.getStockQuantity();
+                        product.setStockQuantity(Math.max(0, newStock)); // No permitir stock negativo
+                    }
+                    break;
+
+                case STOCK_DECREMENT:
+                    if (bulkUpdateDTO.getStockQuantity() != null) {
+                        int newStock = product.getStockQuantity() - bulkUpdateDTO.getStockQuantity();
+                        product.setStockQuantity(Math.max(0, newStock)); // No permitir stock negativo
+                    }
+                    break;
+
+                case TOGGLE_FEATURED:
+                    product.setFeatured(bulkUpdateDTO.getBooleanValue() != null ? bulkUpdateDTO.getBooleanValue()
+                            : !product.getFeatured());
+                    break;
+
+                case TOGGLE_ACTIVE:
+                    product.setIsActive(bulkUpdateDTO.getBooleanValue() != null ? bulkUpdateDTO.getBooleanValue()
+                            : !product.getIsActive());
+                    break;
+
+                default:
+                    throw new RuntimeException("Tipo de actualización no soportado: " + bulkUpdateDTO.getUpdateType());
+            }
+
+            product.setUpdatedAt(LocalDateTime.now());
+            updatedProducts.add(product);
+        }
+
+        // Guardar todos los productos actualizados
+        List<Product> savedProducts = productRepository.saveAll(updatedProducts);
+
+        // Log de la operación
+        logger.info("Actualización masiva completada - Tipo: {}, Productos: {}, Proveedor: {}, Razón: {}",
+                bulkUpdateDTO.getUpdateType(), savedProducts.size(), providerId, bulkUpdateDTO.getReason());
+
+        // Convertir a DTOs de respuesta
+        return savedProducts.stream()
+                .map(this::mapToInventoryResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Método auxiliar para validar actualizaciones masivas
+     */
+    private void validateBulkUpdate(ProductBulkUpdateDTO bulkUpdateDTO) {
+        // Validar que hay productos para actualizar
+        if (bulkUpdateDTO.getProductIds() == null || bulkUpdateDTO.getProductIds().isEmpty()) {
+            throw new RuntimeException("Debe seleccionar al menos un producto para actualizar");
+        }
+
+        // Validar parámetros según el tipo de actualización
+        switch (bulkUpdateDTO.getUpdateType()) {
+            case PRICE_INCREASE_PERCENTAGE:
+            case PRICE_DECREASE_PERCENTAGE:
+                if (bulkUpdateDTO.getValue() == null || bulkUpdateDTO.getValue().compareTo(BigDecimal.ZERO) < 0) {
+                    throw new RuntimeException("El porcentaje debe ser un valor positivo");
+                }
+                if (bulkUpdateDTO.getValue().compareTo(BigDecimal.valueOf(100)) > 0) {
+                    throw new RuntimeException("El porcentaje no puede ser mayor al 100%");
+                }
+                break;
+
+            case PRICE_SET_FIXED:
+                if (bulkUpdateDTO.getValue() == null || bulkUpdateDTO.getValue().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new RuntimeException("El precio debe ser mayor a cero");
+                }
+                break;
+
+            case STOCK_SET:
+            case STOCK_INCREMENT:
+            case STOCK_DECREMENT:
+                if (bulkUpdateDTO.getStockQuantity() == null || bulkUpdateDTO.getStockQuantity() < 0) {
+                    throw new RuntimeException("La cantidad de stock debe ser un valor positivo");
+                }
+                break;
+
+            case TOGGLE_FEATURED:
+            case TOGGLE_ACTIVE:
+                // No se requieren validaciones adicionales para operaciones booleanas
+                break;
+
+            default:
+                throw new RuntimeException("Tipo de actualización no válido: " + bulkUpdateDTO.getUpdateType());
+        }
+    }
+
+    /**
+     * Endpoint para actualizaciones masivas (agregar al ProductController si no
+     * existe)
+     */
+    // En ProductController.java:
+    /*
+     * @PatchMapping("/bulk-update")
+     * 
+     * @PreAuthorize("hasRole('PROVIDER')")
+     * 
+     * @Operation(summary = "Actualización masiva de productos",
+     * description = "Actualizar múltiples productos del catálogo de forma masiva")
+     * public ResponseEntity<ApiResponse<List<ProductInventoryResponseDTO>>>
+     * bulkUpdateProducts(
+     * 
+     * @Valid @RequestBody ProductBulkUpdateDTO bulkUpdateDTO,
+     * Authentication authentication) {
+     * try {
+     * // Obtener el proveedor autenticado
+     * Long providerId = getProviderIdFromAuthentication(authentication);
+     * 
+     * // Validar la actualización masiva
+     * validateBulkUpdate(bulkUpdateDTO);
+     * 
+     * // Realizar la actualización
+     * List<ProductInventoryResponseDTO> response =
+     * productService.bulkUpdateProducts(providerId, bulkUpdateDTO);
+     * 
+     * String message =
+     * String.format("Actualización masiva completada: %d productos actualizados",
+     * response.size());
+     * 
+     * ApiResponse<List<ProductInventoryResponseDTO>> apiResponse = new
+     * ApiResponse<>(
+     * true,
+     * message,
+     * response);
+     * 
+     * return ResponseEntity.ok(apiResponse);
+     * 
+     * } catch (RuntimeException e) {
+     * ApiResponse<List<ProductInventoryResponseDTO>> errorResponse = new
+     * ApiResponse<>(
+     * false,
+     * e.getMessage(),
+     * null);
+     * return ResponseEntity.badRequest().body(errorResponse);
+     * } catch (Exception e) {
+     * ApiResponse<List<ProductInventoryResponseDTO>> errorResponse = new
+     * ApiResponse<>(
+     * false,
+     * "Error interno del servidor",
+     * null);
+     * return
+     * ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+     * }
+     * }
+     */
 }

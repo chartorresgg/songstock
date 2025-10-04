@@ -3,6 +3,7 @@ package com.songstock.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * DTO para métricas rápidas del dashboard administrativo
@@ -11,6 +12,17 @@ import java.io.Serializable;
 public class QuickMetricsDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    private Integer totalProducts;
+    private Integer activeProducts;
+    private Integer inactiveProducts;
+    private Integer productsInStock;
+    private Integer productsOutOfStock;
+    private Integer featuredProducts;
+    private BigDecimal totalCatalogValue;
+    private BigDecimal averagePrice;
+    private Integer physicalProducts;
+    private Integer digitalProducts;
 
     @NotNull
     @Min(0)
@@ -62,6 +74,22 @@ public class QuickMetricsDTO implements Serializable {
 
         // Calcular valores derivados
         calculateDerivedMetrics();
+    }
+
+    public QuickMetricsDTO(Integer totalProducts, Integer activeProducts, Integer inactiveProducts,
+            Integer productsInStock, Integer productsOutOfStock, Integer featuredProducts,
+            BigDecimal totalCatalogValue, BigDecimal averagePrice,
+            Integer physicalProducts, Integer digitalProducts) {
+        this.totalProducts = totalProducts;
+        this.activeProducts = activeProducts;
+        this.inactiveProducts = inactiveProducts;
+        this.productsInStock = productsInStock;
+        this.productsOutOfStock = productsOutOfStock;
+        this.featuredProducts = featuredProducts;
+        this.totalCatalogValue = totalCatalogValue;
+        this.averagePrice = averagePrice;
+        this.physicalProducts = physicalProducts;
+        this.digitalProducts = digitalProducts;
     }
 
     // Getters y Setters
@@ -146,6 +174,86 @@ public class QuickMetricsDTO implements Serializable {
 
     public void setProviderVerificationRate(Double providerVerificationRate) {
         this.providerVerificationRate = providerVerificationRate;
+    }
+
+    public Integer getTotalProducts() {
+        return totalProducts;
+    }
+
+    public void setTotalProducts(Integer totalProducts) {
+        this.totalProducts = totalProducts;
+    }
+
+    public Integer getActiveProducts() {
+        return activeProducts;
+    }
+
+    public void setActiveProducts(Integer activeProducts) {
+        this.activeProducts = activeProducts;
+    }
+
+    public Integer getInactiveProducts() {
+        return inactiveProducts;
+    }
+
+    public void setInactiveProducts(Integer inactiveProducts) {
+        this.inactiveProducts = inactiveProducts;
+    }
+
+    public Integer getProductsInStock() {
+        return productsInStock;
+    }
+
+    public void setProductsInStock(Integer productsInStock) {
+        this.productsInStock = productsInStock;
+    }
+
+    public Integer getProductsOutOfStock() {
+        return productsOutOfStock;
+    }
+
+    public void setProductsOutOfStock(Integer productsOutOfStock) {
+        this.productsOutOfStock = productsOutOfStock;
+    }
+
+    public Integer getFeaturedProducts() {
+        return featuredProducts;
+    }
+
+    public void setFeaturedProducts(Integer featuredProducts) {
+        this.featuredProducts = featuredProducts;
+    }
+
+    public BigDecimal getTotalCatalogValue() {
+        return totalCatalogValue;
+    }
+
+    public void setTotalCatalogValue(BigDecimal totalCatalogValue) {
+        this.totalCatalogValue = totalCatalogValue;
+    }
+
+    public BigDecimal getAveragePrice() {
+        return averagePrice;
+    }
+
+    public void setAveragePrice(BigDecimal averagePrice) {
+        this.averagePrice = averagePrice;
+    }
+
+    public Integer getPhysicalProducts() {
+        return physicalProducts;
+    }
+
+    public void setPhysicalProducts(Integer physicalProducts) {
+        this.physicalProducts = physicalProducts;
+    }
+
+    public Integer getDigitalProducts() {
+        return digitalProducts;
+    }
+
+    public void setDigitalProducts(Integer digitalProducts) {
+        this.digitalProducts = digitalProducts;
     }
 
     // Métodos de utilidad

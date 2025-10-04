@@ -7,13 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import java.math.BigDecimal;
-
-import java.util.List;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -273,8 +266,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         BigDecimal getTotalInventoryValueByProviderId(@Param("providerId") Long providerId);
 
         /**
-         * Buscar productos con filtros múltiples usando JPQL (más portable que SQL
-         * nativo)
+         * Buscar productos con filtros múltiples usando JPQL
          */
         @Query("SELECT DISTINCT p FROM Product p " +
                         "JOIN p.album a " +
@@ -387,49 +379,42 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         BigDecimal getAveragePriceByProviderId(@Param("providerId") Long providerId);
 
         /**
-         * Buscar productos con filtros múltiples (consulta nativa para mayor
-         * flexibilidad)
+         * Contar productos por estado activo - CORREGIDO
          */
-        @Query(value = "SELECT p.* FROM products p " +
-                        "JOIN albums a ON p.album_id = a.id " +
-                        "JOIN artists ar ON a.artist_id = ar.id " +
-                        "JOIN categories c ON p.category_id = c.id " +
-                        "WHERE (:searchQuery IS NULL OR " +
-                        "       LOWER(a.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) OR " +
-                        "       LOWER(ar.name) LIKE LOWER(CONCAT('%', :searchQuery, '%'))) " +
-                        "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
-                        "AND (:genreId IS NULL OR a.genre_id = :genreId) " +
-                        "AND (:productType IS NULL OR p.product_type = :productType) " +
-                        "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
-                        "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
-                        "AND (:minYear IS NULL OR a.release_year >= :minYear) " +
-                        "AND (:maxYear IS NULL OR a.release_year <= :maxYear) " +
-                        "AND (:inStockOnly = false OR p.stock_quantity > 0) " +
-                        "AND (:featuredOnly = false OR p.featured = true) " +
-                        "AND (:activeOnly = false OR p.is_active = true) " +
-                        "ORDER BY " +
-                        "CASE WHEN :sortBy = 'price' AND :sortDirection = 'asc' THEN p.price END ASC, " +
-                        "CASE WHEN :sortBy = 'price' AND :sortDirection = 'desc' THEN p.price END DESC, " +
-                        "CASE WHEN :sortBy = 'createdAt' AND :sortDirection = 'asc' THEN p.created_at END ASC, " +
-                        "CASE WHEN :sortBy = 'createdAt' AND :sortDirection = 'desc' THEN p.created_at END DESC, " +
-                        "p.created_at DESC", nativeQuery = true)
-        List<Product> findWithFilters(@Param("searchQuery") String searchQuery,
-                        @Param("categoryId") Long categoryId,
-                        @Param("genreId") Long genreId,
-                        @Param("productType") String productType,
-                        @Param("minPrice") BigDecimal minPrice,
-                        @Param("maxPrice") BigDecimal maxPrice,
-                        @Param("minYear") Integer minYear,
-                        @Param("maxYear") Integer maxYear,
-                        @Param("inStockOnly") Boolean inStockOnly,
-                        @Param("featuredOnly") Boolean featuredOnly,
-                        @Param("activeOnly") Boolean activeOnly,
-                        @Param("sortBy") String sortBy,
-                        @Param("sortDirection") String sortDirection);
+        @Query("SELECT COUNT(p) FROM Product p WHERE p.isActive = :isActive")
+        Long countByIsActive(@Param("isActive") Boolean isActive);
 
         /**
-         * Contar productos por estado activo
+         * Buscar productos del proveedor con filtro de texto (CORREGIDO)
          */
-        Long countByIsActive(Boolean isActive);
+        @Query("SELECT p FROM Product p WHERE p.provider.id = :providerId AND p.isActive = true " +
+                        "AND (LOWER(p.album.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) " +
+                        "OR LOWER(p.album.artist.name) LIKE LOWER(CONCAT('%', :searchQuery, '%')))")
+        Page<Product> findByProviderIdAndIsActiveTrueAndAlbumTitleContainingIgnoreCaseOrAlbumArtistNameContainingIgnoreCase(
+                        @Param("providerId") Long providerId,
+                        @Param("searchQuery") String searchQuery,
+                        Pageable pageable);
+
+        /**
+         * Buscar productos del proveedor con filtro de texto (SIN restricción de
+         * activos)
+         */
+        @Query("SELECT p FROM Product p WHERE p.provider.id = :providerId " +
+                        "AND (LOWER(p.album.title) LIKE LOWER(CONCAT('%', :searchQuery, '%')) " +
+                        "OR LOWER(p.album.artist.name) LIKE LOWER(CONCAT('%', :searchQuery, '%')))")
+        Page<Product> findByProviderIdAndAlbumTitleContainingIgnoreCaseOrAlbumArtistNameContainingIgnoreCase(
+                        @Param("providerId") Long providerId,
+                        @Param("searchQuery") String searchQuery,
+                        Pageable pageable);
+
+        /**
+         * Paginación por proveedor - solo activos
+         */
+        Page<Product> findByProviderIdAndIsActiveTrue(Long providerId, Pageable pageable);
+
+        /**
+         * Paginación por proveedor - todos los productos
+         */
+        Page<Product> findByProviderId(Long providerId, Pageable pageable);
 
 }
