@@ -13,9 +13,15 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    
+    // DEBUG: Log para verificar el token
+    console.log('🔑 Request to:', config.url);
+    console.log('🔑 Token exists:', !!token);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -27,12 +33,15 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('❌ API Error:', error.response?.status, error.response?.data);
+    
     if (error.response?.status === 401) {
-      // Token expirado o inválido
+      // Token inválido o expirado
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );

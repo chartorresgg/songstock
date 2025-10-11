@@ -34,25 +34,57 @@ const ProviderDashboard = () => {
     try {
       // Cargar productos del proveedor
       const productsData = await providerService.getMyProducts();
-      setProducts(productsData);
-
-      // Calcular estadísticas básicas desde los productos
-      // En una aplicación real, estas estadísticas vendrían del backend
-      const active = productsData.filter(p => p.isActive).length;
-      const totalRevenue = productsData.reduce((sum, p) => sum + (p.price * p.stockQuantity), 0);
+      console.log('Products loaded:', productsData); // Debug
       
-      setStats({
-        totalProducts: productsData.length,
-        activeProducts: active,
-        totalRevenue: totalRevenue,
-        totalOrders: 0 // Esto vendría del backend en una implementación real
-      });
+      // Verificar que productsData sea un array
+      if (!Array.isArray(productsData)) {
+        console.error('Products data is not an array:', productsData);
+        setProducts([]);
+        calculateStatsFromProducts([]);
+        toast.error('Error: formato de datos inválido');
+        return;
+      }
+      
+      setProducts(productsData);
+  
+      // Intentar cargar estadísticas del backend
+      try {
+        const statsData = await providerService.getProviderStats();
+        if (statsData) {
+          setStats({
+            totalProducts: statsData.totalProducts || productsData.length,
+            activeProducts: statsData.activeProducts || productsData.filter((p: Product) => p.isActive).length,
+            totalRevenue: statsData.totalValue || productsData.reduce((sum: number, p: Product) => sum + (p.price * p.stockQuantity), 0),
+            totalOrders: statsData.totalOrders || 0
+          });
+        } else {
+          // Fallback: calcular desde los productos
+          calculateStatsFromProducts(productsData);
+        }
+      } catch (statsError) {
+        console.warn('Could not load stats from backend, calculating locally:', statsError);
+        calculateStatsFromProducts(productsData);
+      }
     } catch (error) {
       console.error('Error loading provider data:', error);
       toast.error('Error al cargar los datos');
+      setProducts([]); // Asegurar que products sea un array vacío en caso de error
     } finally {
       setLoading(false);
     }
+  };
+
+// Función auxiliar para calcular stats localmente
+const calculateStatsFromProducts = (productsData: Product[]) => {
+    const active = productsData.filter(p => p.isActive).length;
+    const totalRevenue = productsData.reduce((sum, p) => sum + (p.price * p.stockQuantity), 0);
+    
+    setStats({
+      totalProducts: productsData.length,
+      activeProducts: active,
+      totalRevenue: totalRevenue,
+      totalOrders: 0
+    });
   };
 
   const handleDelete = async (id: number, title: string) => {

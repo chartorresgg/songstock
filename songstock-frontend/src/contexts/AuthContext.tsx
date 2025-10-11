@@ -1,71 +1,139 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, LoginCredentials, RegisterData } from '../types/auth.types';
 import authService from '../services/auth.service';
-import toast from 'react-hot-toast';
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
-}
+import { User, LoginCredentials, RegisterData, AuthContextType } from '../types/auth.types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Cargar usuario del localStorage al iniciar
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setIsLoading(false);
+    // Intentar cargar el usuario desde localStorage al iniciar
+    const loadUserFromStorage = async () => {
+      try {
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+
+        console.log('Loading from storage - Token exists:', !!storedToken); // Debug
+        console.log('Loading from storage - User exists:', !!storedUser); // Debug
+
+        if (storedToken && storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setToken(storedToken);
+            setUser(parsedUser);
+            console.log('User loaded from storage:', parsedUser); // Debug
+          } catch (parseError) {
+            console.error('Error parsing stored user:', parseError);
+            // Si hay error al parsear, limpiar el storage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        } else {
+          console.log('No stored credentials found'); // Debug
+        }
+      } catch (error) {
+        console.error('Error loading user from storage:', error);
+        // En caso de error, limpiar todo
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserFromStorage();
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
     try {
+      console.log('Attempting login with:', credentials.username); // Debug
+      
       const response = await authService.login(credentials);
-      setUser(response.user);
-      toast.success(`¡Bienvenido, ${response.user.username}!`);
+      
+      console.log('Login response received:', response); // Debug
+
+      if (response.success && response.data) {
+        const { user: userData, token: userToken } = response.data;
+        
+        // Guardar en estado
+        setUser(userData);
+        setToken(userToken);
+        
+        // Guardar en localStorage
+        localStorage.setItem('token', userToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('Login successful, user set:', userData); // Debug
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Error al iniciar sesión';
-      toast.error(message);
+      console.error('Login error in context:', error);
+      // Limpiar cualquier dato residual
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       throw error;
     }
   };
 
   const register = async (data: RegisterData) => {
     try {
+      console.log('Attempting registration'); // Debug
+      
       const response = await authService.register(data);
-      setUser(response.user);
-      toast.success('¡Registro exitoso! Bienvenido a SongStock');
+      
+      console.log('Register response received:', response); // Debug
+
+      if (response.success && response.data) {
+        const { user: userData, token: userToken } = response.data;
+        
+        // Guardar en estado
+        setUser(userData);
+        setToken(userToken);
+        
+        // Guardar en localStorage
+        localStorage.setItem('token', userToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('Registration successful, user set:', userData); // Debug
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Error en el registro';
-      toast.error(message);
+      console.error('Registration error in context:', error);
+      // Limpiar cualquier dato residual
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       throw error;
     }
   };
 
   const logout = () => {
+    console.log('Logging out'); // Debug
     authService.logout();
     setUser(null);
-    toast.success('Sesión cerrada correctamente');
+    setToken(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
-        isLoading,
+        token,
+        isAuthenticated: !!user && !!token,
         login,
         register,
         logout,
+        loading,
       }}
     >
       {children}

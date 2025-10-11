@@ -13,7 +13,7 @@ import {
 import { useState } from 'react';
 
 const Navbar = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, loading  } = useAuth();
   const navigate = useNavigate();
   const { itemCount } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,6 +22,23 @@ const Navbar = () => {
     logout();
     navigate('/login');
   };
+
+  if (loading) {
+    return (
+      <nav className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center">
+              <Music className="h-8 w-8 text-primary-900" />
+              <span className="text-2xl font-bold text-primary-900 ml-2">
+                Song<span className="text-secondary-500">Stock</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   const getDashboardLink = () => {
     if (!user) return '/';

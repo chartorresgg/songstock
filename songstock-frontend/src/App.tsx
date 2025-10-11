@@ -12,6 +12,8 @@ import Checkout from './pages/customer/Checkout';
 import Profile from './pages/customer/Profile';  // ← NUEVO: Importamos el componente real
 import MyOrders from './pages/customer/MyOrders'
 import ProviderDashboard from './pages/provider/ProviderDashboard'
+import AdminDashboard from './pages/admin/AdminDashboard';
+
 // Layout
 import MainLayout from './components/layout/MainLayout';
 
@@ -22,8 +24,8 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 const ProviderCatalog = () => <div className="container mx-auto px-4 py-8"><h1 className="text-3xl font-bold">Mi Catálogo - Próximamente</h1></div>;
 const ProviderOrders = () => <div className="container mx-auto px-4 py-8"><h1 className="text-3xl font-bold">Gestión de Pedidos - Próximamente</h1></div>;
 
-// Admin Pages (placeholders por ahora)
-const AdminDashboard = () => <div className="container mx-auto px-4 py-8"><h1 className="text-3xl font-bold">Admin Dashboard - Próximamente</h1></div>;
+
+
 const AdminUsers = () => <div className="container mx-auto px-4 py-8"><h1 className="text-3xl font-bold">Gestión Usuarios - Próximamente</h1></div>;
 const AdminProviders = () => <div className="container mx-auto px-4 py-8"><h1 className="text-3xl font-bold">Gestión Proveedores - Próximamente</h1></div>;
 
@@ -120,6 +122,11 @@ function App() {
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/admin/dashboard" element={
+  <ProtectedRoute allowedRoles={['ADMIN']}>
+    <AdminDashboard />
+  </ProtectedRoute>
+} />
               <Route path="/admin/users" element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <AdminUsers />
