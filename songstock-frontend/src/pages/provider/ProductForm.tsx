@@ -4,6 +4,7 @@ import { Save, ArrowLeft, Package, Music } from 'lucide-react';
 import toast from 'react-hot-toast';
 import providerService from '../../services/provider.service';
 import catalogService, { Album, Category } from '../../services/catalog.service';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ProductFormData {
   albumId: number | null;
@@ -26,7 +27,9 @@ const ProductForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = !!id;
-
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

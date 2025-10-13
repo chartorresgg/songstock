@@ -11,8 +11,14 @@ import {
   Edit,
   Trash2,
   X,
-  Power
+  Power,
+  ExternalLink,
+  Eye,
+  Disc3,
+  Music,
+  Filter
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import adminService from '../../services/admin.service';
 import toast from 'react-hot-toast';
 
@@ -42,6 +48,24 @@ interface UserFormData {
   isActive: boolean;
 }
 
+interface Product {
+  id: number;
+  sku: string;
+  albumTitle: string;
+  artistName: string;
+  productType: 'PHYSICAL' | 'DIGITAL';
+  price: number;
+  stockQuantity: number;
+  isActive: boolean;
+  providerName?: string;
+  providerId?: number;
+  categoryName?: string;
+  conditionType?: string;
+  vinylSize?: string;
+  vinylSpeed?: string;
+  fileFormat?: string;
+}
+
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'users' | 'products'>('overview');
@@ -60,13 +84,20 @@ const AdminDashboard = () => {
   
   const [providers, setProviders] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // Estados para filtros de productos
+  const [productTypeFilter, setProductTypeFilter] = useState<'ALL' | 'PHYSICAL' | 'DIGITAL'>('ALL');
+  const [activeOnlyFilter, setActiveOnlyFilter] = useState(false);
 
   // Estados para modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductDetailModal, setShowProductDetailModal] = useState(false);
+  const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
   
   // Estado para el formulario
   const [formData, setFormData] = useState<UserFormData>({
@@ -107,7 +138,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // ==================== HANDLERS CRUD ====================
+  // ==================== HANDLERS CRUD USUARIOS ====================
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,6 +242,34 @@ const AdminDashboard = () => {
     }
   };
 
+  // ==================== HANDLERS PRODUCTOS ====================
+
+  const handleViewProductDetail = (product: Product) => {
+    setSelectedProduct(product);
+    setShowProductDetailModal(true);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!selectedProduct) return;
+
+    try {
+      await adminService.deleteProduct(selectedProduct.id);
+      toast.success('Producto eliminado exitosamente');
+      setShowDeleteProductModal(false);
+      setSelectedProduct(null);
+      loadData();
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      const errorMessage = error.response?.data?.message || 'Error al eliminar el producto';
+      toast.error(errorMessage);
+    }
+  };
+
+  const openDeleteProductModal = (product: Product) => {
+    setSelectedProduct(product);
+    setShowDeleteProductModal(true);
+  };
+
   // ==================== UTILIDADES ====================
 
   const resetForm = () => {
@@ -231,12 +290,12 @@ const AdminDashboard = () => {
     setFormData({
       username: user.username,
       email: user.email,
+      password: '',
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone || '',
       role: user.role,
-      isActive: user.isActive,
-      password: '' // No mostramos la contraseña en edición
+      isActive: user.isActive
     });
     setShowEditModal(true);
   };
@@ -254,26 +313,18 @@ const AdminDashboard = () => {
     }).format(price);
   };
 
-  const formatDate = (dateArray: number[]) => {
-    if (!dateArray || dateArray.length < 3) return 'N/A';
-    const [year, month, day] = dateArray;
-    return new Date(year, month - 1, day).toLocaleDateString('es-CO');
-  };
-
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { bg: string; text: string; icon: any }> = {
-      'APPROVED': { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
-      'PENDING': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: AlertCircle },
-      'REJECTED': { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle }
+    const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+      'PENDING': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pendiente' },
+      'APPROVED': { bg: 'bg-green-100', text: 'text-green-800', label: 'Aprobado' },
+      'REJECTED': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rechazado' }
     };
 
     const config = statusConfig[status] || statusConfig['PENDING'];
-    const Icon = config.icon;
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        <Icon className="h-3 w-3 mr-1" />
-        {status === 'APPROVED' ? 'Aprobado' : status === 'PENDING' ? 'Pendiente' : 'Rechazado'}
+        {config.label}
       </span>
     );
   };
@@ -301,6 +352,20 @@ const AdminDashboard = () => {
     u.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Filtrar productos según búsqueda y filtros
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = 
+      p.albumTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.artistName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.providerName?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesType = productTypeFilter === 'ALL' || p.productType === productTypeFilter;
+    const matchesActive = !activeOnlyFilter || p.isActive;
+
+    return matchesSearch && matchesType && matchesActive;
+  });
 
   if (loading) {
     return (
@@ -400,7 +465,222 @@ const AdminDashboard = () => {
           </div>
 
           <div className="p-6">
-            {/* USERS TAB */}
+            {/* ==================== PRODUCTS TAB (NUEVO) ==================== */}
+            {activeTab === 'products' && (
+              <div>
+                {/* Barra de búsqueda y filtros */}
+                <div className="mb-6 space-y-4">
+                  {/* Botón Crear Producto */}
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-gray-900">Catálogo de Productos</h3>
+                    <Link
+                      to="/provider/products/new"
+                      className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                    >
+                      <Plus className="h-5 w-5" />
+                      <span>Crear Producto</span>
+                    </Link>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* Búsqueda */}
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar por álbum, artista, SKU o proveedor..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    {/* Filtro por tipo */}
+                    <select
+                      value={productTypeFilter}
+                      onChange={(e) => setProductTypeFilter(e.target.value as any)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="ALL">Todos los tipos</option>
+                      <option value="PHYSICAL">Solo Vinilos</option>
+                      <option value="DIGITAL">Solo Digitales</option>
+                    </select>
+
+                    {/* Filtro activos */}
+                    <label className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={activeOnlyFilter}
+                        onChange={(e) => setActiveOnlyFilter(e.target.checked)}
+                        className="rounded text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700">Solo activos</span>
+                    </label>
+                  </div>
+
+                  {/* Estadísticas de filtros */}
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <p>
+                      Mostrando {filteredProducts.length} de {products.length} productos
+                    </p>
+                    {(searchTerm || productTypeFilter !== 'ALL' || activeOnlyFilter) && (
+                      <button
+                        onClick={() => {
+                          setSearchTerm('');
+                          setProductTypeFilter('ALL');
+                          setActiveOnlyFilter(false);
+                        }}
+                        className="text-primary-600 hover:text-primary-700 font-medium"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabla de productos */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Producto
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Proveedor
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tipo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Precio
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Stock
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Estado
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredProducts.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-12 text-center">
+                            <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                            <p className="text-gray-500 mb-2">
+                              {searchTerm || productTypeFilter !== 'ALL' || activeOnlyFilter
+                                ? 'No se encontraron productos con los filtros aplicados'
+                                : 'No hay productos registrados'}
+                            </p>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProducts.map((product) => (
+                          <tr key={product.id} className="hover:bg-gray-50 transition">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                  product.productType === 'PHYSICAL' 
+                                    ? 'bg-primary-100' 
+                                    : 'bg-secondary-100'
+                                }`}>
+                                  {product.productType === 'PHYSICAL' ? (
+                                    <Disc3 className="h-6 w-6 text-primary-600" />
+                                  ) : (
+                                    <Music className="h-6 w-6 text-secondary-600" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900">{product.albumTitle}</div>
+                                  <div className="text-sm text-gray-500">{product.artistName}</div>
+                                  <div className="text-xs text-gray-400 font-mono mt-1">SKU: {product.sku}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {product.providerName || 'N/A'}
+                                </div>
+                                {product.providerId && (
+                                  <div className="text-xs text-gray-500">ID: {product.providerId}</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                product.productType === 'PHYSICAL'
+                                  ? 'bg-primary-100 text-primary-800'
+                                  : 'bg-secondary-100 text-secondary-800'
+                              }`}>
+                                {product.productType === 'PHYSICAL' ? 'Vinilo' : 'Digital'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-sm font-semibold text-gray-900">
+                                {formatPrice(product.price)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`text-sm font-medium ${
+                                product.stockQuantity > 10
+                                  ? 'text-green-600'
+                                  : product.stockQuantity > 0
+                                  ? 'text-yellow-600'
+                                  : 'text-red-600'
+                              }`}>
+                                {product.stockQuantity}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                product.isActive
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {product.isActive ? 'Activo' : 'Inactivo'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  onClick={() => handleViewProductDetail(product)}
+                                  className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors"
+                                  title="Ver detalles"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <Link
+                                  to={`/product/${product.id}`}
+                                  target="_blank"
+                                  className="text-gray-600 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+                                  title="Ver en tienda"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Link>
+                                <button
+                                  onClick={() => openDeleteProductModal(product)}
+                                  className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ==================== USERS TAB ==================== */}
             {activeTab === 'users' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
@@ -419,10 +699,10 @@ const AdminDashboard = () => {
                       resetForm();
                       setShowCreateModal(true);
                     }}
-                    className="ml-4 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                    className="ml-4 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                   >
                     <Plus className="h-5 w-5" />
-                    <span>Nuevo Usuario</span>
+                    <span>Crear Usuario</span>
                   </button>
                 </div>
 
@@ -434,48 +714,29 @@ const AdminDashboard = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Registro</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredUsers.map((user) => (
                         <tr key={user.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-full flex items-center justify-center">
-                                <Users className="h-5 w-5 text-primary-600" />
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900">
-                                  {user.firstName} {user.lastName}
-                                </div>
-                                <div className="text-sm text-gray-500">@{user.username}</div>
-                              </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{user.username}</div>
+                              <div className="text-sm text-gray-500">{user.firstName} {user.lastName}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">{user.email}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            {getRoleBadge(user.role)}
-                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{user.email}</td>
+                          <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
+                              user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                             }`}>
                               {user.isActive ? 'Activo' : 'Inactivo'}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">
-                              {formatDate(user.createdAt)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center space-x-2">
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end space-x-2">
                               <button
                                 onClick={() => handleToggleUserStatus(user.id)}
                                 className={`p-2 rounded-lg transition-colors ${
@@ -518,7 +779,7 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* OVERVIEW TAB */}
+            {/* ==================== OVERVIEW TAB ==================== */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -527,45 +788,33 @@ const AdminDashboard = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Administradores</span>
-                        <span className="font-semibold text-purple-600">
-                          {users.filter(u => u.role === 'ADMIN').length}
-                        </span>
+                        <span className="font-semibold">{users.filter(u => u.role === 'ADMIN').length}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Proveedores</span>
-                        <span className="font-semibold text-blue-600">
-                          {users.filter(u => u.role === 'PROVIDER').length}
-                        </span>
+                        <span className="font-semibold">{users.filter(u => u.role === 'PROVIDER').length}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Compradores</span>
-                        <span className="font-semibold text-gray-600">
-                          {users.filter(u => u.role === 'CUSTOMER').length}
-                        </span>
+                        <span className="text-gray-600">Clientes</span>
+                        <span className="font-semibold">{users.filter(u => u.role === 'CUSTOMER').length}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="font-medium text-gray-900 mb-4">Estado de Proveedores</h4>
+                    <h4 className="font-medium text-gray-900 mb-4">Distribución de Productos</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Verificados</span>
-                        <span className="font-semibold text-green-600">
-                          {providers.filter(p => p.providerVerificationStatus === 'APPROVED').length}
-                        </span>
+                        <span className="text-gray-600">Vinilos Físicos</span>
+                        <span className="font-semibold">{products.filter(p => p.productType === 'PHYSICAL').length}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Pendientes</span>
-                        <span className="font-semibold text-yellow-600">
-                          {providers.filter(p => p.providerVerificationStatus === 'PENDING').length}
-                        </span>
+                        <span className="text-gray-600">Productos Digitales</span>
+                        <span className="font-semibold">{products.filter(p => p.productType === 'DIGITAL').length}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Rechazados</span>
-                        <span className="font-semibold text-red-600">
-                          {providers.filter(p => p.providerVerificationStatus === 'REJECTED').length}
-                        </span>
+                        <span className="text-gray-600">Productos Activos</span>
+                        <span className="font-semibold text-green-600">{products.filter(p => p.isActive).length}</span>
                       </div>
                     </div>
                   </div>
@@ -573,7 +822,7 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* PROVIDERS TAB */}
+            {/* ==================== PROVIDERS TAB ==================== */}
             {activeTab === 'providers' && (
               <div>
                 <div className="mb-4">
@@ -596,39 +845,32 @@ const AdminDashboard = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {providers
                         .filter(p => 
-                          p.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          p.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           p.email?.toLowerCase().includes(searchTerm.toLowerCase())
                         )
                         .map((provider) => (
                           <tr key={provider.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
-                                  <Store className="h-5 w-5 text-blue-600" />
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {provider.firstName} {provider.lastName}
                                 </div>
-                                <div>
-                                  <div className="font-medium text-gray-900">
-                                    {provider.firstName} {provider.lastName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">@{provider.username}</div>
-                                </div>
+                                <div className="text-sm text-gray-500">{provider.username}</div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <span className="text-sm text-gray-600">{provider.email}</span>
-                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">{provider.email}</td>
                             <td className="px-6 py-4">
                               {getStatusBadge(provider.providerVerificationStatus || 'PENDING')}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-right">
                               {provider.providerVerificationStatus === 'PENDING' && (
-                                <div className="flex space-x-2">
+                                <div className="flex items-center justify-end space-x-2">
                                   <button
                                     onClick={() => handleProviderStatusChange(provider.id, 'APPROVED')}
                                     className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded-lg text-sm font-medium transition-colors"
@@ -651,400 +893,516 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
-
-            {/* PRODUCTS TAB */}
-            {activeTab === 'products' && (
-              <div>
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar productos..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {products
-                        .filter(p => 
-                          p.name?.toLowerCase().includes(searchTerm.toLowerCase())
-                        )
-                        .slice(0, 50)
-                        .map((product) => (
-                          <tr key={product.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center">
-                                  <Package className="h-5 w-5 text-purple-600" />
-                                </div>
-                                <div>
-                                  <div className="font-medium text-gray-900">{product.name}</div>
-                                  <div className="text-sm text-gray-500">SKU: {product.sku}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                product.productType === 'PHYSICAL'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-purple-100 text-purple-800'
-                              }`}>
-                                {product.productType === 'PHYSICAL' ? 'Físico' : 'Digital'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="text-sm font-medium text-gray-900">
-                                {formatPrice(product.price)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="text-sm text-gray-600">{product.stockQuantity}</span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                product.isActive
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {product.isActive ? 'Activo' : 'Inactivo'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* MODAL CREAR USUARIO */}
+      {/* ==================== MODAL DE DETALLE DE PRODUCTO ==================== */}
+      {showProductDetailModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Detalle del Producto</h3>
+                <button
+                  onClick={() => setShowProductDetailModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Álbum</label>
+                    <p className="text-base text-gray-900 font-medium">{selectedProduct.albumTitle}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Artista</label>
+                    <p className="text-base text-gray-900">{selectedProduct.artistName}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">SKU</label>
+                    <p className="text-base text-gray-900 font-mono">{selectedProduct.sku}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Tipo de Producto</label>
+                    <p className="text-base text-gray-900">
+                      {selectedProduct.productType === 'PHYSICAL' ? 'Vinilo Físico' : 'Digital MP3'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Precio</label>
+                    <p className="text-base text-gray-900 font-semibold">{formatPrice(selectedProduct.price)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Stock</label>
+                    <p className="text-base text-gray-900">{selectedProduct.stockQuantity} unidades</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Proveedor</label>
+                    <p className="text-base text-gray-900">{selectedProduct.providerName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Categoría</label>
+                    <p className="text-base text-gray-900">{selectedProduct.categoryName || 'N/A'}</p>
+                  </div>
+                  
+                  {selectedProduct.productType === 'PHYSICAL' && (
+                    <>
+                      {selectedProduct.vinylSize && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Tamaño</label>
+                          <p className="text-base text-gray-900">{selectedProduct.vinylSize}</p>
+                        </div>
+                      )}
+                      {selectedProduct.vinylSpeed && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Velocidad</label>
+                          <p className="text-base text-gray-900">{selectedProduct.vinylSpeed}</p>
+                        </div>
+                      )}
+                      {selectedProduct.conditionType && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Condición</label>
+                          <p className="text-base text-gray-900">{selectedProduct.conditionType}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {selectedProduct.productType === 'DIGITAL' && selectedProduct.fileFormat && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Formato de Archivo</label>
+                      <p className="text-base text-gray-900">{selectedProduct.fileFormat}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Estado</label>
+                    <p className={`text-base font-semibold ${selectedProduct.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedProduct.isActive ? 'Activo' : 'Inactivo'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t flex justify-end space-x-3">
+                  <Link
+                    to={`/product/${selectedProduct.id}`}
+                    target="_blank"
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Ver en Tienda</span>
+                  </Link>
+                  <button
+                    onClick={() => setShowProductDetailModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL DE ELIMINACIÓN DE PRODUCTO ==================== */}
+      {showDeleteProductModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Eliminar Producto</h3>
+              <button
+                onClick={() => setShowDeleteProductModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                ¿Estás seguro de que deseas eliminar este producto?
+              </p>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-medium text-gray-900">{selectedProduct.albumTitle}</p>
+                <p className="text-sm text-gray-600">{selectedProduct.artistName}</p>
+                <p className="text-xs text-gray-500 font-mono mt-2">SKU: {selectedProduct.sku}</p>
+              </div>
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Advertencia:</strong> Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteProductModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteProduct}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL DE CREAR USUARIO ==================== */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-              <h3 className="text-xl font-bold text-gray-900">Crear Nuevo Usuario</h3>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  resetForm();
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Crear Nuevo Usuario</h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre de Usuario *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="usuario123"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="usuario@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Juan"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Apellido *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Pérez"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="+57 300 123 4567"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rol *
+                    </label>
+                    <select
+                      required
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="CUSTOMER">Cliente</option>
+                      <option value="PROVIDER">Proveedor</option>
+                      <option value="ADMIN">Administrador</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contraseña *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Mínimo 6 caracteres"
+                      minLength={6}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      La contraseña debe tener al menos 6 caracteres
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-4 border-t">
+                  <input
+                    type="checkbox"
+                    id="isActiveCreate"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="rounded text-primary-600 focus:ring-primary-500"
+                  />
+                  <label htmlFor="isActiveCreate" className="text-sm text-gray-700">
+                    Usuario activo
+                  </label>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Crear Usuario</span>
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Apellido *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Usuario *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña *
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rol *
-                </label>
-                <select
-                  required
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="CUSTOMER">Cliente</option>
-                  <option value="PROVIDER">Proveedor</option>
-                  <option value="ADMIN">Administrador</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-                >
-                  Crear Usuario
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* MODAL EDITAR USUARIO */}
+      {/* ==================== MODAL DE EDITAR USUARIO ==================== */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-              <h3 className="text-xl font-bold text-gray-900">Editar Usuario</h3>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Editar Usuario</h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditUser} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre de Usuario *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Apellido *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rol *
+                    </label>
+                    <select
+                      required
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="CUSTOMER">Cliente</option>
+                      <option value="PROVIDER">Proveedor</option>
+                      <option value="ADMIN">Administrador</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-4 border-t">
+                  <input
+                    type="checkbox"
+                    id="isActiveEdit"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="rounded text-primary-600 focus:ring-primary-500"
+                  />
+                  <label htmlFor="isActiveEdit" className="text-sm text-gray-700">
+                    Usuario activo
+                  </label>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Nota:</strong> La contraseña no se puede cambiar desde aquí. 
+                    El usuario debe usar la función "Olvidé mi contraseña".
+                  </p>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span>Guardar Cambios</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL DE ELIMINAR USUARIO ==================== */}
+      {showDeleteModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Eliminar Usuario</h3>
               <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setSelectedUser(null);
-                  resetForm();
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-400 hover:text-gray-600"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleEditUser} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Apellido *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Usuario *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rol *
-                </label>
-                <select
-                  required
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="CUSTOMER">Cliente</option>
-                  <option value="PROVIDER">Proveedor</option>
-                  <option value="ADMIN">Administrador</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Usuario activo</span>
-                </label>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setSelectedUser(null);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ELIMINAR USUARIO */}
-      {showDeleteModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-              
-              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
-                ¿Eliminar Usuario?
-              </h3>
-              
-              <p className="text-gray-600 text-center mb-6">
-                Estás a punto de eliminar a <strong>{selectedUser.firstName} {selectedUser.lastName}</strong>.
-                Esta acción desactivará al usuario del sistema.
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                ¿Estás seguro de que deseas eliminar este usuario?
               </p>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedUser(null);
-                  }}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleDeleteUser}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                >
-                  Eliminar
-                </button>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-medium text-gray-900">
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </p>
+                <p className="text-sm text-gray-600">{selectedUser.email}</p>
+                <p className="text-sm text-gray-600">@{selectedUser.username}</p>
+                <div className="mt-2">
+                  {getRoleBadge(selectedUser.role)}
+                </div>
               </div>
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Advertencia:</strong> Esta acción desactivará el usuario pero no 
+                  eliminará sus datos permanentemente. El usuario no podrá iniciar sesión.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Eliminar Usuario</span>
+              </button>
             </div>
           </div>
         </div>

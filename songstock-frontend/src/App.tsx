@@ -118,14 +118,15 @@ function App() {
                 </ProtectedRoute>
               } />
 
-<Route path="/provider/products/new" element={
-                <ProtectedRoute allowedRoles={['PROVIDER']}>
+              {/* ==================== RUTAS DE PRODUCTOS (PROVIDER Y ADMIN) ==================== */}
+              <Route path="/provider/products/new" element={
+                <ProtectedRoute allowedRoles={['PROVIDER', 'ADMIN']}>
                   <ProductForm />
                 </ProtectedRoute>
               } />
 
-<Route path="/provider/products/:id/edit" element={
-                <ProtectedRoute allowedRoles={['PROVIDER']}>
+              <Route path="/provider/products/:id/edit" element={
+                <ProtectedRoute allowedRoles={['PROVIDER', 'ADMIN']}>
                   <ProductForm />
                 </ProtectedRoute>
               } />

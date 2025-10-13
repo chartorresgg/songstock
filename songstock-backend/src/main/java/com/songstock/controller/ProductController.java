@@ -304,7 +304,7 @@ public class ProductController {
      * PUT /api/v1/products/{productId}/stock
      */
     @PutMapping("/{productId}/stock")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     public ResponseEntity<ApiResponse<ProductInventoryResponseDTO>> updateProductStock(
             @PathVariable Long productId,
             @Valid @RequestBody ProductInventoryUpdateDTO updateDTO,
@@ -343,7 +343,7 @@ public class ProductController {
      * PATCH /api/v1/products/{productId}/stock/adjust
      */
     @PatchMapping("/{productId}/stock/adjust")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     public ResponseEntity<ApiResponse<ProductInventoryResponseDTO>> adjustProductStock(
             @PathVariable Long productId,
             @Valid @RequestBody ProductStockAdjustmentDTO adjustmentDTO,
@@ -387,7 +387,7 @@ public class ProductController {
      * GET /api/v1/products/{productId}/inventory
      */
     @GetMapping("/{productId}/inventory")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     public ResponseEntity<ApiResponse<ProductInventoryResponseDTO>> getProductInventory(
             @PathVariable Long productId,
             Authentication authentication) {
@@ -425,7 +425,7 @@ public class ProductController {
      * GET /api/v1/products/inventory/summary
      */
     @GetMapping("/inventory/summary")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     public ResponseEntity<ApiResponse<ProviderInventorySummaryDTO>> getProviderInventorySummary(
             Authentication authentication) {
         try {
@@ -462,7 +462,7 @@ public class ProductController {
      * GET /api/v1/products/inventory/low-stock?minStock=5
      */
     @GetMapping("/inventory/low-stock")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     public ResponseEntity<ApiResponse<List<ProductInventoryResponseDTO>>> getProductsWithLowStock(
             @RequestParam(defaultValue = "5") Integer minStock,
             Authentication authentication) {
@@ -504,7 +504,7 @@ public class ProductController {
      * GET /api/v1/products/inventory/out-of-stock
      */
     @GetMapping("/inventory/out-of-stock")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     public ResponseEntity<ApiResponse<List<ProductInventoryResponseDTO>>> getProductsOutOfStock(
             Authentication authentication) {
         try {
@@ -585,7 +585,7 @@ public class ProductController {
      * POST /api/v1/products/catalog
      */
     @PostMapping("/catalog")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER')")
     @Operation(summary = "Crear producto en catálogo", description = "Crear un nuevo producto en el catálogo del proveedor")
     public ResponseEntity<ApiResponse<ProductCatalogResponseDTO>> createCatalogProduct(
             @Valid @RequestBody ProductCatalogCreateDTO createDTO,
@@ -624,7 +624,7 @@ public class ProductController {
      * PUT /api/v1/products/{productId}/catalog
      */
     @PutMapping("/{productId}/catalog")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Actualizar producto del catálogo", description = "Actualizar información de un producto en el catálogo")
     public ResponseEntity<ApiResponse<ProductCatalogResponseDTO>> updateCatalogProduct(
             @PathVariable Long productId,
@@ -664,7 +664,7 @@ public class ProductController {
      * GET /api/v1/products/catalog/summary
      */
     @GetMapping("/catalog/summary")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Obtener catálogo del proveedor", description = "Obtener el catálogo completo con estadísticas del proveedor")
     public ResponseEntity<ApiResponse<ProviderCatalogSummaryDTO>> getProviderCatalog(
             Authentication authentication) {
@@ -766,7 +766,7 @@ public class ProductController {
      * PATCH /api/v1/products/{productId}/catalog/toggle-status
      */
     @PatchMapping("/{productId}/catalog/toggle-status")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Activar/Desactivar producto", description = "Cambiar el estado activo/inactivo de un producto")
     public ResponseEntity<ApiResponse<ProductCatalogResponseDTO>> toggleProductStatus(
             @PathVariable Long productId,
@@ -809,7 +809,7 @@ public class ProductController {
      * DELETE /api/v1/products/{productId}/catalog
      */
     @DeleteMapping("/{productId}/catalog")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Eliminar producto del catálogo", description = "Eliminar un producto del catálogo (soft delete)")
     public ResponseEntity<ApiResponse<Void>> deleteCatalogProduct(
             @PathVariable Long productId,
@@ -1215,7 +1215,7 @@ public class ProductController {
      * GET /api/v1/products/catalog/my-products
      */
     @GetMapping("/catalog/my-products")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Mi catálogo de productos", description = "Obtener todos los productos del proveedor autenticado con paginación")
     public ResponseEntity<ApiResponse<Page<ProductCatalogResponseDTO>>> getMyProducts(
             @RequestParam(defaultValue = "0") Integer page,
@@ -1259,7 +1259,7 @@ public class ProductController {
      * GET /api/v1/products/catalog/quick-stats
      */
     @GetMapping("/catalog/quick-stats")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Estadísticas rápidas del catálogo", description = "Obtener métricas básicas del catálogo del proveedor")
     public ResponseEntity<ApiResponse<QuickMetricsDTO>> getQuickCatalogStats(
             Authentication authentication) {
@@ -1289,7 +1289,7 @@ public class ProductController {
      * PATCH /api/v1/products/catalog/bulk-update-prices
      */
     @PatchMapping("/catalog/bulk-update-prices")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Actualización masiva de precios", description = "Actualizar precios de múltiples productos")
     public ResponseEntity<ApiResponse<List<ProductCatalogResponseDTO>>> bulkUpdatePrices(
             @Valid @RequestBody ProductBulkUpdateDTO bulkUpdateDTO,
@@ -1327,7 +1327,7 @@ public class ProductController {
      * POST /api/v1/products/{productId}/duplicate
      */
     @PostMapping("/{productId}/duplicate")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Duplicar producto", description = "Crear una copia de un producto existente")
     public ResponseEntity<ApiResponse<ProductCatalogResponseDTO>> duplicateProduct(
             @PathVariable Long productId,

@@ -13,11 +13,11 @@ import {
   Weight,
   Tag,
   Store,
-  Check,
-  X
+  Check
 } from 'lucide-react';
 import productService from '../../services/product.service';
 import { Product } from '../../types/product.types';
+import AlternativeFormats from '../../components/common/AlternativeFormat';
 import toast from 'react-hot-toast';
 
 const ProductDetail = () => {
@@ -139,7 +139,7 @@ const ProductDetail = () => {
           Volver
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Image Section */}
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="aspect-square bg-gradient-to-br from-primary-100 to-secondary-100 rounded-lg flex items-center justify-center relative overflow-hidden">
@@ -310,6 +310,16 @@ const ProductDetail = () => {
                         </span>
                       </div>
                     )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 flex items-center">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Descarga:
+                      </span>
+                      <span className="font-medium text-green-600">
+                        Inmediata
+                      </span>
+                    </div>
                   </>
                 )}
 
@@ -390,6 +400,11 @@ const ProductDetail = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ==================== SECCIÓN DE FORMATOS ALTERNATIVOS (NUEVA) ==================== */}
+        <div className="mb-12">
+          <AlternativeFormats currentProduct={product} />
         </div>
 
         {/* TODO: Related Products Section */}

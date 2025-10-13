@@ -116,6 +116,10 @@ class AdminService {
     }
   }
 
+  async deleteProduct(productId: number): Promise<void> {
+    await axiosInstance.delete<ApiResponse<void>>(`/products/${productId}`);
+  }
+
   /**
    * Crear un nuevo usuario
    * Endpoint: POST /api/v1/users (UserController)

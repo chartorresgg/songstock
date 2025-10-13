@@ -23,6 +23,8 @@ public class ProductCatalogCreateDTO {
     @NotNull(message = "El ID de la categoría es obligatorio")
     private Long categoryId;
 
+    private Long providerId;
+
     @NotBlank(message = "El SKU es obligatorio")
     @Size(max = 50, message = "El SKU no puede exceder 50 caracteres")
     private String sku;
@@ -197,5 +199,13 @@ public class ProductCatalogCreateDTO {
                 ", stockQuantity=" + stockQuantity +
                 ", featured=" + featured +
                 '}';
+    }
+
+    public Long getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(Long providerId) {
+        this.providerId = providerId;
     }
 }

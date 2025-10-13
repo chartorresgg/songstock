@@ -1,5 +1,5 @@
 Folder PATH listing for volume OS
-Volume serial number is 268F-4CE1
+Volume serial number is 00000009 268F:4CE1
 C:.
 ¦   .gitignore
 ¦   docker-compose.yml
@@ -81,6 +81,7 @@ C:.
 ¦   ¦   ¦   ¦           ¦       AuthResponseDTO.java
 ¦   ¦   ¦   ¦           ¦       CatalogFilterDTO.java
 ¦   ¦   ¦   ¦           ¦       CompleteRegistrationDTO.java
+¦   ¦   ¦   ¦           ¦       CustomerRegistrationDTO.java
 ¦   ¦   ¦   ¦           ¦       GenreDTO.java
 ¦   ¦   ¦   ¦           ¦       LoginRequestDTO.java
 ¦   ¦   ¦   ¦           ¦       PasswordResetDTO.java
@@ -163,6 +164,7 @@ C:.
 ¦   ¦   ¦   ¦           ¦       AuthEntryPointJwt.java
 ¦   ¦   ¦   ¦           ¦       AuthTokenFilter.java
 ¦   ¦   ¦   ¦           ¦       JwtUtils.java
+¦   ¦   ¦   ¦           ¦       ProductSecurityService.java
 ¦   ¦   ¦   ¦           ¦       UserDetailsImpl.java
 ¦   ¦   ¦   ¦           ¦       UserDetailsServiceImpl.java
 ¦   ¦   ¦   ¦           ¦       WebSecurityConfig.java
@@ -242,6 +244,7 @@ C:.
 ¦       ¦   ¦       ¦       AuthResponseDTO.class
 ¦       ¦   ¦       ¦       CatalogFilterDTO.class
 ¦       ¦   ¦       ¦       CompleteRegistrationDTO.class
+¦       ¦   ¦       ¦       CustomerRegistrationDTO.class
 ¦       ¦   ¦       ¦       GenreDTO.class
 ¦       ¦   ¦       ¦       LoginRequestDTO.class
 ¦       ¦   ¦       ¦       PasswordResetDTO.class
@@ -328,6 +331,7 @@ C:.
 ¦       ¦   ¦       ¦       AuthEntryPointJwt.class
 ¦       ¦   ¦       ¦       AuthTokenFilter.class
 ¦       ¦   ¦       ¦       JwtUtils.class
+¦       ¦   ¦       ¦       ProductSecurityService.class
 ¦       ¦   ¦       ¦       UserDetailsImpl.class
 ¦       ¦   ¦       ¦       UserDetailsServiceImpl.class
 ¦       ¦   ¦       ¦       WebSecurityConfig.class
@@ -14159,6 +14163,7 @@ C:.
         +---config
         ¦       api.config.ts
         ¦       
+        +---constants
         +---contexts
         ¦       AuthContext.tsx
         ¦       CartContext.tsx
@@ -14169,8 +14174,10 @@ C:.
         ¦   ¦       AdminDashboard.tsx
         ¦   ¦       
         ¦   +---auth
+        ¦   ¦       ForgotPassword.tsx
         ¦   ¦       Login.tsx
         ¦   ¦       Register.tsx
+        ¦   ¦       ResetPassword.tsx
         ¦   ¦       
         ¦   +---customer
         ¦   ¦       Cart.tsx
@@ -14182,6 +14189,7 @@ C:.
         ¦   ¦       Profile.tsx
         ¦   ¦       
         ¦   +---provider
+        ¦   ¦       ProductForm.tsx
         ¦   ¦       ProviderDashboard.tsx
         ¦   ¦       
         ¦   +---public

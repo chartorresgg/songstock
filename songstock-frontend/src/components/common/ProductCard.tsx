@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '../../types/product.types';
 import { useCart } from '../../contexts/CartContext';
-import { ShoppingCart, Disc3, Music } from 'lucide-react';
+import { ShoppingCart, Disc3, Music, Repeat } from 'lucide-react';
+import productService from '../../services/product.service';
 
 interface ProductCardProps {
   product: Product;
@@ -9,9 +11,26 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  // Usamos directamente el hook useCart en lugar de recibir onAddToCart como prop
   const { addItem } = useCart();
+  const [hasAlternative, setHasAlternative] = useState(false);
+  const [checkingAlternative, setCheckingAlternative] = useState(false);
   
+  useEffect(() => {
+    checkForAlternativeFormats();
+  }, [product.id]);
+
+  const checkForAlternativeFormats = async () => {
+    setCheckingAlternative(true);
+    try {
+      const hasAlt = await productService.hasAlternativeFormat(product.id);
+      setHasAlternative(hasAlt);
+    } catch (error) {
+      console.error('Error checking alternative formats:', error);
+    } finally {
+      setCheckingAlternative(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -86,9 +105,19 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </span>
         </div>
 
+        {/* ==================== NUEVO: Badge de formato alternativo disponible ==================== */}
+        {hasAlternative && !checkingAlternative && (
+          <div className="absolute top-3 left-3">
+            <span className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg animate-pulse">
+              <Repeat className="h-3 w-3" />
+              <span>Otro formato</span>
+            </span>
+          </div>
+        )}
+
         {/* Badge de stock bajo */}
         {product.stockQuantity > 0 && product.stockQuantity <= 5 && (
-          <div className="absolute top-3 left-3">
+          <div className="absolute bottom-3 left-3">
             <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
               ¡Solo {product.stockQuantity}!
             </span>
@@ -147,30 +176,48 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <div className="mb-2">
             <span className="text-xs text-gray-500">
               Formato: <span className="font-medium text-gray-700">{product.fileFormat}</span>
-              {product.fileSizeMb && <span> • {product.fileSizeMb} MB</span>}
             </span>
           </div>
         )}
 
-        {/* Price and Cart */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div>
-            <p className="text-2xl font-bold text-primary-900">
-              {formatPrice(product.price)}
+        {/* ==================== NUEVO: Indicador de formato alternativo ==================== */}
+        {hasAlternative && !checkingAlternative && (
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-xs text-blue-700 font-medium flex items-center">
+              <Repeat className="h-3 w-3 mr-1" />
+              También disponible en {product.productType === 'PHYSICAL' ? 'digital' : 'vinilo'}
             </p>
           </div>
+        )}
 
-          {/* Botón que usa directamente addItem del CartContext */}
-          {product.stockQuantity > 0 && (
+        {/* Price and Actions */}
+        <div className="flex items-center justify-between pt-3 border-t">
+          <div>
+            <p className="text-xl font-bold text-primary-900">
+              {formatPrice(product.price)}
+            </p>
+            {product.stockQuantity > 0 && (
+              <p className="text-xs text-gray-500">
+                {product.stockQuantity} disponible{product.stockQuantity !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+
+          {product.stockQuantity > 0 ? (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                addItem(product); // Llamada directa al contexto
-              }}
-              className="bg-secondary-500 hover:bg-secondary-600 text-white p-2 rounded-lg transition group"
+              onClick={() => addItem(product)}
+              className="bg-primary-900 text-white p-2 rounded-lg hover:bg-primary-800 transition"
               title="Agregar al carrito"
             >
-              <ShoppingCart className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <ShoppingCart className="h-5 w-5" />
+            </button>
+          ) : (
+            <button
+              disabled
+              className="bg-gray-300 text-gray-500 p-2 rounded-lg cursor-not-allowed"
+              title="No disponible"
+            >
+              <ShoppingCart className="h-5 w-5" />
             </button>
           )}
         </div>
