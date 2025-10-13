@@ -1,8 +1,8 @@
 import axiosInstance from './axios.instance';
-import { API_ENDPOINTS } from '../config/api.config';
 import { ApiResponse } from '../types/api.types';
 
-// Interfaz para representar un proveedor en el sistema
+// ==================== INTERFACES ====================
+
 interface Provider {
   id: number;
   businessName: string;
@@ -17,20 +17,19 @@ interface Provider {
   userId?: number;
 }
 
-// Interfaz para un usuario del sistema
 interface User {
   id: number;
   username: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  phone?: string;
+  role: 'ADMIN' | 'PROVIDER' | 'CUSTOMER';
   isActive: boolean;
   createdAt: any;
-  phone?: string;
+  updatedAt?: any;
 }
 
-// Interfaz para las estadísticas generales del sistema
 interface SystemStats {
   totalUsers: number;
   totalProviders: number;
@@ -41,27 +40,203 @@ interface SystemStats {
   pendingProviders: number;
 }
 
-// Este servicio maneja todas las operaciones administrativas del sistema
+// DTOs para crear/editar usuarios
+interface UserCreateDTO {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: 'ADMIN' | 'PROVIDER' | 'CUSTOMER';
+}
+
+interface UserEditDTO {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  phone?: string;
+  role: 'ADMIN' | 'PROVIDER' | 'CUSTOMER';
+  isActive: boolean;
+  updateReason?: string;
+}
+
+// ==================== SERVICIO ====================
+
 class AdminService {
-  // Obtener todos los proveedores del sistema
-  // IMPORTANTE: Usamos el endpoint de admin/users con filtro de rol PROVIDER
-  async getAllProviders() {
+  
+  // ============ USUARIOS ============
+  
+  /**
+   * Obtener todos los usuarios con filtros opcionales
+   */
+  async getAllUsers(params?: {
+    page?: number;
+    size?: number;
+    searchQuery?: string;
+    role?: string;
+    isActive?: boolean;
+  }): Promise<User[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        '/admin/users',
+        { params: params || { page: 0, size: 1000 } }
+      );
+      
+      const users: any = response.data.data || response.data || [];
+      
+      if (Array.isArray(users)) {
+        return users as User[];
+      }
+      
+      if (users && users.content && Array.isArray(users.content)) {
+        return users.content as User[];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Obtener un usuario por ID
+   */
+  async getUserById(userId: number): Promise<User | null> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<User>>(
+        `/admin/users/${userId}`
+      );
+      return response.data.data || null;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crear un nuevo usuario
+   * Endpoint: POST /api/v1/users (UserController)
+   */
+  async createUser(userData: UserCreateDTO) {
+    try {
+      const response = await axiosInstance.post<ApiResponse<User>>(
+        '/users',
+        userData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar un usuario existente
+   * Endpoint: PUT /api/v1/admin/users/{userId}
+   */
+  async updateUser(userId: number, userData: UserEditDTO) {
+    try {
+      const response = await axiosInstance.put<ApiResponse<User>>(
+        `/admin/users/${userId}`,
+        userData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Activar/Desactivar usuario
+   * Endpoint: PATCH /api/v1/admin/users/{userId}/toggle-status
+   */
+  async toggleUserStatus(userId: number, reason?: string) {
+    try {
+      const response = await axiosInstance.patch<ApiResponse<User>>(
+        `/admin/users/${userId}/toggle-status`,
+        null,
+        {
+          params: {
+            reason: reason || 'Cambio de estado desde dashboard administrativo'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar un usuario (soft delete)
+   * Endpoint: DELETE /api/v1/admin/users/{userId}
+   */
+  async deleteUser(userId: number, reason?: string) {
+    try {
+      const response = await axiosInstance.delete<ApiResponse<void>>(
+        `/admin/users/${userId}`,
+        {
+          params: {
+            reason: reason || 'Eliminación desde dashboard administrativo'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener usuarios por rol específico
+   */
+  async getUsersByRole(role: 'ADMIN' | 'PROVIDER' | 'CUSTOMER'): Promise<User[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        `/admin/users/by-role/${role}`
+      );
+      
+      const users: any = response.data.data || response.data || [];
+      
+      if (Array.isArray(users)) {
+        return users as User[];
+      }
+      
+      if (users && users.content && Array.isArray(users.content)) {
+        return users.content as User[];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching users by role:', error);
+      return [];
+    }
+  }
+
+  // ============ PROVEEDORES ============
+  
+  /**
+   * Obtener todos los proveedores
+   */
+  async getAllProviders(): Promise<any[]> {
     try {
       const response = await axiosInstance.get<ApiResponse<any>>(
         '/admin/users/by-role/PROVIDER'
       );
       
-      // El backend puede devolver los datos en diferentes formatos
-      // Intentamos ambos para mayor compatibilidad
-      const providers = response.data.data || response.data || [];
+      const providers: any = response.data.data || response.data || [];
       
-      // Si es un array directo, lo usamos
       if (Array.isArray(providers)) {
         return providers;
       }
       
-      // Si es un objeto paginado, extraemos el contenido
-      if (providers.content && Array.isArray(providers.content)) {
+      if (providers && providers.content && Array.isArray(providers.content)) {
         return providers.content;
       }
       
@@ -72,78 +247,78 @@ class AdminService {
     }
   }
 
-  // Obtener todos los usuarios del sistema
-  async getAllUsers() {
+  /**
+   * Actualizar estado de verificación de un proveedor
+   */
+  async updateProviderStatus(providerId: number, status: string) {
     try {
-      const response = await axiosInstance.get<ApiResponse<any>>(
-        '/admin/users',
-        {
-          params: {
-            page: 0,
-            size: 1000 // Obtener muchos usuarios para las estadísticas
-          }
+      const response = await axiosInstance.put<ApiResponse<any>>(
+        `/admin/users/${providerId}/provider/verification`,
+        { 
+          verificationStatus: status.toUpperCase()
         }
       );
-      
-      const users = response.data.data || response.data || [];
-      
-      // Si es un array directo
-      if (Array.isArray(users)) {
-        return users;
-      }
-      
-      // Si es paginado
-      if (users.content && Array.isArray(users.content)) {
-        return users.content;
-      }
-      
-      return [];
+      return response.data;
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error updating provider status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener proveedores pendientes de verificación
+   */
+  async getPendingProviders() {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any[]>>(
+        '/admin/users/providers/pending'
+      );
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching pending providers:', error);
       return [];
     }
   }
 
-  // Obtener todos los productos del sistema (de todos los proveedores)
-  async getAllProducts() {
+  // ============ PRODUCTOS ============
+  
+  /**
+   * Obtener todos los productos del sistema
+   */
+  async getAllProducts(): Promise<any[]> {
     try {
-      const response = await axiosInstance.get<ApiResponse<any[]>>(
-        API_ENDPOINTS.PRODUCTS
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        '/products',
+        {
+          params: {
+            page: 0,
+            size: 1000
+          }
+        }
       );
-      return response.data.data || [];
+      
+      const products: any = response.data.data || response.data || [];
+      
+      if (Array.isArray(products)) {
+        return products;
+      }
+      
+      if (products && products.content && Array.isArray(products.content)) {
+        return products.content;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];
     }
   }
 
-  // Obtener todas las categorías
-  async getAllCategories() {
-    try {
-      const response = await axiosInstance.get<ApiResponse<any[]>>(
-        API_ENDPOINTS.CATEGORIES
-      );
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      return [];
-    }
-  }
-
-  // Obtener todos los géneros musicales
-  async getAllGenres() {
-    try {
-      const response = await axiosInstance.get<ApiResponse<any[]>>(
-        API_ENDPOINTS.GENRES
-      );
-      return response.data.data || [];
-    } catch (error) {
-      console.error('Error fetching genres:', error);
-      return [];
-    }
-  }
-
-  // Calcular estadísticas del sistema basadas en los datos obtenidos
+  // ============ ESTADÍSTICAS ============
+  
+  /**
+   * Calcular estadísticas del sistema
+   */
   async getSystemStats(): Promise<SystemStats> {
     try {
       const [users, providers, products] = await Promise.all([
@@ -152,10 +327,13 @@ class AdminService {
         this.getAllProducts()
       ]);
   
-      // Calcular estadísticas con tipado explícito
       const activeProducts = products.filter((p: any) => p.isActive).length;
-      const pendingProviders = providers.filter((p: any) => p.verificationStatus === 'PENDING').length;
-      const totalRevenue = products.reduce((sum: number, p: any) => sum + (p.price * p.stockQuantity), 0);
+      const pendingProviders = providers.filter((p: any) => 
+        p.verificationStatus === 'PENDING' || p.providerVerificationStatus === 'PENDING'
+      ).length;
+      const totalRevenue = products.reduce((sum: number, p: any) => 
+        sum + ((p.price || 0) * (p.stockQuantity || 0)), 0
+      );
   
       return {
         totalUsers: users.length,
@@ -180,43 +358,9 @@ class AdminService {
     }
   }
 
-  // Actualizar el estado de verificación de un proveedor (aprobar/rechazar)
-  async updateProviderStatus(providerId: number, status: string) {
-    try {
-      // Usamos el endpoint correcto del AdminUserController
-      const response = await axiosInstance.put<ApiResponse<any>>(
-        `/admin/users/${providerId}/provider/verification`,
-        { 
-          verificationStatus: status.toUpperCase()
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error updating provider status:', error);
-      throw error;
-    }
-  }
-
-  // Activar o desactivar un usuario
-  async toggleUserStatus(userId: number, isActive: boolean) {
-    try {
-      const response = await axiosInstance.patch<ApiResponse<any>>(
-        `/admin/users/${userId}/toggle-status`,
-        null, // No necesitamos body, el backend usa el toggle
-        {
-          params: {
-            reason: 'Cambio de estado desde dashboard administrativo'
-          }
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error toggling user status:', error);
-      throw error;
-    }
-  }
-
-  // Método adicional: Obtener métricas rápidas del dashboard
+  /**
+   * Obtener métricas rápidas del dashboard
+   */
   async getDashboardMetrics() {
     try {
       const response = await axiosInstance.get<ApiResponse<any>>(
@@ -229,16 +373,19 @@ class AdminService {
     }
   }
 
-  // Método adicional: Obtener proveedores pendientes
-  async getPendingProviders() {
+  /**
+   * Obtener estadísticas completas del dashboard
+   */
+  async getDashboardStatistics() {
     try {
-      const response = await axiosInstance.get<ApiResponse<any[]>>(
-        '/admin/users/providers/pending'
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        '/admin/users/dashboard/statistics'
       );
-      return response.data.data || [];
+      return response.data.data;
     } catch (error) {
-      console.error('Error fetching pending providers:', error);
-      return [];
+      console.error('Error fetching dashboard statistics:', error);
+      // Si falla, calcular manualmente
+      return this.getSystemStats();
     }
   }
 }

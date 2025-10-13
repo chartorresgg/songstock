@@ -32,11 +32,8 @@ const ProviderDashboard = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Cargar productos del proveedor
       const productsData = await providerService.getMyProducts();
-      console.log('Products loaded:', productsData); // Debug
       
-      // Verificar que productsData sea un array
       if (!Array.isArray(productsData)) {
         console.error('Products data is not an array:', productsData);
         setProducts([]);
@@ -47,7 +44,6 @@ const ProviderDashboard = () => {
       
       setProducts(productsData);
   
-      // Intentar cargar estadísticas del backend
       try {
         const statsData = await providerService.getProviderStats();
         if (statsData) {
@@ -58,7 +54,6 @@ const ProviderDashboard = () => {
             totalOrders: statsData.totalOrders || 0
           });
         } else {
-          // Fallback: calcular desde los productos
           calculateStatsFromProducts(productsData);
         }
       } catch (statsError) {
@@ -68,14 +63,13 @@ const ProviderDashboard = () => {
     } catch (error) {
       console.error('Error loading provider data:', error);
       toast.error('Error al cargar los datos');
-      setProducts([]); // Asegurar que products sea un array vacío en caso de error
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-// Función auxiliar para calcular stats localmente
-const calculateStatsFromProducts = (productsData: Product[]) => {
+  const calculateStatsFromProducts = (productsData: Product[]) => {
     const active = productsData.filter(p => p.isActive).length;
     const totalRevenue = productsData.reduce((sum, p) => sum + (p.price * p.stockQuantity), 0);
     
@@ -95,7 +89,7 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
     try {
       await providerService.deleteProduct(id);
       toast.success('Producto eliminado exitosamente');
-      loadData(); // Recargar la lista
+      loadData();
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error('Error al eliminar el producto');
@@ -110,7 +104,6 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
     }).format(price);
   };
 
-  // Filtrar productos según el término de búsqueda
   const filteredProducts = products.filter(product =>
     product.albumTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.artistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,7 +120,6 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
@@ -147,7 +139,6 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
@@ -198,7 +189,6 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
           </div>
         </div>
 
-        {/* Products Table */}
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-6 border-b">
             <div className="flex items-center justify-between mb-4">
@@ -208,7 +198,6 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
               </div>
             </div>
 
-            {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -221,7 +210,6 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
             </div>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
@@ -322,21 +310,21 @@ const calculateStatsFromProducts = (productsData: Product[]) => {
                         <div className="flex items-center justify-end space-x-2">
                           <Link
                             to={`/product/${product.id}`}
-                            className="text-gray-600 hover:text-primary-900 transition"
+                            className="text-gray-400 hover:text-primary-600 transition"
                             title="Ver"
                           >
                             <Eye className="h-5 w-5" />
                           </Link>
                           <Link
-                            to={`/provider/products/edit/${product.id}`}
-                            className="text-blue-600 hover:text-blue-700 transition"
+                            to={`/provider/products/${product.id}/edit`}
+                            className="text-gray-400 hover:text-blue-600 transition"
                             title="Editar"
                           >
                             <Edit className="h-5 w-5" />
                           </Link>
                           <button
                             onClick={() => handleDelete(product.id, product.albumTitle)}
-                            className="text-red-600 hover:text-red-700 transition"
+                            className="text-gray-400 hover:text-red-600 transition"
                             title="Eliminar"
                           >
                             <Trash2 className="h-5 w-5" />

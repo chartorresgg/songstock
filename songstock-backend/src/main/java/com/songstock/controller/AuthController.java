@@ -3,6 +3,14 @@ package com.songstock.controller;
 import com.songstock.dto.*;
 import com.songstock.entity.User;
 import com.songstock.service.AuthService;
+import com.songstock.dto.CustomerRegistrationDTO;
+import com.songstock.dto.LoginRequestDTO;
+import com.songstock.dto.ProviderRegistrationDTO;
+import com.songstock.dto.AuthResponseDTO;
+import com.songstock.dto.UserRegistrationDTO;
+import com.songstock.entity.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import com.songstock.service.UserService;
 import com.songstock.service.PasswordResetService;
 import com.songstock.entity.UserRole;
@@ -369,5 +377,55 @@ public class AuthController {
         byte[] bytes = new byte[24];
         random.nextBytes(bytes);
         return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /**
+     * Registro de usuario comprador (CUSTOMER).
+     * Permite a un usuario registrarse como comprador/cliente.
+     * Después del registro exitoso, autentica automáticamente al usuario.
+     *
+     * @param customerRequest datos del comprador a registrar
+     * @param request         request HTTP para obtener metadata
+     * @return AuthResponseDTO con usuario y token JWT
+     */
+    @PostMapping("/register-customer")
+    public ResponseEntity<ApiResponse<AuthResponseDTO>> registerCustomer(
+            @Valid @RequestBody CustomerRegistrationDTO customerRequest,
+            HttpServletRequest request) {
+
+        logger.info("Customer registration attempt for: {}", customerRequest.getUsername());
+
+        try {
+            // 1. Crear el usuario con rol CUSTOMER
+            User user = userService.createUser(new UserRegistrationDTO(
+                    customerRequest.getUsername(),
+                    customerRequest.getEmail(),
+                    customerRequest.getPassword(),
+                    customerRequest.getFirstName(),
+                    customerRequest.getLastName(),
+                    UserRole.CUSTOMER));
+
+            logger.info("Customer registered successfully: {}", customerRequest.getUsername());
+
+            // 2. Autenticar automáticamente al usuario recién registrado
+            LoginRequestDTO loginRequest = new LoginRequestDTO();
+            loginRequest.setUsernameOrEmail(customerRequest.getUsername());
+            loginRequest.setPassword(customerRequest.getPassword());
+
+            // 3. Obtener el token JWT y los datos del usuario
+            AuthResponseDTO authResponse = authService.authenticateUser(loginRequest, request);
+
+            logger.info("Customer auto-authenticated successfully: {}", customerRequest.getUsername());
+
+            // 4. Devolver la respuesta con usuario y token
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Usuario registrado exitosamente. ¡Bienvenido a SongStock!",
+                    authResponse));
+
+        } catch (Exception e) {
+            logger.error("Customer registration failed for: {}", customerRequest.getUsername(), e);
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("Error en registro: " + e.getMessage()));
+        }
     }
 }

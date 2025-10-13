@@ -23,17 +23,25 @@ export interface Artist {
   imageUrl?: string;
 }
 
+export interface Album {
+  id: number;
+  title: string;
+  releaseYear: number;
+  coverImageUrl?: string;
+  artistId: number;
+  artistName: string;
+  genreId: number;
+  genreName: string;
+}
+
 class CatalogService {
-  async getGenres() {
+  async getGenres(): Promise<Genre[]> {
     try {
       const response = await axiosInstance.get<ApiResponse<Genre[]>>(
         API_ENDPOINTS.GENRES
       );
       
-      // Tu backend devuelve { success: true, data: [...] }
       const genres = response.data.data || [];
-      
-      // Asegurarse de que sea un array
       return Array.isArray(genres) ? genres : [];
     } catch (error) {
       console.error('Error fetching genres:', error);
@@ -41,7 +49,7 @@ class CatalogService {
     }
   }
 
-  async getCategories() {
+  async getCategories(): Promise<Category[]> {
     try {
       const response = await axiosInstance.get<ApiResponse<Category[]>>(
         API_ENDPOINTS.CATEGORIES
@@ -55,7 +63,7 @@ class CatalogService {
     }
   }
 
-  async getArtists() {
+  async getArtists(): Promise<Artist[]> {
     try {
       const response = await axiosInstance.get<ApiResponse<Artist[]>>(
         API_ENDPOINTS.ARTISTS
@@ -66,6 +74,33 @@ class CatalogService {
     } catch (error) {
       console.error('Error fetching artists:', error);
       return [];
+    }
+  }
+
+  async getAlbums(): Promise<Album[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<Album[]>>(
+        API_ENDPOINTS.ALBUMS
+      );
+      
+      const albums = response.data.data || [];
+      return Array.isArray(albums) ? albums : [];
+    } catch (error) {
+      console.error('Error fetching albums:', error);
+      return [];
+    }
+  }
+
+  async getAlbumById(id: number): Promise<Album> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<Album>>(
+        `${API_ENDPOINTS.ALBUMS}/${id}`
+      );
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching album ${id}:`, error);
+      throw error;
     }
   }
 }

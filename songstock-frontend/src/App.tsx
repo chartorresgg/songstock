@@ -2,29 +2,20 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
-
-// Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
-
-// Public Pages
 import Home from './pages/customer/Home';
 import Catalog from './pages/customer/Catalog';
 import AboutUs from './pages/public/AboutUs';
 import ProductDetail from './pages/customer/ProductDetail';
-
-// Customer Pages
 import Cart from './pages/customer/Cart';
 import Checkout from './pages/customer/Checkout';
 import Profile from './pages/customer/Profile';
 import MyOrders from './pages/customer/MyOrders';
-
-// Provider Pages
 import ProviderDashboard from './pages/provider/ProviderDashboard';
-
-// Admin Pages
+import ProductForm from './pages/provider/ProductForm';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Layout
@@ -124,6 +115,18 @@ function App() {
               <Route path="/provider/dashboard" element={
                 <ProtectedRoute allowedRoles={['PROVIDER']}>
                   <ProviderDashboard />
+                </ProtectedRoute>
+              } />
+
+<Route path="/provider/products/new" element={
+                <ProtectedRoute allowedRoles={['PROVIDER']}>
+                  <ProductForm />
+                </ProtectedRoute>
+              } />
+
+<Route path="/provider/products/:id/edit" element={
+                <ProtectedRoute allowedRoles={['PROVIDER']}>
+                  <ProductForm />
                 </ProtectedRoute>
               } />
 

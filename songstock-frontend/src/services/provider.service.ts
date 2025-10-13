@@ -4,14 +4,14 @@ import { Product } from '../types/product.types';
 import { ApiResponse } from '../types/api.types';
 
 class ProviderService {
-  // Obtener todos los productos del proveedor actual usando el endpoint correcto
+  // Obtener todos los productos del proveedor actual
   async getMyProducts(): Promise<Product[]> {
     try {
       const response = await axiosInstance.get<ApiResponse<any>>(
         `${API_ENDPOINTS.PRODUCTS}/catalog/my-products`
       );
       
-      console.log('Raw API response:', response.data); // Debug
+      console.log('Raw API response:', response.data);
       
       const data = response.data.data;
       
@@ -32,23 +32,31 @@ class ProviderService {
       
     } catch (error) {
       console.error('Error fetching products:', error);
-      throw error; // Re-lanzar el error para que lo maneje el componente
+      throw error;
     }
   }
 
-  // Crear un nuevo producto
+  // Obtener un producto específico
+  async getProduct(id: number): Promise<Product> {
+    const response = await axiosInstance.get<ApiResponse<Product>>(
+      `${API_ENDPOINTS.PRODUCTS}/${id}`
+    );
+    return response.data.data;
+  }
+
+  // Crear un nuevo producto en el catálogo
   async createProduct(productData: any): Promise<Product> {
     const response = await axiosInstance.post<ApiResponse<Product>>(
-      `${API_ENDPOINTS.PRODUCTS}`,
+      `${API_ENDPOINTS.PRODUCTS}/catalog`,
       productData
     );
     return response.data.data;
   }
 
-  // Actualizar un producto existente
+  // Actualizar un producto existente del catálogo
   async updateProduct(id: number, productData: any): Promise<Product> {
     const response = await axiosInstance.put<ApiResponse<Product>>(
-      `${API_ENDPOINTS.PRODUCTS}/${id}`,
+      `${API_ENDPOINTS.PRODUCTS}/${id}/catalog`,
       productData
     );
     return response.data.data;
@@ -61,7 +69,7 @@ class ProviderService {
     );
   }
 
-  // Obtener estadísticas del proveedor usando el endpoint de quick stats
+  // Obtener estadísticas del proveedor
   async getProviderStats(): Promise<any> {
     try {
       const response = await axiosInstance.get<ApiResponse<any>>(
@@ -70,7 +78,6 @@ class ProviderService {
       return response.data.data;
     } catch (error) {
       console.error('Error getting provider stats:', error);
-      // Retornar null para que el componente use el fallback
       return null;
     }
   }
@@ -86,6 +93,15 @@ class ProviderService {
       console.error('Error getting provider info:', error);
       return null;
     }
+  }
+
+  // Actualizar stock de un producto
+  async updateProductStock(productId: number, stockData: any): Promise<any> {
+    const response = await axiosInstance.put<ApiResponse<any>>(
+      `${API_ENDPOINTS.PRODUCTS}/${productId}/stock`,
+      stockData
+    );
+    return response.data.data;
   }
 }
 

@@ -1462,7 +1462,8 @@ public class ProductService {
             if (activeOnly != null && activeOnly) {
                 productsPage = productRepository.findByProviderIdAndIsActiveTrue(providerId, pageable);
             } else {
-                productsPage = productRepository.findByProviderId(providerId, pageable);
+                productsPage = productRepository.findByProviderIdAndIsActiveTrue(providerId, pageable);
+
             }
         }
 
