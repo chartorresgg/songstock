@@ -1,29 +1,24 @@
 import axiosInstance from './axios.instance';
 import { API_ENDPOINTS } from '../config/api.config';
-import { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth.types';
+import { LoginCredentials, AuthResponse, User } from '../types/auth.types';
 
 class AuthService {
   // Función auxiliar para convertir el formato de fecha de Java a ISO string
   private convertJavaDateToISO(dateArray: number[] | string | undefined): string {
-    // Si no existe, devolver la fecha actual
     if (!dateArray) {
       return new Date().toISOString();
     }
     
-    // Si ya es un string, devolverlo tal cual
     if (typeof dateArray === 'string') {
       return dateArray;
     }
     
-    // Si es un array de números [year, month, day, hour, minute, second]
-    // convertirlo a formato ISO string
     if (Array.isArray(dateArray) && dateArray.length >= 3) {
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateArray;
       const date = new Date(year, month - 1, day, hour, minute, second);
       return date.toISOString();
     }
     
-    // Si no es ninguno de los anteriores, devolver la fecha actual
     return new Date().toISOString();
   }
 
@@ -54,14 +49,12 @@ class AuthService {
         credentials
       );
 
-      console.log('Login response:', response.data); // Debug
+      console.log('Login response:', response.data);
 
-      // Validar que la respuesta tenga la estructura esperada
       if (!response.data || !response.data.data) {
         throw new Error('Invalid response structure from server');
       }
 
-      // Extraer el usuario y token
       const userData = response.data.data.user || response.data.data;
       const token = response.data.data.token;
 
@@ -73,7 +66,6 @@ class AuthService {
         throw new Error('Token is missing from login response');
       }
 
-      // Normalizar el usuario antes de devolverlo
       return {
         success: response.data.success !== undefined ? response.data.success : true,
         message: response.data.message || 'Login successful',
@@ -88,21 +80,23 @@ class AuthService {
     }
   }
 
-  async register(data: RegisterData): Promise<AuthResponse> {
+  async register(data: any): Promise<AuthResponse> {
     try {
-      const response = await axiosInstance.post<any>(
-        API_ENDPOINTS.REGISTER,
-        data
-      );
+      // Determinar el endpoint según los datos
+      const isProvider = data.businessName !== undefined && data.businessName !== '';
+      const endpoint = isProvider ? API_ENDPOINTS.REGISTER : '/auth/register-customer';
+      
+      console.log('Registering as:', isProvider ? 'PROVIDER' : 'CUSTOMER');
+      console.log('Using endpoint:', endpoint);
+      
+      const response = await axiosInstance.post<any>(endpoint, data);
 
-      console.log('Register response:', response.data); // Debug
+      console.log('Register response:', response.data);
 
-      // Validar que la respuesta tenga la estructura esperada
       if (!response.data || !response.data.data) {
         throw new Error('Invalid response structure from server');
       }
 
-      // Extraer el usuario y token
       const userData = response.data.data.user || response.data.data;
       const token = response.data.data.token;
 
@@ -114,7 +108,6 @@ class AuthService {
         throw new Error('Token is missing from register response');
       }
 
-      // Normalizar el usuario antes de devolverlo
       return {
         success: response.data.success !== undefined ? response.data.success : true,
         message: response.data.message || 'Registration successful',
@@ -135,9 +128,8 @@ class AuthService {
         API_ENDPOINTS.USER_PROFILE
       );
       
-      console.log('Current user response:', response.data); // Debug
+      console.log('Current user response:', response.data);
 
-      // Normalizar el usuario antes de devolverlo
       const userData = response.data.data || response.data;
       return this.normalizeUser(userData);
     } catch (error: any) {
@@ -147,7 +139,6 @@ class AuthService {
   }
 
   logout(): void {
-    // Limpiar el token del localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   }

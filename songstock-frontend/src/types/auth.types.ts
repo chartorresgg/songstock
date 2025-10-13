@@ -10,8 +10,8 @@ export interface User {
   phone?: string;
   role: 'ADMIN' | 'PROVIDER' | 'CUSTOMER';
   isActive: boolean;
-  createdAt: string; // Cambiado de number[] a string para usar formato ISO
-  updatedAt: string; // Cambiado de number[] a string para usar formato ISO
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Datos que se envían al hacer login
@@ -20,24 +20,25 @@ export interface LoginCredentials {
   password: string;
 }
 
-// Datos que se envían al registrarse
+// ✅ Datos que se envían al registrarse - ACTUALIZADO
+// Los nombres de los campos coinciden EXACTAMENTE con ProviderRegistrationDTO del backend
 export interface RegisterData {
+  // Datos del usuario
   username: string;
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
-  role?: 'CUSTOMER' | 'PROVIDER';
+  phone?: string;              // ✅ Cambio: phoneNumber → phone
   
-  // Campos adicionales para proveedores
-  businessName?: string;
+  // Datos del proveedor
+  businessName?: string;       // ✅ Cambio: storeName → businessName (OBLIGATORIO en backend)
   taxId?: string;
   address?: string;
   city?: string;
   state?: string;
   postalCode?: string;
-  country?: string;
+  country?: string;            // ✅ Default: "Colombia" en el backend
 }
 
 // Respuesta que devuelve el backend después del login/register
@@ -56,7 +57,7 @@ export interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData, userType?: 'customer' | 'provider') => Promise<void>;
   logout: () => void;
   loading: boolean;
 }

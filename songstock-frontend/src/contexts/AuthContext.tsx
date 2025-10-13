@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import authService from '../services/auth.service';
-import { User, LoginCredentials, RegisterData, AuthContextType } from '../types/auth.types';
+import { User, LoginCredentials, AuthContextType } from '../types/auth.types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -10,71 +10,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Intentar cargar el usuario desde localStorage al iniciar
-    const loadUserFromStorage = async () => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (storedToken && storedUser) {
+      setToken(storedToken);
       try {
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        console.log('Loading from storage - Token exists:', !!storedToken); // Debug
-        console.log('Loading from storage - User exists:', !!storedUser); // Debug
-
-        if (storedToken && storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            setToken(storedToken);
-            setUser(parsedUser);
-            console.log('User loaded from storage:', parsedUser); // Debug
-          } catch (parseError) {
-            console.error('Error parsing stored user:', parseError);
-            // Si hay error al parsear, limpiar el storage
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-          }
-        } else {
-          console.log('No stored credentials found'); // Debug
-        }
+        setUser(JSON.parse(storedUser));
       } catch (error) {
-        console.error('Error loading user from storage:', error);
-        // En caso de error, limpiar todo
+        console.error('Error parsing stored user:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    loadUserFromStorage();
+    }
+    
+    setLoading(false);
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      console.log('Attempting login with:', credentials.username); // Debug
+      console.log('Attempting login');
       
       const response = await authService.login(credentials);
       
-      console.log('Login response received:', response); // Debug
+      console.log('Login response received:', response);
 
       if (response.success && response.data) {
         const { user: userData, token: userToken } = response.data;
         
-        // Guardar en estado
         setUser(userData);
         setToken(userToken);
         
-        // Guardar en localStorage
         localStorage.setItem('token', userToken);
         localStorage.setItem('user', JSON.stringify(userData));
         
-        console.log('Login successful, user set:', userData); // Debug
+        console.log('Login successful, user set:', userData);
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
       console.error('Login error in context:', error);
-      // Limpiar cualquier dato residual
       setUser(null);
       setToken(null);
       localStorage.removeItem('token');
@@ -83,32 +58,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: any, userType: 'customer' | 'provider' = 'customer') => {
     try {
-      console.log('Attempting registration'); // Debug
+      console.log('Attempting registration as', userType);
       
-      const response = await authService.register(data);
+      let response;
       
-      console.log('Register response received:', response); // Debug
+      if (userType === 'customer') {
+        // Registro de comprador
+        response = await authService.register(data);
+      } else {
+        // Registro de proveedor
+        response = await authService.register(data);
+      }
+      
+      console.log('Register response received:', response);
 
       if (response.success && response.data) {
         const { user: userData, token: userToken } = response.data;
         
-        // Guardar en estado
         setUser(userData);
         setToken(userToken);
         
-        // Guardar en localStorage
         localStorage.setItem('token', userToken);
         localStorage.setItem('user', JSON.stringify(userData));
         
-        console.log('Registration successful, user set:', userData); // Debug
+        console.log('Registration successful, user set:', userData);
       } else {
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error: any) {
       console.error('Registration error in context:', error);
-      // Limpiar cualquier dato residual
       setUser(null);
       setToken(null);
       localStorage.removeItem('token');
@@ -118,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    console.log('Logging out'); // Debug
+    console.log('Logging out');
     authService.logout();
     setUser(null);
     setToken(null);

@@ -1,11 +1,15 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Music, Eye, EyeOff, Store } from 'lucide-react';
+import { Eye, EyeOff, Store, ShoppingBag } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  // Detectar el tipo de registro desde la URL
+  const [userType, setUserType] = useState<'customer' | 'provider'>('customer');
   
   const [formData, setFormData] = useState({
     username: '',
@@ -14,9 +18,15 @@ const Register = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    phoneNumber: '',
-    storeName: '',
-    storeDescription: '',
+    phone: '',
+    // Campos solo para proveedores
+    businessName: '',
+    taxId: '',
+    address: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'Colombia',
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -24,12 +34,22 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Actualizar el tipo cuando cambia la URL
+  useEffect(() => {
+    const type = searchParams.get('type');
+    if (type === 'provider' || type === 'customer') {
+      setUserType(type);
+    } else {
+      setUserType('customer');
+    }
+  }, [searchParams]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
-    // Limpiar error del campo al escribir
+    
     if (errors[e.target.name]) {
       setErrors({
         ...errors,
@@ -53,6 +73,11 @@ const Register = () => {
       newErrors.email = 'Email inválido';
     }
 
+    // Validar businessName solo si es proveedor
+    if (userType === 'provider' && (!formData.businessName || formData.businessName.trim() === '')) {
+      newErrors.businessName = 'El nombre del negocio es requerido';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -68,7 +93,15 @@ const Register = () => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
-      await register(registerData);
+      
+      // Si es customer, no enviar campos de proveedor
+      if (userType === 'customer') {
+        const { businessName, taxId, address, city, state, postalCode, country, ...customerData } = registerData;
+        await register(customerData, 'customer');
+      } else {
+        await register(registerData, 'provider');
+      }
+      
       navigate('/');
     } catch (error) {
       console.error('Register error:', error);
@@ -84,15 +117,51 @@ const Register = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="bg-white p-3 rounded-full">
-              <Store className="h-12 w-12 text-primary-900" />
+              {userType === 'provider' ? (
+                <Store className="h-12 w-12 text-primary-900" />
+              ) : (
+                <ShoppingBag className="h-12 w-12 text-primary-900" />
+              )}
             </div>
           </div>
           <h2 className="text-3xl font-bold text-white mb-2">
-            Conviértete en Proveedor
+            {userType === 'provider' ? 'Conviértete en Proveedor' : 'Únete a SongStock'}
           </h2>
           <p className="text-gray-200">
-            Vende tus vinilos en SongStock
+            {userType === 'provider' 
+              ? 'Vende tus vinilos en SongStock' 
+              : 'Descubre y compra vinilos únicos'}
           </p>
+        </div>
+
+        {/* Toggle de tipo de usuario */}
+        <div className="bg-white rounded-lg shadow-xl p-4 mb-6">
+          <div className="flex items-center justify-center space-x-4">
+            <button
+              type="button"
+              onClick={() => navigate('/register?type=customer')}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition ${
+                userType === 'customer'
+                  ? 'bg-primary-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <ShoppingBag className="h-5 w-5 inline mr-2" />
+              Soy Comprador
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/register?type=provider')}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition ${
+                userType === 'provider'
+                  ? 'bg-primary-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Store className="h-5 w-5 inline mr-2" />
+              Soy Proveedor
+            </button>
+          </div>
         </div>
 
         {/* Formulario */}
@@ -160,14 +229,14 @@ const Register = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                     Teléfono
                   </label>
                   <input
-                    id="phoneNumber"
-                    name="phoneNumber"
+                    id="phone"
+                    name="phone"
                     type="tel"
-                    value={formData.phoneNumber}
+                    value={formData.phone}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="+57 300 123 4567"
@@ -215,12 +284,12 @@ const Register = () => {
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent pr-10 ${
                         errors.password ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="••••••••"
+                      placeholder="Mínimo 6 caracteres"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -245,12 +314,12 @@ const Register = () => {
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent pr-10 ${
                         errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="••••••••"
+                      placeholder="Repite tu contraseña"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -262,45 +331,83 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Información de Tienda */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="bg-primary-900 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">3</span>
-                Información de Tienda
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de la Tienda
-                  </label>
-                  <input
-                    id="storeName"
-                    name="storeName"
-                    type="text"
-                    value={formData.storeName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Vinilos Vintage"
-                  />
-                </div>
+            {/* Información del Negocio - Solo para proveedores */}
+            {userType === 'provider' && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="bg-primary-900 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">3</span>
+                  Información del Negocio
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del Negocio *
+                    </label>
+                    <input
+                      id="businessName"
+                      name="businessName"
+                      type="text"
+                      required={userType === 'provider'}
+                      value={formData.businessName}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                        errors.businessName ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Nombre de tu tienda"
+                    />
+                    {errors.businessName && (
+                      <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>
+                    )}
+                  </div>
 
-                <div>
-                  <label htmlFor="storeDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción de la Tienda
-                  </label>
-                  <textarea
-                    id="storeDescription"
-                    name="storeDescription"
-                    rows={3}
-                    value={formData.storeDescription}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Describe tu tienda y los productos que ofreces..."
-                  />
+                  <div>
+                    <label htmlFor="taxId" className="block text-sm font-medium text-gray-700 mb-1">
+                      NIT/RUT
+                    </label>
+                    <input
+                      id="taxId"
+                      name="taxId"
+                      type="text"
+                      value={formData.taxId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="123456789-0"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                      Ciudad
+                    </label>
+                    <input
+                      id="city"
+                      name="city"
+                      type="text"
+                      value={formData.city}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Bogotá"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                      Dirección
+                    </label>
+                    <input
+                      id="address"
+                      name="address"
+                      type="text"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Calle 123 #45-67"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Términos y Condiciones */}
             <div className="flex items-center">

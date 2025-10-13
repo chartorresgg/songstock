@@ -112,7 +112,8 @@ public class ProviderService {
         provider.setState(providerDTO.getState());
         provider.setPostalCode(providerDTO.getPostalCode());
         provider.setCountry(providerDTO.getCountry());
-        provider.setVerificationStatus(VerificationStatus.PENDING);
+        provider.setVerificationStatus(VerificationStatus.VERIFIED);
+        provider.setVerificationDate(LocalDateTime.now());
 
         return providerRepository.save(provider);
     }

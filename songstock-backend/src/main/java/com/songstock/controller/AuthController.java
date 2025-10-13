@@ -121,22 +121,39 @@ public class AuthController {
      * Registro de proveedor.
      * Permite a un usuario registrarse como proveedor, quedando pendiente
      * de verificación por un administrador.
+     * Después del registro exitoso, autentica automáticamente al usuario.
      *
      * @param providerRequest datos del proveedor a registrar
-     * @return mensaje de confirmación
+     * @param request         request HTTP para obtener metadata
+     * @return AuthResponseDTO con usuario y token JWT
      */
     @PostMapping("/register-provider")
-    public ResponseEntity<ApiResponse<String>> registerProvider(
-            @Valid @RequestBody ProviderRegistrationDTO providerRequest) {
+    public ResponseEntity<ApiResponse<AuthResponseDTO>> registerProvider(
+            @Valid @RequestBody ProviderRegistrationDTO providerRequest,
+            HttpServletRequest request) {
 
         logger.info("Provider registration attempt for: {}", providerRequest.getUsername());
 
         try {
+            // 1. Registrar el proveedor
             providerService.registerProvider(providerRequest);
             logger.info("Provider registered successfully: {}", providerRequest.getUsername());
 
+            // 2. Autenticar automáticamente al usuario recién registrado
+            LoginRequestDTO loginRequest = new LoginRequestDTO();
+            loginRequest.setUsernameOrEmail(providerRequest.getUsername());
+            loginRequest.setPassword(providerRequest.getPassword());
+
+            // 3. Obtener el token JWT y los datos del usuario
+            AuthResponseDTO authResponse = authService.authenticateUser(loginRequest, request);
+
+            logger.info("Provider auto-authenticated successfully: {}", providerRequest.getUsername());
+
+            // 4. Devolver la respuesta con usuario y token
             return ResponseEntity.ok(ApiResponse.success(
-                    "Proveedor registrado exitosamente. Pendiente de verificación por administrador."));
+                    "Proveedor registrado exitosamente. Pendiente de verificación por administrador.",
+                    authResponse));
+
         } catch (Exception e) {
             logger.error("Provider registration failed for: {}", providerRequest.getUsername(), e);
             return ResponseEntity.badRequest().body(
