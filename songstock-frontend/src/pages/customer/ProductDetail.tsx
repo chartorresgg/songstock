@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../../contexts/CartContext';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Disc3, 
   ShoppingCart, 
   ArrowLeft, 
-  Music, 
+  Music,
+  ListMusic,
   Package,
   Clock,
   HardDrive,
@@ -16,17 +18,25 @@ import {
   Check
 } from 'lucide-react';
 import productService from '../../services/product.service';
+import compilationService from '../../services/compilation.service';
 import { Product } from '../../types/product.types';
+import { Song } from '../../types/compilation.types';
 import AlternativeFormats from '../../components/common/AlternativeFormat';
+import CompilationSelector from '../../components/customer/CompilationSelector';
 import toast from 'react-hot-toast';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const { addItem } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loadingSongs, setLoadingSongs] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [showCompilationSelector, setShowCompilationSelector] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -39,6 +49,9 @@ const ProductDetail = () => {
     try {
       const data = await productService.getProductById(productId);
       setProduct(data);
+      if (data.productType === 'DIGITAL') {
+        loadSongs(data.albumId);
+      }
     } catch (error) {
       console.error('Error loading product:', error);
       toast.error('Error al cargar el producto');
@@ -46,6 +59,34 @@ const ProductDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadSongs = async (albumId: number) => {
+    try {
+      setLoadingSongs(true);
+      const data = await compilationService.getSongsByAlbum(albumId);
+      setSongs(data);
+    } catch (error) {
+      console.error('Error loading songs:', error);
+    } finally {
+      setLoadingSongs(false);
+    }
+  };
+
+  const handleAddToCompilation = (song: Song) => {
+    if (!isAuthenticated) {
+      toast.error('Debes iniciar sesión para crear recopilaciones');
+      navigate('/login');
+      return;
+    }
+    
+    if (user?.role !== 'CUSTOMER') {
+      toast.error('Solo los clientes pueden crear recopilaciones');
+      return;
+    }
+    
+    setSelectedSong(song);
+    setShowCompilationSelector(true);
   };
 
   const formatPrice = (price: number) => {
@@ -402,17 +443,77 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* ==================== SECCIÓN DE FORMATOS ALTERNATIVOS (NUEVA) ==================== */}
+        {/* Songs List for Digital Products */}
+        {product.productType === 'DIGITAL' && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-12">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+              <Music className="h-5 w-5 mr-2 text-primary-900" />
+              Lista de Canciones
+            </h2>
+            
+            {loadingSongs ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-900"></div>
+              </div>
+            ) : songs.length > 0 ? (
+              <div className="space-y-2">
+                {songs.map((song) => (
+                  <div
+                    key={song.id}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition group"
+                  >
+                    <div className="flex items-center space-x-3 flex-1">
+                      <span className="text-sm font-medium text-gray-500 w-6">
+                        {song.trackNumber}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{song.title}</p>
+                        {song.durationSeconds && (
+                          <p className="text-xs text-gray-500">
+                            {Math.floor(song.durationSeconds / 60)}:{(song.durationSeconds % 60).toString().padStart(2, '0')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {isAuthenticated && user?.role === 'CUSTOMER' && (
+                      <button
+                        onClick={() => handleAddToCompilation(song)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1 text-primary-900 hover:text-primary-800 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-primary-50"
+                      >
+                        <ListMusic className="h-4 w-4" />
+                        <span>Añadir a recopilación</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-4">
+                No hay canciones disponibles para este álbum
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Alternative Formats Section */}
         <div className="mb-12">
           <AlternativeFormats currentProduct={product} />
         </div>
-
-        {/* TODO: Related Products Section */}
-        {/* <div className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Productos Relacionados</h2>
-        </div> */}
       </div>
+
+      {/* Compilation Selector Modal */}
+      {showCompilationSelector && selectedSong && (
+        <CompilationSelector
+          song={selectedSong}
+          onClose={() => {
+            setShowCompilationSelector(false);
+            setSelectedSong(null);
+          }}
+        />
+      )}
+    
     </div>
+    
   );
 };
 

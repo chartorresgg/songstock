@@ -5,6 +5,7 @@ import {
   Music, 
   ShoppingCart, 
   User, 
+  ListMusic,
   LogOut, 
   Menu, 
   X,
@@ -74,7 +75,19 @@ const Navbar = () => {
             >
               Catálogo
             </Link>
-            
+
+            {isAuthenticated && user?.role === 'CUSTOMER' && (
+                <Link
+                  to="/compilations"
+                  className="block px-4 py-3 text-gray-700 hover:bg-gray-100 font-medium transition"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Mis Recopilaciones
+                </Link>
+              )}
+
+
+
             {isAuthenticated ? (
               <>
                 {user?.role === 'CUSTOMER' && (

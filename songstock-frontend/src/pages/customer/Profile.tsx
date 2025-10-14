@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import userService from '../../services/user.service';
 import { User as UserIcon, Mail, Phone, Calendar, Shield, Edit2, Save, X } from 'lucide-react';
+import { ArrowRight, ListMusic } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -14,6 +17,8 @@ const Profile = () => {
     phone: '',
   });
   const [loading, setLoading] = useState(false);
+
+  
 
   /**
    * Este efecto se ejecuta cuando el componente se monta o cuando el usuario cambia.
@@ -102,16 +107,23 @@ const Profile = () => {
    * Nosotros extraemos solo las primeras 3 posiciones (año, mes, día) y las convertimos
    * a un objeto Date de JavaScript para formatearlas de forma amigable.
    */
-  const formatDate = (dateArray?: number[]) => {
-    if (!dateArray || dateArray.length < 3) return 'N/A';
-    
-    // Extraemos año, mes y día del array
-    const [year, month, day] = dateArray;
-    
-    // Creamos un objeto Date
-    // Nota: Restamos 1 al mes porque JavaScript cuenta los meses desde 0 (enero = 0, febrero = 1, etc.)
-    // pero el backend cuenta desde 1 (enero = 1, febrero = 2, etc.)
-    return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
+  const formatDate = (dateValue?: number[] | string) => {
+    if (!dateValue) return 'N/A';
+  
+    // Si es un array [2025, 10, 13]
+    if (Array.isArray(dateValue)) {
+      const [year, month, day] = dateValue;
+      return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  
+    // Si es un string tipo ISO
+    const parsedDate = new Date(dateValue);
+    if (isNaN(parsedDate.getTime())) return 'Fecha inválida';
+    return parsedDate.toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -188,7 +200,8 @@ const Profile = () => {
                   <Calendar className="h-5 w-5 text-primary-900" />
                   <div>
                     <div className="text-sm text-gray-500">Miembro desde</div>
-                    <div className="font-medium">{formatDate(user.createdAt)}</div>
+                    <div className="font-medium">{formatDate(user.createdAt)}
+                      </div>
                   </div>
                 </div>
 
@@ -208,6 +221,29 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+{/* Quick Access - Compilations */}
+          {user.role === 'CUSTOMER' && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Acceso Rápido</h2>
+              <button
+                onClick={() => navigate('/compilations')}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-primary-900 hover:bg-primary-50 transition group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="bg-primary-100 p-3 rounded-lg group-hover:bg-primary-200 transition">
+                    <ListMusic className="h-6 w-6 text-primary-900" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-900">Mis Recopilaciones</p>
+                    <p className="text-sm text-gray-600">Gestiona tus colecciones de canciones</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-900 transition" />
+              </button>
+            </div>
+          )}
+
 
           {/* Formulario de edición */}
           <div className="md:col-span-2">

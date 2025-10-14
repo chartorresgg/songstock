@@ -37,6 +37,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Recurso no encontrado", ex.getMessage()));
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBadRequest(BadRequestException ex) {
+        logger.error("Bad request: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error("Error de solicitud", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     /**
      * Maneja excepciones de tipo DuplicateResourceException.
      * Retorna un código 409 (CONFLICT).

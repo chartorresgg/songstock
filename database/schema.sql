@@ -96,6 +96,22 @@ CREATE TABLE albums (
     INDEX idx_catalog_number (catalog_number)
 );
 
+-- Tabla de canciones (tracks de álbumes digitales)
+CREATE TABLE songs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    album_id BIGINT NOT NULL,
+    track_number INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    duration_seconds INT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+    INDEX idx_album_id (album_id),
+    INDEX idx_track_number (track_number),
+    INDEX idx_title (title),
+    UNIQUE KEY unique_album_track (album_id, track_number)
+);
+
 -- Tabla de productos (vinilos físicos y digitales)
 CREATE TABLE products (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -156,4 +172,34 @@ CREATE TABLE user_sessions (
     INDEX idx_session_token (session_token),
     INDEX idx_user_id (user_id),
     INDEX idx_expires_at (expires_at)
+);
+
+-- Tabla de compilaciones/recopilaciones de usuarios
+CREATE TABLE compilations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    is_public BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_name (name),
+    INDEX idx_is_public (is_public)
+);
+
+-- Tabla intermedia: canciones en compilaciones
+CREATE TABLE compilation_songs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    compilation_id BIGINT NOT NULL,
+    song_id BIGINT NOT NULL,
+    order_position INT NOT NULL DEFAULT 0,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (compilation_id) REFERENCES compilations(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
+    INDEX idx_compilation_id (compilation_id),
+    INDEX idx_song_id (song_id),
+    INDEX idx_order_position (order_position),
+    UNIQUE KEY unique_compilation_song (compilation_id, song_id)
 );

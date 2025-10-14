@@ -17,7 +17,8 @@ import MyOrders from './pages/customer/MyOrders';
 import ProviderDashboard from './pages/provider/ProviderDashboard';
 import ProductForm from './pages/provider/ProductForm';
 import AdminDashboard from './pages/admin/AdminDashboard';
-
+import Compilations from './pages/customer/Compilations';
+import CompilationDetail from './pages/customer/CompilationDetail';
 // Layout
 import MainLayout from './components/layout/MainLayout';
 
@@ -84,6 +85,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
+
             {/* ==================== RUTAS CON MAIN LAYOUT ==================== */}
             <Route element={<MainLayout />}>
               {/* Páginas Públicas */}
@@ -110,6 +112,18 @@ function App() {
                   <MyOrders />
                 </ProtectedRoute>
               } />
+
+<Route path="/compilations" element={
+  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+    <Compilations />
+  </ProtectedRoute>
+} />
+
+<Route path="/compilations/:id" element={
+  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+    <CompilationDetail />
+  </ProtectedRoute>
+} />
 
               {/* ==================== RUTAS PROTEGIDAS DE PROVIDER ==================== */}
               <Route path="/provider/dashboard" element={
@@ -169,6 +183,7 @@ function App() {
                 </ProtectedRoute>
               } />
             </Route>
+            
 
             {/* ==================== CATCH ALL ==================== */}
             <Route path="*" element={<Navigate to="/" replace />} />
