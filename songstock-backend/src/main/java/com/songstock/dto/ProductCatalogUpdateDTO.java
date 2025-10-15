@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * DTO para actualizar productos del catálogo
@@ -16,6 +17,12 @@ public class ProductCatalogUpdateDTO {
 
     @Size(max = 50, message = "El SKU no puede exceder 50 caracteres")
     private String sku;
+
+    @JsonProperty("categoryId")
+    private Long categoryId;
+
+    @JsonProperty("providerId")
+    private Long providerId; // Opcional: para ADMIN cambiar proveedor
 
     private ConditionType conditionType;
 
@@ -77,6 +84,22 @@ public class ProductCatalogUpdateDTO {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public Long getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(Long providerId) {
+        this.providerId = providerId;
     }
 
     public Integer getStockQuantity() {

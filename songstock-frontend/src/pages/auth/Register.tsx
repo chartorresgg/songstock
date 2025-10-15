@@ -147,7 +147,7 @@ const Register = () => {
               }`}
             >
               <ShoppingBag className="h-5 w-5 inline mr-2" />
-              Soy Comprador
+              Comprador
             </button>
             <button
               type="button"
@@ -159,7 +159,7 @@ const Register = () => {
               }`}
             >
               <Store className="h-5 w-5 inline mr-2" />
-              Soy Proveedor
+              Proveedor
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ const Register = () => {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de Usuario *
+                    Nombre de usuario *
                   </label>
                   <input
                     id="username"
@@ -301,7 +301,7 @@ const Register = () => {
 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirmar Contraseña *
+                    Confirmar contraseña *
                   </label>
                   <div className="relative">
                     <input
@@ -342,7 +342,7 @@ const Register = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre del Negocio *
+                      Nombre de la empresa *
                     </label>
                     <input
                       id="businessName"
@@ -432,7 +432,7 @@ const Register = () => {
               disabled={isLoading}
               className="w-full bg-primary-900 text-white py-3 rounded-lg font-semibold hover:bg-primary-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Registrando...' : 'Crear Cuenta'}
+              {isLoading ? 'Registrando...' : 'Crear cuenta'}
             </button>
           </form>
 

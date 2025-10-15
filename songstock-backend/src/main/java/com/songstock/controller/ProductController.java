@@ -3,8 +3,11 @@ package com.songstock.controller;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageRequest;
 import com.songstock.dto.ProductDTO;
+import com.songstock.entity.Product;
 import com.songstock.entity.ProductType;
+import org.springframework.http.HttpStatus;
 import com.songstock.service.ProductService;
+import com.songstock.repository.ProductRepository;
 import com.songstock.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import com.songstock.exception.ResourceNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -58,6 +61,9 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -234,9 +240,35 @@ public class ProductController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('PROVIDER') and @productSecurityService.isOwner(authentication.name, #id))")
     @Operation(summary = "Actualizar producto", description = "Actualizar un producto existente")
-    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(@PathVariable Long id,
-            @Valid @RequestBody ProductDTO productDTO) {
+    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductDTO productDTO,
+            Authentication authentication) {
         logger.info("REST request to update product ID: {}", id);
+
+        // Si es PROVIDER, inyectar providerId del usuario autenticado
+        if (authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_PROVIDER"))) {
+
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            productDTO.setProviderId(providerId);
+            Product product = productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
+        }
+
+        // Si es PROVIDER, validar ownership antes de actualizar
+        if (authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_PROVIDER"))) {
+
+            Long providerId = getProviderIdFromAuthentication(authentication);
+            Product existingProduct = productRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+            if (!existingProduct.getProvider().getId().equals(providerId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("No tienes permisos para actualizar este producto", null));
+            }
+        }
 
         ProductDTO updatedProduct = productService.updateProduct(id, productDTO);
 
@@ -581,18 +613,48 @@ public class ProductController {
     }
 
     /**
+     * Obtener providerId considerando rol ADMIN o PROVIDER
+     */
+    private Long getProviderIdForAdminOrProvider(Authentication authentication, ProductCatalogCreateDTO createDTO) {
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+
+        logger.info("Usuario autenticado - Username: {}, Role: {}", username, user.getRole());
+
+        // Si es ADMIN, debe especificar el providerId en el DTO
+        if (user.getRole().equals(UserRole.ADMIN)) {
+            if (createDTO.getProviderId() == null) {
+                throw new RuntimeException("El administrador debe especificar el providerId");
+            }
+            // Validar que el proveedor existe y está verificado
+            Provider provider = providerRepository.findById(createDTO.getProviderId())
+                    .orElseThrow(
+                            () -> new RuntimeException("Proveedor no encontrado con ID: " + createDTO.getProviderId()));
+
+            if (!provider.getVerificationStatus().equals(VerificationStatus.VERIFIED)) {
+                throw new RuntimeException("El proveedor debe estar verificado");
+            }
+            return provider.getId();
+        }
+
+        // Si es PROVIDER, usar el método existente
+        return getProviderIdFromAuthentication(authentication);
+    }
+
+    /**
      * Crear un nuevo producto en el catálogo del proveedor
      * POST /api/v1/products/catalog
      */
     @PostMapping("/catalog")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PROVIDER')")
     @Operation(summary = "Crear producto en catálogo", description = "Crear un nuevo producto en el catálogo del proveedor")
     public ResponseEntity<ApiResponse<ProductCatalogResponseDTO>> createCatalogProduct(
             @Valid @RequestBody ProductCatalogCreateDTO createDTO,
             Authentication authentication) {
         try {
             // Obtener el proveedor autenticado
-            Long providerId = getProviderIdFromAuthentication(authentication);
+            Long providerId = getProviderIdForAdminOrProvider(authentication, createDTO);
 
             // Crear el producto
             ProductCatalogResponseDTO response = productService.createCatalogProduct(providerId, createDTO);
@@ -631,8 +693,18 @@ public class ProductController {
             @Valid @RequestBody ProductCatalogUpdateDTO updateDTO,
             Authentication authentication) {
         try {
-            // Obtener el proveedor autenticado
-            Long providerId = getProviderIdFromAuthentication(authentication);
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+
+            Long providerId;
+            if (user.getRole().equals(UserRole.ADMIN)) {
+                // ADMIN puede actualizar cualquier producto sin restricción de ownership
+                providerId = null; // Se manejará en el servicio
+            } else {
+                // PROVIDER solo puede actualizar sus propios productos
+                providerId = getProviderIdFromAuthentication(authentication);
+            }
 
             // Actualizar el producto
             ProductCatalogResponseDTO response = productService.updateCatalogProduct(providerId, productId, updateDTO);

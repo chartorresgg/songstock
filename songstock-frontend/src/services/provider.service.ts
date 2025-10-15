@@ -56,7 +56,7 @@ class ProviderService {
   // Actualizar un producto existente del catálogo
   async updateProduct(id: number, productData: any): Promise<Product> {
     const response = await axiosInstance.put<ApiResponse<Product>>(
-      `${API_ENDPOINTS.PRODUCTS}/${id}/catalog`,
+      `${API_ENDPOINTS.PRODUCTS}/${id}`,
       productData
     );
     return response.data.data;

@@ -16,7 +16,7 @@ export interface User {
 
 // Datos que se envían al hacer login
 export interface LoginCredentials {
-  username: string;
+  usernameOrEmail: string;
   password: string;
 }
 

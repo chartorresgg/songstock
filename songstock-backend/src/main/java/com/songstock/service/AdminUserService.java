@@ -67,6 +67,11 @@ public class AdminUserService {
         logger.info("Obteniendo usuarios con filtros: query={}, role={}, isActive={}",
                 filterDTO.getSearchQuery(), filterDTO.getRole(), filterDTO.getIsActive());
 
+        // Filtrar solo usuarios activos por defecto si no se especifica
+        if (filterDTO.getIsActive() == null) {
+            filterDTO.setIsActive(true);
+        }
+
         Sort sort = Sort.by(
                 "desc".equalsIgnoreCase(filterDTO.getSortDirection())
                         ? Sort.Direction.DESC
@@ -211,10 +216,6 @@ public class AdminUserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + userId));
-
-        if (!userRepository.canUserBeDeleted(userId)) {
-            throw new BusinessException("El usuario no puede ser eliminado porque tiene productos asociados");
-        }
 
         user.setIsActive(false);
         user.setUpdatedAt(LocalDateTime.now());

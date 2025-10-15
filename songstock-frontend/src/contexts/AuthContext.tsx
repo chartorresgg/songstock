@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      console.log('Attempting login');
+      console.log('Attempting login with:', credentials);
       
       const response = await authService.login(credentials);
       

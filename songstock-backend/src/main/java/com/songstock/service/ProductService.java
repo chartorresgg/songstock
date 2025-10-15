@@ -802,18 +802,40 @@ public class ProductService {
      * Actualizar un producto del catálogo
      */
     @Transactional
-    public ProductCatalogResponseDTO updateCatalogProduct(Long providerId, Long productId,
+    public ProductCatalogResponseDTO updateCatalogProduct(Long productId, Long providerId,
             ProductCatalogUpdateDTO updateDTO) {
         // Validar que el producto existe
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
 
-        // Validar que el producto pertenece al proveedor
-        if (!product.getProvider().getId().equals(providerId)) {
-            throw new RuntimeException("No tienes permisos para actualizar este producto");
+        // Si providerId es null, significa que es ADMIN (sin restricción de ownership)
+        if (providerId != null) {
+            // Validar que el producto pertenece al proveedor
+            if (!product.getProvider().getId().equals(providerId)) {
+                throw new RuntimeException("No tienes permisos para actualizar este producto");
+            }
         }
 
-        // Actualizar campos si están presentes en el DTO
+        // Actualizar categoría si está presente
+        if (updateDTO.getCategoryId() != null) {
+            Category category = categoryRepository.findById(updateDTO.getCategoryId())
+                    .orElseThrow(
+                            () -> new RuntimeException("Categoría no encontrada con ID: " + updateDTO.getCategoryId()));
+            product.setCategory(category);
+        }
+
+        // ADMIN puede cambiar el proveedor del producto
+        if (updateDTO.getProviderId() != null && providerId == null) {
+            Provider newProvider = providerRepository.findById(updateDTO.getProviderId())
+                    .orElseThrow(
+                            () -> new RuntimeException("Proveedor no encontrado con ID: " + updateDTO.getProviderId()));
+            if (!newProvider.getVerificationStatus().equals(VerificationStatus.VERIFIED)) {
+                throw new RuntimeException("El proveedor debe estar verificado");
+            }
+            product.setProvider(newProvider);
+        }
+
+        // Actualizar SKU si está presente y es diferente
         if (updateDTO.getSku() != null && !updateDTO.getSku().equals(product.getSku())) {
             // Validar SKU único si se está cambiando
             if (productRepository.existsBySku(updateDTO.getSku())) {
@@ -1564,6 +1586,9 @@ public class ProductService {
     /**
      * Duplicar un producto existente
      */
+    /**
+     * Duplicar un producto existente
+     */
     @Transactional
     public ProductCatalogResponseDTO duplicateProduct(Long providerId, Long productId, String newSku) {
         logger.info("Duplicando producto ID: {} para proveedor ID: {} con nuevo SKU: {}",
@@ -1573,9 +1598,12 @@ public class ProductService {
         Product originalProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productId));
 
-        // Validar que el producto pertenece al proveedor
-        if (!originalProduct.getProvider().getId().equals(providerId)) {
-            throw new RuntimeException("No tienes permisos para duplicar este producto");
+        // Validar ownership solo si providerId no es null (no es ADMIN)
+        if (providerId != null) {
+            // Validar que el producto pertenece al proveedor
+            if (!originalProduct.getProvider().getId().equals(providerId)) {
+                throw new RuntimeException("No tienes permisos para duplicar este producto");
+            }
         }
 
         // Validar que el nuevo SKU no existe

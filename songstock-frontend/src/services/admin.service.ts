@@ -116,6 +116,8 @@ class AdminService {
     }
   }
 
+  
+
   async deleteProduct(productId: number): Promise<void> {
     await axiosInstance.delete<ApiResponse<void>>(`/products/${productId}`);
   }
@@ -315,6 +317,79 @@ class AdminService {
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];
+    }
+  }
+
+  /**
+   * Crear un nuevo producto en el catálogo (ADMIN)
+   */
+  async createProduct(productData: any): Promise<any> {
+    try {
+      const response = await axiosInstance.post<ApiResponse<any>>(
+        '/products/catalog',
+        productData
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar un producto existente (ADMIN)
+   */
+  async updateProduct(productId: number, productData: any): Promise<any> {
+    try {
+      const response = await axiosInstance.put<ApiResponse<any>>(
+        `/products/catalog/${productId}`,
+        productData
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener un producto por ID
+   */
+  async getProductById(productId: number): Promise<any> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        `/products/${productId}`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener todas las categorías
+   */
+  async getAllCategories(): Promise<any[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>('/categories');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener todos los álbumes
+   */
+  async getAllAlbums(): Promise<any[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>('/albums');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching albums:', error);
+      throw error;
     }
   }
 

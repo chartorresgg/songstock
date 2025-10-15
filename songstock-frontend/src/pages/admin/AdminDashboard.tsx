@@ -82,7 +82,7 @@ const AdminDashboard = () => {
     pendingProviders: 0
   });
   
-  const [providers, setProviders] = useState<any[]>([]);
+  const [providers, setProvidersData] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -99,6 +99,11 @@ const AdminDashboard = () => {
   const [showProductDetailModal, setShowProductDetailModal] = useState(false);
   const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
   
+ // Estados para gestión de productos
+  const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [productFormData, setProductFormData] = useState<any>({});
+  
   // Estado para el formulario
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
@@ -111,10 +116,33 @@ const AdminDashboard = () => {
     isActive: true
   });
 
+    // Estados para datos de catálogo
+    const [categories, setCategories] = useState<any[]>([]);
+    const [albums, setAlbums] = useState<any[]>([]);
+    const [allProviders, setAllProviders] = useState<any[]>([]);
   // Cargar datos al montar el componente
   useEffect(() => {
     loadData();
+    loadCatalogData();
   }, []);
+
+  const loadCatalogData = async () => {
+    try {
+      const [categoriesData, albumsData, providersData] = await Promise.all([
+        adminService.getAllCategories(),
+        adminService.getAllAlbums(),
+        adminService.getAllProviders()
+      ]);
+      
+      setCategories(categoriesData);
+      setAlbums(albumsData);
+      setAllProviders(providersData.filter((p: any) => p.verificationStatus === 'VERIFIED'));
+    } catch (error) {
+      console.error('Error loading catalog data:', error);
+    }
+  };
+
+
 
   const loadData = async () => {
     setLoading(true);
@@ -127,7 +155,7 @@ const AdminDashboard = () => {
       ]);
 
       setStats(statsData);
-      setProviders(providersData);
+      setProvidersData(providersData);
       setUsers(usersData);
       setProducts(productsData);
     } catch (error) {
@@ -269,6 +297,86 @@ const AdminDashboard = () => {
     setSelectedProduct(product);
     setShowDeleteProductModal(true);
   };
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      await adminService.createProduct({
+        albumId: parseInt(productFormData.albumId),
+        providerId: parseInt(productFormData.providerId),
+        categoryId: parseInt(productFormData.categoryId),
+        sku: productFormData.sku,
+        productType: productFormData.productType,
+        conditionType: productFormData.conditionType || 'NEW',
+        price: parseFloat(productFormData.price),
+        stockQuantity: parseInt(productFormData.stockQuantity),
+        featured: productFormData.featured || false,
+        vinylSize: productFormData.vinylSize,
+        vinylSpeed: productFormData.vinylSpeed,
+        fileFormat: productFormData.fileFormat,
+        fileSizeMB: productFormData.fileSizeMB ? parseFloat(productFormData.fileSizeMB) : null,
+      });
+
+      toast.success('Producto creado exitosamente');
+      setShowCreateProductModal(false);
+      setProductFormData({});
+      loadData();
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      const errorMessage = error.response?.data?.message || 'Error al crear el producto';
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleEditProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedProduct) return;
+
+    try {
+      await adminService.updateProduct(selectedProduct.id, {
+        categoryId: parseInt(productFormData.categoryId),
+        providerId: parseInt(productFormData.providerId),
+        sku: productFormData.sku,
+        price: parseFloat(productFormData.price),
+        stockQuantity: parseInt(productFormData.stockQuantity),
+        featured: productFormData.featured,
+        conditionType: productFormData.conditionType,
+        vinylSize: productFormData.vinylSize,
+        vinylSpeed: productFormData.vinylSpeed,
+        fileFormat: productFormData.fileFormat,
+        fileSizeMB: productFormData.fileSizeMB ? parseFloat(productFormData.fileSizeMB) : null,
+      });
+
+      toast.success('Producto actualizado exitosamente');
+      setShowEditProductModal(false);
+      setSelectedProduct(null);
+      setProductFormData({});
+      loadData();
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      const errorMessage = error.response?.data?.message || 'Error al actualizar el producto';
+      toast.error(errorMessage);
+    }
+  };
+
+  const openCreateProductModal = () => {
+    setProductFormData({
+      productType: 'PHYSICAL',
+      conditionType: 'NEW',
+      featured: false,
+      stockQuantity: 0,
+    });
+    setShowCreateProductModal(true);
+  };
+
+  const openEditProductModal = async (product: Product) => {
+    setSelectedProduct(product);
+    setProductFormData({ ...product });
+    setShowEditProductModal(true);
+  };
+
+
 
   // ==================== UTILIDADES ====================
 
@@ -473,13 +581,13 @@ const AdminDashboard = () => {
                   {/* Botón Crear Producto */}
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold text-gray-900">Catálogo de Productos</h3>
-                    <Link
-                      to="/provider/products/new"
-                      className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                    >
-                      <Plus className="h-5 w-5" />
-                      <span>Crear Producto</span>
-                    </Link>
+                    <button
+  onClick={openCreateProductModal}
+  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+>
+  <Plus className="w-4 h-4" />
+  Crear Producto
+</button>
                   </div>
 
                   <div className="flex flex-col md:flex-row gap-4">
@@ -663,6 +771,13 @@ const AdminDashboard = () => {
                                   <ExternalLink className="h-4 w-4" />
                                 </Link>
                                 <button
+                                onClick={() => openEditProductModal(product)}
+                                                        className="text-blue-600 hover:text-blue-800 p-1"
+                                                        title="Editar producto"
+                                                      >
+                                                        <Edit className="w-4 h-4" />
+                                                      </button>
+                                                      <button
                                   onClick={() => openDeleteProductModal(product)}
                                   className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                   title="Eliminar"
@@ -1404,6 +1519,433 @@ const AdminDashboard = () => {
                 <span>Eliminar Usuario</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+         {/* Modal Crear Producto */}
+         {showCreateProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Crear Producto</h2>
+              <button
+                onClick={() => setShowCreateProductModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Álbum *
+                  </label>
+                  <select
+                    required
+                    value={productFormData.albumId || ''}
+                    onChange={(e) => setProductFormData({...productFormData, albumId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar álbum</option>
+                    {albums.map((album: any) => (
+                      <option key={album.id} value={album.id}>
+                        {album.title} - {album.artistName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Proveedor *
+                  </label>
+                  <select
+                    required
+                    value={productFormData.providerId || ''}
+                    onChange={(e) => setProductFormData({...productFormData, providerId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar proveedor</option>
+                    {allProviders.map((prov: any) => (
+                      <option key={prov.id} value={prov.id}>
+                        {prov.businessName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={productFormData.sku || ''}
+                    onChange={(e) => setProductFormData({...productFormData, sku: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoría *
+                  </label>
+                  <select
+                    required
+                    value={productFormData.categoryId || ''}
+                    onChange={(e) => setProductFormData({...productFormData, categoryId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categories.map((cat: any) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo *
+                  </label>
+                  <select
+                    required
+                    value={productFormData.productType || 'PHYSICAL'}
+                    onChange={(e) => setProductFormData({...productFormData, productType: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="PHYSICAL">Físico (Vinilo)</option>
+                    <option value="DIGITAL">Digital</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={productFormData.price || ''}
+                    onChange={(e) => setProductFormData({...productFormData, price: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={productFormData.stockQuantity || 0}
+                    onChange={(e) => setProductFormData({...productFormData, stockQuantity: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {productFormData.productType === 'PHYSICAL' && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Condición</label>
+                    <select
+                      value={productFormData.conditionType || 'NEW'}
+                      onChange={(e) => setProductFormData({...productFormData, conditionType: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="NEW">Nuevo</option>
+                      <option value="USED_LIKE_NEW">Usado - Como Nuevo</option>
+                      <option value="USED_GOOD">Usado - Buen Estado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño</label>
+                    <select
+                      value={productFormData.vinylSize || ''}
+                      onChange={(e) => setProductFormData({...productFormData, vinylSize: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="SEVEN_INCH">7"</option>
+                      <option value="TEN_INCH">10"</option>
+                      <option value="TWELVE_INCH">12"</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Velocidad</label>
+                    <select
+                      value={productFormData.vinylSpeed || ''}
+                      onChange={(e) => setProductFormData({...productFormData, vinylSpeed: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="RPM_33">33 RPM</option>
+                      <option value="RPM_45">45 RPM</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {productFormData.productType === 'DIGITAL' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Formato</label>
+                    <select
+                      value={productFormData.fileFormat || ''}
+                      onChange={(e) => setProductFormData({...productFormData, fileFormat: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="MP3">MP3</option>
+                      <option value="FLAC">FLAC</option>
+                      <option value="WAV">WAV</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño (MB)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={productFormData.fileSizeMB || ''}
+                      onChange={(e) => setProductFormData({...productFormData, fileSizeMB: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={productFormData.featured || false}
+                  onChange={(e) => setProductFormData({...productFormData, featured: e.target.checked})}
+                  className="w-4 h-4"
+                />
+                <label className="text-sm text-gray-700">Producto destacado</label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateProductModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Crear Producto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Producto - Similar estructura, adaptado */}
+      {showEditProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Editar Producto</h2>
+              <button
+                onClick={() => setShowEditProductModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditProduct} className="p-6 space-y-4">
+              {/* Similar al formulario de crear, pero sin albumId (no editable) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={productFormData.sku || ''}
+                    onChange={(e) => setProductFormData({...productFormData, sku: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoría *
+                  </label>
+                  <select
+                    required
+                    value={productFormData.categoryId || ''}
+                    onChange={(e) => setProductFormData({...productFormData, categoryId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categories.map((cat: any) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={productFormData.price || ''}
+                    onChange={(e) => setProductFormData({...productFormData, price: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={productFormData.stockQuantity || 0}
+                    onChange={(e) => setProductFormData({...productFormData, stockQuantity: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Proveedor *
+                  </label>
+                  <select
+                    required
+                    value={productFormData.providerId || ''}
+                    onChange={(e) => setProductFormData({...productFormData, providerId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar</option>
+                    {allProviders.map((prov: any) => (
+                      <option key={prov.id} value={prov.id}>
+                        {prov.businessName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedProduct?.productType === 'PHYSICAL' && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Condición</label>
+                    <select
+                      value={productFormData.conditionType || 'NEW'}
+                      onChange={(e) => setProductFormData({...productFormData, conditionType: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="NEW">Nuevo</option>
+                      <option value="USED_LIKE_NEW">Usado - Como Nuevo</option>
+                      <option value="USED_GOOD">Usado - Buen Estado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño</label>
+                    <select
+                      value={productFormData.vinylSize || ''}
+                      onChange={(e) => setProductFormData({...productFormData, vinylSize: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Seleccionar</option>
+                                            <option value="SEVEN_INCH">7"</option>
+                      <option value="TEN_INCH">10"</option>
+                      <option value="TWELVE_INCH">12"</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Velocidad</label>
+                    <select
+                      value={productFormData.vinylSpeed || ''}
+                      onChange={(e) => setProductFormData({...productFormData, vinylSpeed: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Seleccionar</option>
+                                            <option value="RPM_33">33 RPM</option>
+                                           <option value="RPM_45">45 RPM</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {selectedProduct?.productType === 'DIGITAL' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Formato</label>
+                    <select
+                      value={productFormData.fileFormat || ''}
+                      onChange={(e) => setProductFormData({...productFormData, fileFormat: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="MP3">MP3</option>
+                      <option value="FLAC">FLAC</option>
+                      <option value="WAV">WAV</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño (MB)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={productFormData.fileSizeMB || ''}
+                      onChange={(e) => setProductFormData({...productFormData, fileSizeMB: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={productFormData.featured || false}
+                  onChange={(e) => setProductFormData({...productFormData, featured: e.target.checked})}
+                  className="w-4 h-4"
+                />
+                <label className="text-sm text-gray-700">Producto destacado</label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProductModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Actualizar Producto
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

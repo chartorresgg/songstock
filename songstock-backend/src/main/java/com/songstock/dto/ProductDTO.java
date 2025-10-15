@@ -16,7 +16,6 @@ public class ProductDTO {
     private String albumTitle; // Para respuestas
     private String artistName; // Para respuestas
 
-    @NotNull(message = "El proveedor es obligatorio")
     private Long providerId;
 
     private String providerName; // Para respuestas

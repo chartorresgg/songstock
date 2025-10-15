@@ -111,7 +111,7 @@ const Navbar = () => {
                     className="text-gray-700 hover:text-primary-900 flex items-center space-x-1 transition"
                   >
                     <LayoutDashboard className="h-5 w-5" />
-                    <span>Dashboard</span>
+                    <span>Administración</span>
                   </Link>
                 )}
 
@@ -227,7 +227,7 @@ const Navbar = () => {
                   className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Dashboard
+                  Administración
                 </Link>
                 
                 <Link

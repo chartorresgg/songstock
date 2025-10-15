@@ -4,6 +4,7 @@ import com.songstock.entity.ProductType;
 import com.songstock.entity.ConditionType;
 import com.songstock.entity.VinylSize;
 import com.songstock.entity.VinylSpeed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -20,10 +21,11 @@ public class ProductCatalogCreateDTO {
     @NotNull(message = "El ID del álbum es obligatorio")
     private Long albumId;
 
+    @JsonProperty("providerId")
+    private Long providerId; // Opcional: solo usado por ADMIN
+
     @NotNull(message = "El ID de la categoría es obligatorio")
     private Long categoryId;
-
-    private Long providerId;
 
     @NotBlank(message = "El SKU es obligatorio")
     @Size(max = 50, message = "El SKU no puede exceder 50 caracteres")

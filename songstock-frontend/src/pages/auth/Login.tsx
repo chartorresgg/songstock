@@ -26,7 +26,10 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(formData);
+      await login({
+        usernameOrEmail: formData.usernameOrEmail,
+        password: formData.password
+      });
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
@@ -59,7 +62,7 @@ const Login = () => {
             {/* Username/Email */}
             <div>
               <label htmlFor="usernameOrEmail" className="block text-sm font-medium text-gray-700 mb-2">
-                Usuario o Email  {/* ← Cambio aquí */}
+                Dirección de correo electrónico
               </label>
               <input
                 id="usernameOrEmail"
@@ -127,7 +130,7 @@ const Login = () => {
               disabled={isLoading}
               className="w-full bg-primary-900 text-white py-3 rounded-lg font-semibold hover:bg-primary-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
           </form>
 
@@ -149,31 +152,12 @@ const Login = () => {
               to="/register"
               className="text-primary-600 hover:text-primary-500 font-medium"
             >
-              Regístrate como proveedor
+              Crear una cuenta
             </Link>
           </div>
         </div>
 
-        {/* Demo credentials */}
-        <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-lg p-4">
-          <p className="text-white text-sm text-center mb-2 font-semibold">
-            Credenciales de prueba:
-          </p>
-          <div className="grid grid-cols-3 gap-2 text-xs text-white">
-            <div className="bg-white/20 rounded p-2">
-              <p className="font-semibold">Admin</p>
-              <p>admin / admin123</p>
-            </div>
-            <div className="bg-white/20 rounded p-2">
-              <p className="font-semibold">Proveedor</p>
-              <p>provider / pass123</p>
-            </div>
-            <div className="bg-white/20 rounded p-2">
-              <p className="font-semibold">Cliente</p>
-              <p>customer / pass123</p>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   );
