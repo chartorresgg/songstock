@@ -79,14 +79,14 @@ const RegisterUserPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
         <Card className="max-w-md w-full text-center">
-          <div style={{ color: '#059669', fontSize: '4rem', marginBottom: '1rem' }}>✓</div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+          <div className="text-green-500 text-4xl mb-4">✓</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
             ¡Registro Exitoso!
           </h2>
-          <p style={{ color: '#6B7280', marginBottom: '1rem' }}>
+          <p className="text-gray-600 mb-4">
             Tu cuenta de usuario ha sido creada exitosamente. Ya puedes iniciar sesión.
           </p>
-          <p style={{ fontSize: '0.875rem', color: '#9CA3AF' }}>
+          <p className="text-sm text-gray-400">
             Serás redirigido al login en unos segundos...
           </p>
         </Card>
@@ -98,10 +98,10 @@ const RegisterUserPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-6">
         <div className="text-center">
-          <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>
+          <h2 className="text-2xl font-bold text-gray-900">
             Crear Cuenta de Usuario - SongSto
           </h2>
-          <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.5rem' }}>
+          <p className="text-sm text-gray-500 mt-2">
             Únete para explorar y comprar discos de vinilo
           </p>
         </div>
@@ -109,41 +109,21 @@ const RegisterUserPage: React.FC = () => {
         <Card>
           <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             {error && (
-              <div className="alert alert-error" style={{ 
-                backgroundColor: '#FEF2F2', 
-                border: '1px solid #FECACA', 
-                color: '#DC2626',
-                padding: '0.75rem',
-                borderRadius: '0.375rem'
-              }}>
+              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 p-3 rounded">
                 {error}
               </div>
             )}
-            
-            <div className="alert alert-info" style={{
-              backgroundColor: '#EFF6FF',
-              border: '1px solid #DBEAFE',
-              color: '#1D4ED8',
-              padding: '0.75rem',
-              borderRadius: '0.375rem'
-            }}>
+
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded">
               <strong>Nota:</strong> Crea tu cuenta para acceder al catálogo completo de vinilos.
             </div>
-            
+
             {/* DEBUG INFO */}
-            <div style={{
-              backgroundColor: '#F3F4F6',
-              border: '1px solid #D1D5DB',
-              padding: '0.75rem',
-              borderRadius: '0.375rem',
-              fontSize: '0.75rem'
-            }}>
+            <div className="bg-gray-100 border border-gray-200 p-3 rounded text-xs">
               <strong>Debug Info:</strong>
               <br />Loading: {loading.toString()}
               <br />Error: {error || 'none'}
-              <br />Campos completos: {
-                (formData.username && formData.password && formData.email && formData.fullName).toString()
-              }
+              <br />Campos completos: {(formData.username && formData.password && formData.email && formData.fullName).toString()}
             </div>
             
             <Input
@@ -206,15 +186,15 @@ const RegisterUserPage: React.FC = () => {
           </form>
           
           <div className="mt-6 text-center">
-            <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>
+            <p className="text-sm text-gray-500">
               ¿Ya tienes cuenta?{' '}
-              <Link to="/login" style={{ color: '#2563EB', textDecoration: 'none' }}>
+              <Link to="/login" className="text-blue-600 hover:underline">
                 Iniciar sesión
               </Link>
             </p>
-            <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.5rem' }}>
+            <p className="text-sm text-gray-500 mt-2">
               ¿Quieres vender discos?{' '}
-              <Link to="/register-provider" style={{ color: '#2563EB', textDecoration: 'none' }}>
+              <Link to="/register-provider" className="text-blue-600 hover:underline">
                 Registrarse como proveedor
               </Link>
             </p>

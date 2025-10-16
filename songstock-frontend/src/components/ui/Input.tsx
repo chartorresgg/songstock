@@ -10,54 +10,22 @@ const Input: React.FC<InputProps> = ({
   label,
   error,
   helperText,
-  style = {},
   ...props
 }) => {
-  const inputStyles = {
-    width: '100%',
-    padding: '0.5rem 0.75rem',
-    border: error ? '1px solid #DC2626' : '1px solid #D1D5DB',
-    borderRadius: '0.375rem',
-    fontSize: '0.875rem',
-    ...style,
-  };
-
-  const labelStyles = {
-    display: 'block',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: '0.25rem',
-  };
-
-  const errorStyles = {
-    marginTop: '0.25rem',
-    fontSize: '0.875rem',
-    color: '#DC2626',
-  };
-
-  const helperStyles = {
-    marginTop: '0.25rem',
-    fontSize: '0.875rem',
-    color: '#6B7280',
-  };
-
   return (
-    <div style={{ width: '100%' }}>
+    <div className="w-full">
       {label && (
-        <label style={labelStyles}>
-          {label}
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       )}
       <input
-        style={inputStyles}
+        className={`w-full px-3 py-2 text-sm rounded-md border ${error ? 'border-red-600' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-200`}
         {...props}
       />
       {error && (
-        <p style={errorStyles}>{error}</p>
+        <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
       {helperText && !error && (
-        <p style={helperStyles}>{helperText}</p>
+        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
       )}
     </div>
   );

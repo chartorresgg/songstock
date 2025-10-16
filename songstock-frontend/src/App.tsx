@@ -13,6 +13,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';    // AGREGAR
 
 // Dashboard
 import DashboardPage from './pages/dashboard/DashboardPage';
+import TrackVinylsPage from './pages/TrackVinylsPage';
 
 import AdminUsersManagementPage from './pages/admin/AdminUsersPage';
 
@@ -105,7 +106,8 @@ function App() {
         />
         
         {/* Public Catalog */}
-        <Route path="/catalog" element={<CatalogPage />} />
+  <Route path="/catalog" element={<CatalogPage />} />
+  <Route path="/tracks" element={<TrackVinylsPage />} />
         
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

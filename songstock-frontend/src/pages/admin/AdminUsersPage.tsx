@@ -116,7 +116,7 @@ const AdminUsersPage: React.FC = () => {
     setFilters(prev => ({
       ...prev,
       [field]: value,
-      page: field !== 'page' ? 0 : value // Reset page when other filters change
+      page: field !== 'page' ? 0 : Number(value) // Reset page when other filters change
     }));
   };
 

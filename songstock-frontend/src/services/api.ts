@@ -350,3 +350,26 @@ export const adminUserAPI = {
 
 // Exportar la instancia de axios por defecto
 export default api;
+
+// API helpers for tracks and vinyls (HU-19)
+export const tracksAPI = {
+  searchTracks: async (query: string) => {
+    try {
+      const response = await api.get(`/api/tracks?q=${encodeURIComponent(query)}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error searching tracks:', error);
+      throw new Error(error.response?.data?.message || 'Error searching tracks');
+    }
+  },
+
+  getVinylsForTrack: async (trackId: number) => {
+    try {
+      const response = await api.get(`/api/tracks/${trackId}/vinyls`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting vinyls for track:', error);
+      throw new Error(error.response?.data?.message || 'Error getting vinyls');
+    }
+  }
+}

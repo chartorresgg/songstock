@@ -13,39 +13,14 @@ const Card: React.FC<CardProps> = ({
   className = '', 
   style = {} 
 }) => {
-  const cardStyles = {
-    backgroundColor: 'white',
-    borderRadius: '0.5rem',
-    border: '1px solid #E5E7EB',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    ...style,
-  };
-
-  const headerStyles = {
-    padding: '1.5rem 1.5rem 0 1.5rem',
-    borderBottom: title ? '1px solid #E5E7EB' : 'none',
-    marginBottom: title ? '1.5rem' : '0',
-  };
-
-  const titleStyles = {
-    fontSize: '1.125rem',
-    fontWeight: '500',
-    color: '#111827',
-    margin: '0 0 1.5rem 0',
-  };
-
-  const contentStyles = {
-    padding: '1.5rem',
-  };
-
   return (
-    <div style={cardStyles} className={className}>
+    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`} style={style}>
       {title && (
-        <div style={headerStyles}>
-          <h3 style={titleStyles}>{title}</h3>
+        <div className="px-6 pt-6 pb-0 border-b border-gray-200 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-3">{title}</h3>
         </div>
       )}
-      <div style={title ? { padding: '0 1.5rem 1.5rem 1.5rem' } : contentStyles}>
+      <div className={title ? 'px-6 pb-6' : 'p-6'}>
         {children}
       </div>
     </div>

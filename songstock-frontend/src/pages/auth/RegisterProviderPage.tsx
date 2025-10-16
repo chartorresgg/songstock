@@ -99,14 +99,14 @@ const RegisterProviderPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
         <Card className="max-w-md w-full text-center">
-          <div style={{ color: '#059669', fontSize: '4rem', marginBottom: '1rem' }}>✓</div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+          <div className="text-green-500 text-4xl mb-4">✓</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
             ¡Registro Exitoso!
           </h2>
-          <p style={{ color: '#6B7280', marginBottom: '1rem' }}>
+          <p className="text-gray-600 mb-4">
             Tu cuenta de proveedor ha sido creada. Está pendiente de verificación por un administrador.
           </p>
-          <p style={{ fontSize: '0.875rem', color: '#9CA3AF' }}>
+          <p className="text-sm text-gray-400">
             Serás redirigido al login en unos segundos...
           </p>
         </Card>
@@ -118,10 +118,10 @@ const RegisterProviderPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-4xl w-full space-y-6">
         <div className="text-center">
-          <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>
+          <h2 className="text-2xl font-bold text-gray-900">
             🎵 Registro de Proveedor - SongSto
           </h2>
-          <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.5rem' }}>
+          <p className="text-sm text-gray-500 mt-2">
             Crea tu cuenta para vender discos en nuestra plataforma
           </p>
         </div>
@@ -134,52 +134,27 @@ const RegisterProviderPage: React.FC = () => {
             noValidate
           >
             {error && (
-              <div className="alert alert-error" style={{ 
-                backgroundColor: '#FEF2F2', 
-                border: '1px solid #FECACA', 
-                color: '#DC2626',
-                padding: '0.75rem',
-                borderRadius: '0.375rem'
-              }}>
+              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 p-3 rounded">
                 {error}
               </div>
             )}
-            
-            <div className="alert alert-info" style={{
-              backgroundColor: '#EFF6FF',
-              border: '1px solid #DBEAFE',
-              color: '#1D4ED8',
-              padding: '0.75rem',
-              borderRadius: '0.375rem'
-            }}>
+
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded">
               <strong>Nota:</strong> Tu cuenta será revisada por un administrador antes de ser activada.
             </div>
-            
+
             {/* DEBUG INFO */}
-            <div style={{
-              backgroundColor: '#F3F4F6',
-              border: '1px solid #D1D5DB',
-              padding: '0.75rem',
-              borderRadius: '0.375rem',
-              fontSize: '0.75rem'
-            }}>
+            <div className="bg-gray-100 border border-gray-200 p-3 rounded text-xs">
               <strong>Debug Info:</strong>
               <br />Loading: {loading.toString()}
               <br />Error: {error || 'none'}
-              <br />Campos requeridos: {
-                `username: ${!!formData.username}, password: ${!!formData.password}, email: ${!!formData.email}, fullName: ${!!formData.fullName}, businessName: ${!!formData.businessName}`
-              }
-              <br />Todos completos: {
-                (formData.username && formData.password && formData.email && 
-                 formData.fullName && formData.businessName).toString()
-              }
+              <br />Campos requeridos: {`username: ${!!formData.username}, password: ${!!formData.password}, email: ${!!formData.email}, fullName: ${!!formData.fullName}, businessName: ${!!formData.businessName}`}
+              <br />Todos completos: {(formData.username && formData.password && formData.email && formData.fullName && formData.businessName).toString()}
             </div>
             
             {/* Información de Usuario */}
             <div>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem' }}>
-                Información de Usuario
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información de Usuario</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Usuario *"
@@ -225,9 +200,7 @@ const RegisterProviderPage: React.FC = () => {
             
             {/* Información del Negocio */}
             <div>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem' }}>
-                Información del Negocio
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información del Negocio</h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
@@ -264,9 +237,7 @@ const RegisterProviderPage: React.FC = () => {
             
             {/* Información de Dirección */}
             <div>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem' }}>
-                Información de Dirección
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información de Dirección</h3>
               <div className="space-y-4">
                 <Input
                   label="Dirección"
@@ -307,20 +278,12 @@ const RegisterProviderPage: React.FC = () => {
                 </div>
                 
                 <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-                    País
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">País</label>
                   <select
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.5rem 0.75rem', 
-                      border: '1px solid #D1D5DB', 
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem'
-                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                   >
                     <option value="Colombia">Colombia</option>
                     <option value="Costa Rica">Costa Rica</option>
@@ -334,43 +297,17 @@ const RegisterProviderPage: React.FC = () => {
             </div>
             
             {/* BOTONES DE DEBUG Y TESTING */}
-            <div style={{ border: '2px dashed #9CA3AF', padding: '1rem', borderRadius: '0.375rem' }}>
-              <h4 style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Debug - Botones de Prueba:</h4>
-              
-              <button
-                type="button"
-                onClick={handleManualSubmit}
-                style={{ 
-                  padding: '0.5rem 1rem', 
-                  marginRight: '0.5rem',
-                  backgroundColor: '#EF4444', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '0.25rem' 
-                }}
-              >
-                🔥 Manual Submit Test
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🧪 Validating form manually...');
-                  const isValid = formData.username && formData.password && formData.email && 
-                                 formData.fullName && formData.businessName;
-                  console.log('Form is valid:', isValid);
-                  console.log('Current formData:', formData);
-                }}
-                style={{ 
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#6B7280', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '0.25rem' 
-                }}
-              >
-                🧪 Validate Form
-              </button>
+            <div className="border-2 border-dashed border-gray-400 p-4 rounded">
+              <h4 className="mb-2 font-bold">Debug - Botones de Prueba:</h4>
+
+              <Button type="button" variant="danger" onClick={handleManualSubmit} className="mr-2">🔥 Manual Submit Test</Button>
+
+              <Button type="button" variant="secondary" onClick={() => {
+                console.log('🧪 Validating form manually...');
+                const isValid = formData.username && formData.password && formData.email && formData.fullName && formData.businessName;
+                console.log('Form is valid:', isValid);
+                console.log('Current formData:', formData);
+              }}>🧪 Validate Form</Button>
             </div>
             
             {/* ⭐ BOTÓN PRINCIPAL SIN onClick CONFLICTIVO */}
@@ -385,11 +322,9 @@ const RegisterProviderPage: React.FC = () => {
           </form>
           
           <div className="mt-6 text-center">
-            <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>
+            <p className="text-sm text-gray-500">
               ¿Ya tienes cuenta?{' '}
-              <Link to="/login" style={{ color: '#2563EB', textDecoration: 'none' }}>
-                Iniciar sesión
-              </Link>
+              <Link to="/login" className="text-blue-600 hover:underline">Iniciar sesión</Link>
             </p>
           </div>
         </Card>

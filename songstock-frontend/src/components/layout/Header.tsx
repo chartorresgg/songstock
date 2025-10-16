@@ -47,9 +47,8 @@ const Header: React.FC = () => {
                 </Link>
                 <Link to="/register-provider">
                   <Button 
-                    variant="secondary" 
+                    variant="success" 
                     size="sm"
-                    style={{ backgroundColor: '#059669', color: 'white' }}
                   >
                     Vender Discos
                   </Button>

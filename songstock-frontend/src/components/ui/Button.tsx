@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'success';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
 }
@@ -13,73 +13,41 @@ const Button: React.FC<ButtonProps> = ({
   loading = false,
   className = '',
   disabled,
-  style = {},
   ...props
 }) => {
-  const getVariantStyles = (variant: string) => {
+  const variantClasses = () => {
     switch (variant) {
       case 'primary':
-        return {
-          backgroundColor: '#2563EB',
-          color: 'white',
-          border: 'none',
-        };
+        return 'bg-blue-600 hover:bg-blue-700 text-white border-transparent';
+      case 'success':
+        return 'bg-green-600 hover:bg-green-700 text-white border-transparent';
       case 'secondary':
-        return {
-          backgroundColor: '#E5E7EB',
-          color: '#374151',
-          border: '1px solid #D1D5DB',
-        };
+        return 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300';
       case 'danger':
-        return {
-          backgroundColor: '#DC2626',
-          color: 'white',
-          border: 'none',
-        };
+        return 'bg-red-600 hover:bg-red-700 text-white border-transparent';
       default:
-        return {
-          backgroundColor: '#2563EB',
-          color: 'white',
-          border: 'none',
-        };
+        return 'bg-blue-600 hover:bg-blue-700 text-white border-transparent';
     }
   };
 
-  const getSizeStyles = (size: string) => {
+  const sizeClasses = () => {
     switch (size) {
       case 'sm':
-        return {
-          padding: '0.375rem 0.75rem',
-          fontSize: '0.875rem',
-        };
+        return 'px-3 py-1.5 text-sm';
       case 'lg':
-        return {
-          padding: '0.75rem 1.5rem',
-          fontSize: '1.125rem',
-        };
+        return 'px-6 py-3 text-lg';
       default:
-        return {
-          padding: '0.5rem 1rem',
-          fontSize: '1rem',
-        };
+        return 'px-4 py-2 text-base';
     }
   };
 
-  const buttonStyles = {
-    fontWeight: '500',
-    borderRadius: '0.375rem',
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    opacity: disabled || loading ? 0.5 : 1,
-    transition: 'all 0.2s',
-    ...getVariantStyles(variant),
-    ...getSizeStyles(size),
-    ...style,
-  };
+  const base = 'inline-flex items-center justify-center font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const classes = [base, variantClasses(), sizeClasses(), className].filter(Boolean).join(' ');
 
   return (
     <button
-      style={buttonStyles}
-      className={className}
+      className={classes}
       disabled={disabled || loading}
       {...props}
     >
