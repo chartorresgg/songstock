@@ -52,7 +52,10 @@ public class ProviderService {
 
     @Transactional(readOnly = true)
     public List<Provider> getAllProviders() {
-        return providerRepository.findAll();
+                List<Provider> providers = providerRepository.findAll();
+                // Forzar carga del proxy user para evitar LazyInitializationException
+                providers.forEach(p -> p.getUser().getUsername());
+                return providers;
     }
 
     @Transactional(readOnly = true)
