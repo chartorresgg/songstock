@@ -163,7 +163,7 @@ const Navbar = () => {
                   to="/login" 
                   className="text-gray-700 hover:text-primary-900 font-medium transition"
                 >
-                  Iniciar Sesión
+                  Iniciar sesión
                 </Link>
                 <Link 
                   to="/register" 
@@ -255,7 +255,7 @@ const Navbar = () => {
                   className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Iniciar Sesión
+                  Iniciar sesión
                 </Link>
                 <Link
                   to="/register"

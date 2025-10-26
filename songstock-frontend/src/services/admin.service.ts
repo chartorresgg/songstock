@@ -232,21 +232,13 @@ class AdminService {
    */
   async getAllProviders(): Promise<any[]> {
     try {
-      const response = await axiosInstance.get<ApiResponse<any>>(
-        '/admin/users/by-role/PROVIDER'
-      );
+      const response = await axiosInstance.get<ApiResponse<any>>('/providers');
       
-      const providers: any = response.data.data || response.data || [];
+      const providers = response.data.data || [];
       
-      if (Array.isArray(providers)) {
-        return providers;
-      }
-      
-      if (providers && providers.content && Array.isArray(providers.content)) {
-        return providers.content;
-      }
-      
-      return [];
+      return Array.isArray(providers) 
+        ? providers.filter(p => p.verificationStatus === 'VERIFIED')
+        : [];
     } catch (error) {
       console.error('Error fetching providers:', error);
       return [];

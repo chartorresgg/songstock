@@ -136,8 +136,8 @@ const AdminDashboard = () => {
       
       setCategories(categoriesData);
       setAlbums(albumsData);
-      setAllProviders(providersData.filter((p: any) => p.verificationStatus === 'VERIFIED'));
-    } catch (error) {
+      setAllProviders(providers);
+   } catch (error) {
       console.error('Error loading catalog data:', error);
     }
   };
