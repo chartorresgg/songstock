@@ -14,7 +14,18 @@ export enum OrderStatus {
   SHIPPED = 'SHIPPED',           // El pedido ha sido enviado al cliente
   DELIVERED = 'DELIVERED',       // El cliente ha recibido el pedido
   CANCELLED = 'CANCELLED',       // La orden fue cancelada (por el cliente o por falta de stock)
+  ACCEPTED = 'ACCEPTED',         // Aceptado por proveedor
+  REJECTED = 'REJECTED',         // Rechazado por proveedor
 }
+
+export enum OrderItemStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  PROCESSING = 'PROCESSING',
+  SHIPPED = 'SHIPPED',
+}
+  
 
 /**
  * Esta interfaz representa un producto individual dentro de una orden.
@@ -28,6 +39,10 @@ export interface OrderItem {
   quantity: number;              // Cantidad comprada de este producto
   price: number;                 // Precio unitario al momento de la compra (puede diferir del precio actual)
   subtotal: number;              // Precio total de este item (price × quantity)
+  providerId: number;            // ID del proveedor
+  providerName: string;          // Nombre del proveedor
+  status: OrderItemStatus;       // Estado del item
+  rejectionReason?: string;      // Razón de rechazo (opcional)
 }
 
 /**
@@ -87,6 +102,8 @@ export const getOrderStatusLabel = (status: OrderStatus): string => {
     [OrderStatus.SHIPPED]: 'Enviada',
     [OrderStatus.DELIVERED]: 'Entregada',
     [OrderStatus.CANCELLED]: 'Cancelada',
+    [OrderStatus.ACCEPTED]: 'Aceptada',
+    [OrderStatus.REJECTED]: 'Rechazada',
   };
   return labels[status];
 };
@@ -104,6 +121,9 @@ export const getOrderStatusColor = (status: OrderStatus): string => {
     [OrderStatus.SHIPPED]: 'bg-indigo-100 text-indigo-800',
     [OrderStatus.DELIVERED]: 'bg-green-100 text-green-800',
     [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800',
+    [OrderStatus.ACCEPTED]: 'bg-green-100 text-green-800',
+    [OrderStatus.REJECTED]: 'bg-red-100 text-red-800',
+    
   };
   return colors[status];
 };

@@ -1,26 +1,41 @@
 import axiosInstance from './axios.instance';
-import { API_ENDPOINTS } from '../config/api.config';
-import { Order, OrderStatus } from '../types/order.types';
+import { Order, OrderStatus, OrderItemStatus } from '../types/order.types';
 import { ApiResponse } from '../types/api.types';
 
 class OrderService {
-  // Este método obtiene todas las órdenes del usuario actual
+  /**
+   * Obtener todas las órdenes del usuario actual (CUSTOMER)
+   */
   async getMyOrders(): Promise<Order[]> {
     try {
-      // Intentar obtener del backend (cuando esté implementado)
       const response = await axiosInstance.get<ApiResponse<Order[]>>(
         '/orders/my-orders'
       );
       return response.data.data;
     } catch (error) {
-      // Si falla (porque no está implementado), retornar datos de ejemplo
-      // Esto permite que la interfaz funcione mientras se desarrolla el backend
-      console.log('Orders endpoint not available, using mock data');
-      return this.getMockOrders();
+      console.error('Error fetching orders:', error);
+      throw error;
     }
   }
 
-  // Este método obtiene una orden específica por su ID
+  /**
+   * Obtener órdenes pendientes del proveedor (PROVIDER)
+   */
+  async getPendingOrders(): Promise<Order[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<Order[]>>(
+        '/orders/provider/pending'
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching pending orders:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener una orden específica por su ID
+   */
   async getOrderById(orderId: number): Promise<Order | null> {
     try {
       const response = await axiosInstance.get<ApiResponse<Order>>(
@@ -28,79 +43,61 @@ class OrderService {
       );
       return response.data.data;
     } catch (error) {
-      console.log('Order detail not available');
+      console.error('Error fetching order:', error);
       return null;
     }
   }
 
-  // Este método genera datos de ejemplo para demostración
-  // En producción, estos datos vendrían del backend
-  private getMockOrders(): Order[] {
-    // Creamos un array con órdenes de ejemplo que simulan diferentes estados
-    return [
-      {
-        id: 1,
-        orderNumber: 'ORD-2025-001',
-        userId: 1,
-        items: [
-          {
-            id: 1,
-            product: {
-              id: 1,
-              albumTitle: 'The Dark Side of the Moon',
-              artistName: 'Pink Floyd',
-              price: 89990,
-              productType: 'PHYSICAL',
-              stockQuantity: 5,
-              images: null,
-              // Otros campos del producto...
-            } as any,
-            quantity: 1,
-            price: 89990,
-            subtotal: 89990,
-          },
-        ],
-        status: OrderStatus.DELIVERED,
-        total: 89990,
-        shippingAddress: {
-          address: 'Calle 123 #45-67',
-          city: 'Bogotá',
-          state: 'Cundinamarca',
-          postalCode: '110111',
-          country: 'Colombia',
-        },
-        paymentMethod: 'credit_card',
-        createdAt: '2025-01-15T10:00:00Z',
-        updatedAt: '2025-01-18T14:30:00Z',
-      },
-      {
-        id: 2,
-        orderNumber: 'ORD-2025-002',
-        userId: 1,
-        items: [
-          {
-            id: 2,
-            product: {
-              id: 5,
-              albumTitle: 'Back in Black',
-              artistName: 'AC/DC',
-              price: 12990,
-              productType: 'DIGITAL',
-              stockQuantity: 9999,
-              images: null,
-            } as any,
-            quantity: 1,
-            price: 12990,
-            subtotal: 12990,
-          },
-        ],
-        status: OrderStatus.PROCESSING,
-        total: 12990,
-        paymentMethod: 'debit_card',
-        createdAt: '2025-01-20T15:30:00Z',
-        updatedAt: '2025-01-20T15:30:00Z',
-      },
-    ];
+  /**
+   * Aceptar un item de orden (PROVIDER)
+   */
+  async acceptOrderItem(itemId: number): Promise<void> {
+    try {
+      await axiosInstance.put(`/orders/items/${itemId}/accept`);
+    } catch (error) {
+      console.error('Error accepting order item:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rechazar un item de orden (PROVIDER)
+   */
+  async rejectOrderItem(itemId: number, reason: string): Promise<void> {
+    try {
+      await axiosInstance.put(
+        `/orders/items/${itemId}/reject`,
+        null,
+        { params: { reason } }
+      );
+    } catch (error) {
+      console.error('Error rejecting order item:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crear nueva orden (CUSTOMER)
+   */
+  async createOrder(orderData: {
+    items: { productId: number; quantity: number }[];
+    paymentMethod: string;
+    shippingAddress?: string;
+    shippingCity?: string;
+    shippingState?: string;
+    shippingPostalCode?: string;
+    shippingCountry?: string;
+  }): Promise<Order> {
+    try {
+      const response = await axiosInstance.post<ApiResponse<Order>>(
+        '/orders',
+        orderData
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw error;
+    }
   }
 }
 

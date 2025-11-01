@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import orderService from '../../services/order.service';
 import { 
   CreditCard, 
   MapPin, 
@@ -30,7 +31,7 @@ interface CheckoutFormData {
   country: string;
   
   // Método de pago
-  paymentMethod: 'credit_card' | 'debit_card' | 'pse';
+  paymentMethod: 'CREDIT_CARD' | 'DEBIT_CARD' | 'PSE';
   
   // Tarjeta (si aplica)
   cardNumber: string;
@@ -56,7 +57,7 @@ const Checkout = () => {
     state: '',
     postalCode: '',
     country: 'Colombia',
-    paymentMethod: 'credit_card',
+    paymentMethod: 'CREDIT_CARD',
     cardNumber: '',
     cardName: '',
     cardExpiry: '',
@@ -103,7 +104,7 @@ const Checkout = () => {
     }
     
     // Validar tarjeta si es pago con tarjeta
-    if (formData.paymentMethod !== 'pse') {
+    if (formData.paymentMethod !== 'PSE') {
       if (!formData.cardNumber || !formData.cardName || !formData.cardExpiry || !formData.cardCvv) {
         toast.error('Por favor completa los datos de la tarjeta');
         return false;
@@ -121,24 +122,21 @@ const Checkout = () => {
     setLoading(true);
     
     try {
-      // Simular llamada al backend
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // TODO: Aquí irá la llamada real al backend para crear la orden
-      // const response = await orderService.createOrder({
-      //   items: items.map(item => ({
-      //     productId: item.product.id,
-      //     quantity: item.quantity
-      //   })),
-      //   shippingAddress: {
-      //     address: formData.address,
-      //     city: formData.city,
-      //     state: formData.state,
-      //     postalCode: formData.postalCode,
-      //     country: formData.country
-      //   },
-      //   paymentMethod: formData.paymentMethod
-      // });
+      // Preparar datos de la orden
+      const orderData = {
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity
+        })),
+        paymentMethod: formData.paymentMethod,
+        shippingAddress: formData.address,
+        shippingCity: formData.city,
+        shippingState: formData.state,
+        shippingPostalCode: formData.postalCode,
+        shippingCountry: formData.country
+      };
+
+      await orderService.createOrder(orderData);
       
       setOrderPlaced(true);
       clearCart();
@@ -150,7 +148,7 @@ const Checkout = () => {
       }, 3000);
       
     } catch (error) {
-      console.error('Error placing order:', error);
+      console.error('Error creating order:', error);
       toast.error('Error al procesar el pedido. Por favor intenta nuevamente.');
     } finally {
       setLoading(false);
@@ -243,7 +241,6 @@ const Checkout = () => {
                     Información Personal
                   </h2>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -258,7 +255,6 @@ const Checkout = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Apellido *
@@ -272,7 +268,6 @@ const Checkout = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       <Mail className="inline h-4 w-4 mr-1" />
@@ -287,7 +282,6 @@ const Checkout = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       <Phone className="inline h-4 w-4 mr-1" />
@@ -315,7 +309,6 @@ const Checkout = () => {
                       Dirección de Envío
                     </h2>
                   </div>
-
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -331,7 +324,6 @@ const Checkout = () => {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -347,7 +339,6 @@ const Checkout = () => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Departamento *
@@ -362,7 +353,6 @@ const Checkout = () => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Código Postal
@@ -376,7 +366,6 @@ const Checkout = () => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           País *
@@ -412,9 +401,9 @@ const Checkout = () => {
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'credit_card' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'CREDIT_CARD' }))}
                     className={`p-4 border-2 rounded-lg transition ${
-                      formData.paymentMethod === 'credit_card'
+                      formData.paymentMethod === 'CREDIT_CARD'
                         ? 'border-primary-900 bg-primary-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
@@ -422,12 +411,11 @@ const Checkout = () => {
                     <CreditCard className="h-6 w-6 mx-auto mb-2" />
                     <div className="text-sm font-medium">Crédito</div>
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'debit_card' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'DEBIT_CARD' }))}
                     className={`p-4 border-2 rounded-lg transition ${
-                      formData.paymentMethod === 'debit_card'
+                      formData.paymentMethod === 'DEBIT_CARD'
                         ? 'border-primary-900 bg-primary-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
@@ -435,12 +423,11 @@ const Checkout = () => {
                     <CreditCard className="h-6 w-6 mx-auto mb-2" />
                     <div className="text-sm font-medium">Débito</div>
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'pse' }))}
+                    onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'PSE' }))}
                     className={`p-4 border-2 rounded-lg transition ${
-                      formData.paymentMethod === 'pse'
+                      formData.paymentMethod === 'PSE'
                         ? 'border-primary-900 bg-primary-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
@@ -451,7 +438,7 @@ const Checkout = () => {
                 </div>
 
                 {/* Formulario de tarjeta */}
-                {formData.paymentMethod !== 'pse' && (
+                {formData.paymentMethod !== 'PSE' && (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -468,7 +455,6 @@ const Checkout = () => {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Nombre en la Tarjeta *
@@ -483,7 +469,6 @@ const Checkout = () => {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -500,7 +485,6 @@ const Checkout = () => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           CVV *
@@ -520,7 +504,7 @@ const Checkout = () => {
                   </div>
                 )}
 
-                {formData.paymentMethod === 'pse' && (
+                {formData.paymentMethod === 'PSE' && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm text-gray-700">
                       Serás redirigido a la plataforma PSE para completar el pago de forma segura.
@@ -574,14 +558,12 @@ const Checkout = () => {
                     <span>Subtotal</span>
                     <span className="font-medium">{formatPrice(total)}</span>
                   </div>
-
                   {hasPhysicalProducts && (
                     <div className="flex justify-between text-gray-600">
                       <span>Envío</span>
                       <span className="text-green-600 font-medium">A calcular</span>
                     </div>
                   )}
-
                   <div className="border-t pt-3">
                     <div className="flex justify-between text-lg font-bold text-gray-900">
                       <span>Total</span>

@@ -1,6 +1,15 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config';
 
+
+export const API_ENDPOINTS = {
+  PRODUCTS: '/api/v1/products',
+  PROVIDERS: '/api/v1/providers',
+  ORDERS: '/api/v1/orders',
+  // ... otros endpoints existentes
+};
+
+
 const axiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,

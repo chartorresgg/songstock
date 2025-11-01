@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '../types/product.types';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
+
 
 interface CartItem {
   product: Product;
@@ -22,6 +23,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [lastAction, setLastAction] = useState<{type: string; message: string} | null>(null);
 
   // Cargar carrito del localStorage al iniciar
   useEffect(() => {
@@ -40,6 +42,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('cart', JSON.stringify(items));
   }, [items]);
 
+  // Mostrar toast cuando cambia lastAction
+  useEffect(() => {
+    if (lastAction) {
+      toast[lastAction.type === 'error' ? 'error' : 'success'](lastAction.message);
+      setLastAction(null);
+    }
+  }, [lastAction]);
+
+
   const addItem = (product: Product, quantity: number = 1) => {
     setItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.product.id === product.id);
@@ -50,11 +61,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         
         // Verificar stock
         if (newQuantity > product.stockQuantity) {
-          toast.error(`Solo hay ${product.stockQuantity} unidades disponibles`);
+          setLastAction({type: 'error', message: `Solo hay ${product.stockQuantity} unidades disponibles`});
           return currentItems;
         }
 
-        toast.success('Cantidad actualizada en el carrito');
+        setLastAction({type: 'success', message: 'Cantidad actualizada en el carrito'});
         return currentItems.map((item) =>
           item.product.id === product.id
             ? { ...item, quantity: newQuantity }
@@ -62,7 +73,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         );
       } else {
         // Si no existe, agregarlo
-        toast.success(`${product.albumTitle} agregado al carrito`);
+        setLastAction({type: 'success', message: `${product.albumTitle} agregado al carrito`});
         return [...currentItems, { product, quantity }];
       }
     });
@@ -71,9 +82,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const removeItem = (productId: number) => {
     setItems((currentItems) => {
       const item = currentItems.find((i) => i.product.id === productId);
-      if (item) {
-        toast.success(`${item.product.albumTitle} eliminado del carrito`);
-      }
+      if (item) setLastAction({type: 'success', message: `${item.product.albumTitle} eliminado del carrito`});
       return currentItems.filter((item) => item.product.id !== productId);
     });
   };
@@ -89,7 +98,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (item.product.id === productId) {
           // Verificar stock
           if (quantity > item.product.stockQuantity) {
-            toast.error(`Solo hay ${item.product.stockQuantity} unidades disponibles`);
+            setLastAction({type: 'error', message: `Solo hay ${item.product.stockQuantity} unidades disponibles`});
             return item;
           }
           return { ...item, quantity };
@@ -101,7 +110,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => {
     setItems([]);
-    toast.success('Carrito vaciado');
+    setLastAction({type: 'success', message: 'Carrito vaciado'});
   };
 
   const isInCart = (productId: number): boolean => {

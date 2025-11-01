@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import orderService from '../../services/order.service';
+import { Order, OrderItemStatus } from '../../types/order.types';
 import { Link } from 'react-router-dom';
 import { 
   Package, 
@@ -8,7 +10,10 @@ import {
   Eye,
   Edit,
   Trash2,
-  Search
+  Search,
+  ShoppingCart,
+  Check,
+  X
 } from 'lucide-react';
 import providerService from '../../services/provider.service';
 import { Product } from '../../types/product.types';
@@ -16,6 +21,8 @@ import toast from 'react-hot-toast';
 
 const ProviderDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [processingItem, setProcessingItem] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
@@ -43,6 +50,15 @@ const ProviderDashboard = () => {
       }
       
       setProducts(productsData);
+
+      // Cargar órdenes pendientes
+      try {
+        const ordersData = await orderService.getPendingOrders();
+        setPendingOrders(ordersData);
+      } catch (ordersError) {
+        console.warn('Could not load pending orders:', ordersError);
+        setPendingOrders([]);
+      }
   
       try {
         const statsData = await providerService.getProviderStats();
@@ -81,6 +97,40 @@ const ProviderDashboard = () => {
     });
   };
 
+  const handleAcceptItem = async (itemId: number) => {
+    try {
+      setProcessingItem(itemId);
+      await orderService.acceptOrderItem(itemId);
+      toast.success('Pedido aceptado exitosamente');
+      await loadData();
+    } catch (error) {
+      console.error('Error accepting item:', error);
+      toast.error('Error al aceptar el pedido');
+    } finally {
+      setProcessingItem(null);
+    }
+  };
+
+  const handleRejectItem = async (itemId: number) => {
+    const reason = prompt('Motivo del rechazo:');
+    if (!reason || reason.trim() === '') {
+      toast.error('Debe proporcionar un motivo de rechazo');
+      return;
+    }
+
+    try {
+      setProcessingItem(itemId);
+      await orderService.rejectOrderItem(itemId, reason);
+      toast.success('Pedido rechazado');
+      await loadData();
+    } catch (error) {
+      console.error('Error rejecting item:', error);
+      toast.error('Error al rechazar el pedido');
+    } finally {
+      setProcessingItem(null);
+    }
+  };
+
   const handleDelete = async (id: number, title: string) => {
     if (!window.confirm(`¿Estás seguro de eliminar "${title}"?`)) {
       return;
@@ -108,6 +158,10 @@ const ProviderDashboard = () => {
     product.albumTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.artistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const pendingItemsCount = pendingOrders.reduce((acc, order) => 
+    acc + order.items.filter(item => item.status === OrderItemStatus.PENDING).length, 0
   );
 
   if (loading) {
@@ -139,6 +193,7 @@ const ProviderDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
@@ -179,16 +234,112 @@ const ProviderDashboard = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Pedidos (Demo)</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalOrders}</p>
+                <p className="text-sm text-gray-600 mb-1">Pedidos Pendientes</p>
+                <p className="text-3xl font-bold text-yellow-600">{pendingItemsCount}</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Package className="h-8 w-8 text-blue-600" />
+              <div className="bg-yellow-100 p-3 rounded-lg">
+                <ShoppingCart className="h-8 w-8 text-yellow-600" />
               </div>
             </div>
           </div>
         </div>
 
+        {/* Órdenes Pendientes */}
+        {pendingOrders.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md mb-8">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <ShoppingCart className="h-6 w-6 mr-2 text-primary-600" />
+                  Órdenes Pendientes
+                </h2>
+                <span className="bg-yellow-100 text-yellow-800 text-sm font-semibold px-3 py-1 rounded-full">
+                  {pendingItemsCount} items
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-4">
+                {pendingOrders.map(order => {
+                  const myPendingItems = order.items.filter(
+                    item => item.status === OrderItemStatus.PENDING
+                  );
+
+                  if (myPendingItems.length === 0) return null;
+
+                  return (
+                    <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            Orden #{order.orderNumber}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(order.createdAt).toLocaleDateString('es-CO', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <span className="text-lg font-bold text-gray-900">
+                          {formatPrice(order.total)}
+                        </span>
+                      </div>
+
+                      {myPendingItems.map(item => (
+                        <div key={item.id} className="bg-gray-50 rounded-lg p-4 mb-2">
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{item.product.albumTitle}</p>
+                              <p className="text-sm text-gray-600">{item.product.artistName}</p>
+                              <div className="flex items-center space-x-4 mt-2">
+                                <span className="text-sm text-gray-500">
+                                  Cantidad: <span className="font-semibold">{item.quantity}</span>
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  Precio: <span className="font-semibold">{formatPrice(item.price)}</span>
+                                </span>
+                                <span className="text-sm font-semibold text-primary-600">
+                                  Subtotal: {formatPrice(item.subtotal)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2 ml-4">
+                              <button
+                                onClick={() => handleAcceptItem(item.id)}
+                                disabled={processingItem === item.id}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center space-x-2"
+                                title="Aceptar pedido"
+                              >
+                                <Check className="h-5 w-5" />
+                                <span>Aceptar</span>
+                              </button>
+                              <button
+                                onClick={() => handleRejectItem(item.id)}
+                                disabled={processingItem === item.id}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center space-x-2"
+                                title="Rechazar pedido"
+                              >
+                                <X className="h-5 w-5" />
+                                <span>Rechazar</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tabla de Productos */}
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-6 border-b">
             <div className="flex items-center justify-between mb-4">

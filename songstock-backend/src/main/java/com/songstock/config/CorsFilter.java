@@ -44,7 +44,8 @@ public class CorsFilter implements Filter {
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else if (origin == null || "null".equals(origin)) {
             // 🔹 Si la petición proviene de un archivo local (ej. file://)
-            response.setHeader("Access-Control-Allow-Origin", "*");
+            // response.setHeader("Access-Control-Allow-Origin", "*"); // REMOVIDO:
+            // Incompatible con credentials
         } else {
             // 🔹 Para otros orígenes (en desarrollo, se permite cualquiera)
             response.setHeader("Access-Control-Allow-Origin", origin);

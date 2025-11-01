@@ -1,59 +1,32 @@
 package com.songstock.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
-/**
- * Clase genérica de respuesta para las APIs.
- * 
- * - Incluye información de éxito/fracaso.
- * - Permite retornar un mensaje, datos asociados y detalles de error.
- * - Se utiliza como wrapper para estandarizar las respuestas de la API.
- *
- * @param <T> tipo de dato que contendrá la respuesta
- */
-@JsonInclude(JsonInclude.Include.NON_NULL) // Ignora propiedades nulas en la serialización JSON
 public class ApiResponse<T> {
-    private boolean success; // Indica si la operación fue exitosa
-    private String message; // Mensaje informativo o de error
-    private T data; // Datos de la respuesta (si aplica)
-    private String error; // Detalles del error (si aplica)
+    private boolean success;
+    private String message;
+    private T data;
+    private String error;
 
-    // Constructor vacío (necesario para deserialización)
-    public ApiResponse() {
-    }
-
-    // Constructor con valores iniciales
+    // Constructor completo
     public ApiResponse(boolean success, String message, T data) {
         this.success = success;
         this.message = message;
         this.data = data;
     }
 
-    /**
-     * Método de fábrica para crear respuestas exitosas.
-     * 
-     * @param message mensaje asociado
-     * @param data    datos de la respuesta
-     */
+    // Método success estático
     public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(true, message, data);
+        ApiResponse<T> response = new ApiResponse<>(true, message, data);
+        return response;
     }
 
-    /**
-     * Método de fábrica para crear respuestas de error.
-     * 
-     * @param message mensaje asociado al error
-     * @param error   detalle técnico o adicional del error
-     */
+    // Método error estático (2 parámetros)
     public static <T> ApiResponse<T> error(String message, String error) {
-        ApiResponse<T> response = new ApiResponse<>();
-        response.setSuccess(false);
-        response.setMessage(message);
+        ApiResponse<T> response = new ApiResponse<>(false, message, null);
         response.setError(error);
         return response;
     }
 
-    // ================= Getters y Setters =================
+    // Getters y Setters
     public boolean isSuccess() {
         return success;
     }
