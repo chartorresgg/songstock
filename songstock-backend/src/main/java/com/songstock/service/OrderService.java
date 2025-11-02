@@ -259,17 +259,36 @@ public class OrderService {
         }
 
         // Actualizar la orden completa a DELIVERED
+        item.setStatus(OrderItemStatus.DELIVERED);
+        orderItemRepository.save(item);
+
+        // Actualizar orden si todos los items están delivered
         Order order = item.getOrder();
+        boolean allDelivered = order.getItems().stream()
+                .allMatch(i -> i.getStatus() == OrderItemStatus.DELIVERED);
 
-        // Verificar que todos los items estén en SHIPPED
-        boolean allShipped = order.getItems().stream()
-                .allMatch(i -> i.getStatus() == OrderItemStatus.SHIPPED);
-
-        if (allShipped) {
+        if (allDelivered) {
             order.setStatus(OrderStatus.DELIVERED);
             order.setDeliveredAt(LocalDateTime.now());
             orderRepository.save(order);
         }
+    }
+
+    @Transactional
+    public void confirmOrderReceived(Long orderId, Long userId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new BusinessException("No tienes permiso para confirmar esta orden");
+        }
+
+        if (order.getStatus() != OrderStatus.DELIVERED) {
+            throw new BusinessException("Solo puedes confirmar órdenes en estado DELIVERED");
+        }
+
+        order.setStatus(OrderStatus.RECEIVED);
+        orderRepository.save(order);
     }
 
     /**
@@ -284,7 +303,14 @@ public class OrderService {
 
         if (allShipped && order.getStatus() != OrderStatus.SHIPPED && order.getStatus() != OrderStatus.DELIVERED) {
             order.setStatus(OrderStatus.SHIPPED);
-            order.setShippedAt(LocalDateTime.now());
+
+            LocalDateTime mostRecentShipDate = items.stream()
+                    .map(OrderItem::getShippedAt)
+                    .filter(date -> date != null)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(LocalDateTime.now());
+
+            order.setShippedAt(mostRecentShipDate);
             orderRepository.save(order);
         }
     }

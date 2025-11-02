@@ -160,6 +160,25 @@ public class OrderController {
                 }
         }
 
+        @PutMapping("/{orderId}/confirm-receipt")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<Void>> confirmOrderReceipt(
+                        @PathVariable Long orderId,
+                        Authentication authentication) {
+
+                try {
+                        User user = userRepository.findByUsername(authentication.getName())
+                                        .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+                        orderService.confirmOrderReceived(orderId, user.getId());
+                        return ResponseEntity.ok(ApiResponse.success("Orden confirmada como recibida", null));
+
+                } catch (Exception e) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                        .body(new ApiResponse<>(false, e.getMessage(), null));
+                }
+        }
+
         @PutMapping("/items/{itemId}/ship")
         @PreAuthorize("hasRole('PROVIDER')")
         public ResponseEntity<ApiResponse<Void>> shipOrderItem(

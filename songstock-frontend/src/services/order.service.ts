@@ -164,6 +164,16 @@ class OrderService {
       return null;
     }
   }
+  
+  /**
+   * Confirmar recepción del pedido (CUSTOMER)
+   */
+  async confirmOrderReceipt(orderId: number): Promise<void> {
+    const response = await axiosInstance.put(`/orders/${orderId}/confirm-receipt`);
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Error al confirmar recepción');
+    }
+  }
 }
 
 export default new OrderService();

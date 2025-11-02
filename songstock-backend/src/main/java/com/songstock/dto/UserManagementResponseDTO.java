@@ -2,9 +2,6 @@ package com.songstock.dto;
 
 import com.songstock.entity.UserRole;
 import com.songstock.entity.VerificationStatus;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public class UserManagementResponseDTO {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import orderService from '../../services/order.service';
 import { Order, OrderStatus, OrderReview } from '../../types/order.types';
 import { Package, Calendar, CreditCard, MapPin, Eye, ShoppingBag, Truck, CheckCircle, Clock, X, Star } from 'lucide-react';
- 
+import { toast } from 'react-hot-toast';
 
 const MyOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -14,6 +14,7 @@ const MyOrders = () => {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
  
 
   useEffect(() => {
@@ -41,6 +42,22 @@ const MyOrders = () => {
     }
   };
 
+    const handleConfirmReceipt = async (orderId: number) => {
+        if (!confirm('¿Confirmas que recibiste este pedido?')) return;
+        
+        setConfirmingOrderId(orderId);
+        try {
+          await orderService.confirmOrderReceipt(orderId);
+          toast.success('Pedido confirmado como recibido');
+          await loadOrders();
+        } catch (error: any) {
+          console.error('Error:', error);
+          toast.error(error.response?.data?.message || 'Error al confirmar recepción');
+        } finally {
+          setConfirmingOrderId(null);
+        }
+      };
+
   const handleSubmitReview = async () => {
     if (!reviewModalOrder || rating === 0) return;
     
@@ -51,20 +68,20 @@ const MyOrders = () => {
         comment: comment.trim() || undefined
       });
       
-      alert('¡Valoración enviada exitosamente!');
+      alert('Â¡ValoraciÃ³n enviada exitosamente!');
       setReviewModalOrder(null);
       setRating(0);
       setComment('');
-      loadOrders(); // Recargar órdenes
+      loadOrders(); // Recargar Ã³rdenes
     } catch (error: any) {
-      alert(error.message || 'Error al enviar valoración');
+      alert(error.message || 'Error al enviar valoraciÃ³n');
     } finally {
       setSubmittingReview(false);
     }
   };
 
   const canReview = (order: Order) => {
-    return order.status === OrderStatus.DELIVERED && !order.review;
+    return (order.status === OrderStatus.DELIVERED || order.status === OrderStatus.RECEIVED) && !order.review;
   };
 
   const renderStars = (currentRating: number, isInteractive: boolean = false) => {
@@ -112,7 +129,13 @@ const MyOrders = () => {
       
       if (isNaN(date.getTime())) return 'Fecha inválida';
       
-      return date.toLocaleDateString('es-CO', {});
+      return date.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     } catch {
       return 'Fecha inválida';
     }
@@ -128,6 +151,7 @@ const MyOrders = () => {
       [OrderStatus.CANCELLED]: 'Cancelado',
       [OrderStatus.ACCEPTED]: 'Aceptado',
       [OrderStatus.REJECTED]: 'Rechazado',
+      [OrderStatus.RECEIVED]: 'Recibida'
     };
     return labels[status];
   };
@@ -142,20 +166,21 @@ const MyOrders = () => {
       [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800',
       [OrderStatus.ACCEPTED]: 'bg-green-100 text-green-800',
       [OrderStatus.REJECTED]: 'bg-red-100 text-red-800',
+      [OrderStatus.RECEIVED]: 'bg-green-200 text-green-900',
     };
     return colors[status];
   };
 
   const getPaymentMethodLabel = (method: string) => {
     const methods: Record<string, string> = {
-      'credit_card': 'Tarjeta de Crédito',
-      'debit_card': 'Tarjeta de Débito',
+      'credit_card': 'Tarjeta de CrÃ©dito',
+      'debit_card': 'Tarjeta de DÃ©bito',
       'pse': 'PSE',
     };
     return methods[method] || method;
   };
 
-  // Función para obtener resumen de estados de items
+  // FunciÃ³n para obtener resumen de estados de items
   const getItemsStatusSummary = (items: any[]) => {
     const summary = items.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
@@ -165,7 +190,7 @@ const MyOrders = () => {
     return summary;
   };
 
-  // Función para renderizar badges de resumen de items
+  // FunciÃ³n para renderizar badges de resumen de items
   const renderItemsSummary = (items: any[]) => {
     const summary = getItemsStatusSummary(items);
     const badges = [];
@@ -210,6 +235,41 @@ const MyOrders = () => {
   };
 
   const TrackingTimeline = ({ order }: { order: Order }) => {
+    // Calcular la fecha de envío más temprana de los items
+    const getEarliestShippedDate = () => {
+      if (!order.items || order.items.length === 0) return order.shippedAt;
+      
+      const shippedItems = order.items.filter(item => 
+        item.shippedAt && (item.status === 'SHIPPED' || item.status === 'DELIVERED')
+      );
+      
+      if (shippedItems.length === 0) return order.shippedAt;
+      
+      // Convertir todas las fechas a Date y encontrar la más temprana
+      const dates = shippedItems
+        .map(item => {
+          if (Array.isArray(item.shippedAt)) {
+            const [year, month, day, hour = 0, minute = 0, second = 0] = item.shippedAt;
+            return new Date(year, month - 1, day, hour, minute, second);
+          }
+          return new Date(item.shippedAt!);
+        })
+        .filter(date => !isNaN(date.getTime()));
+      
+      if (dates.length === 0) return order.shippedAt;
+      
+      const earliestDate = new Date(Math.min(...dates.map(d => d.getTime())));
+      // Convertir a array format para ser consistente con el backend
+      return [
+        earliestDate.getFullYear(),
+        earliestDate.getMonth() + 1,
+        earliestDate.getDate(),
+        earliestDate.getHours(),
+        earliestDate.getMinutes(),
+        earliestDate.getSeconds()
+      ];
+    };
+
     const steps = [
       { 
         status: OrderStatus.PENDING, 
@@ -222,7 +282,7 @@ const MyOrders = () => {
         status: OrderStatus.SHIPPED, 
         label: 'En Camino', 
         icon: Truck,
-        date: order.shippedAt,
+        date: getEarliestShippedDate(),
         completed: order.status === OrderStatus.SHIPPED || order.status === OrderStatus.DELIVERED 
       },
       { 
@@ -241,7 +301,7 @@ const MyOrders = () => {
             const Icon = step.icon;
             return (
               <div key={step.status} className="flex flex-col items-center flex-1 relative">
-                {/* Línea conectora */}
+                {/* LÃ­nea conectora */}
                 {index < steps.length - 1 && (
                   <div 
                     className={`absolute top-6 left-1/2 w-full h-1 ${
@@ -251,7 +311,7 @@ const MyOrders = () => {
                   />
                 )}
                 
-                {/* Ícono */}
+                {/* Ãcono */}
                 <div 
                   className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 relative z-10 ${
                     step.completed 
@@ -317,16 +377,16 @@ const MyOrders = () => {
               <ShoppingBag className="h-12 w-12 text-gray-400" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Aún no tienes pedidos
+              AÃºn no tienes pedidos
             </h2>
             <p className="text-gray-600 mb-8">
-              Comienza a explorar nuestro catálogo y realiza tu primera compra
+              Comienza a explorar nuestro catÃ¡logo y realiza tu primera compra
             </p>
             <Link
               to="/catalog"
               className="inline-flex items-center px-6 py-3 bg-primary-900 text-white font-semibold rounded-lg hover:bg-primary-800 transition"
             >
-              Explorar Catálogo
+              Explorar CatÃ¡logo
             </Link>
           </div>
         ) : (
@@ -410,7 +470,7 @@ const MyOrders = () => {
                         <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
                         <div>
                           <h4 className="font-medium text-gray-900 mb-1">
-                            Dirección de Envío
+                            Dirección de Enví­o
                           </h4>
                           <p className="text-sm text-gray-600">
                             {order.shippingAddress.address}<br />
@@ -439,10 +499,22 @@ const MyOrders = () => {
                         <span>Ver Detalles</span>
                       </button>
 
+                      {/* Botón confirmar recepción */}
+                      {order.status === OrderStatus.DELIVERED && (
+                        <button
+                          onClick={() => handleConfirmReceipt(order.id)}
+                          disabled={confirmingOrderId === order.id}
+                          className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          <span>{confirmingOrderId === order.id ? 'Confirmando...' : 'Confirmar Recepción'}</span>
+                        </button>
+                      )}
+
                       {order.review && (
                         <div className="flex-1 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-gray-700">Tu valoración:</span>
+                            <span className="text-sm font-medium text-gray-700">Tu valoraciÃ³n:</span>
                             <div className="flex gap-1">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
@@ -485,7 +557,7 @@ const MyOrders = () => {
         )}
       </div>
 
-      {/* Modal de Detalle Rediseñado */}
+      {/* Modal de Detalle RediseÃ±ado */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -508,7 +580,7 @@ const MyOrders = () => {
                 </button>
               </div>
 
-              {/* Información general en cards */}
+              {/* InformaciÃ³n general en cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -523,7 +595,7 @@ const MyOrders = () => {
                 <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <CreditCard className="h-5 w-5 text-green-600" />
-                    <span className="text-sm font-medium text-green-900">Método de Pago</span>
+                    <span className="text-sm font-medium text-green-900">MÃ©todo de Pago</span>
                   </div>
                   <p className="text-base font-semibold text-gray-900">
                     {getPaymentMethodLabel(selectedOrder.paymentMethod)}
@@ -546,7 +618,7 @@ const MyOrders = () => {
                 <div className="bg-gray-50 rounded-xl p-6 mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Truck className="h-5 w-5 text-indigo-600" />
-                    Estado del Envío
+                    Estado del EnvÃ­o
                   </h4>
                   <TrackingTimeline order={selectedOrder} />
                 </div>
@@ -612,15 +684,15 @@ const MyOrders = () => {
                             Proveedor: {item.providerName}
                           </p>
 
-                          {/* Fecha de envío */}
-                          {item.shippedAt && item.status === 'SHIPPED' && (
-                            <p className="text-xs text-indigo-600 font-medium mt-1 flex items-center gap-1">
+                          {/* Fecha de envío individual del item */}
+                          {item.shippedAt && (item.status === 'SHIPPED' || item.status === 'DELIVERED') && (
+                            <p className="text-xs text-indigo-600 font-medium mt-2 flex items-center gap-1">
                               <Truck className="h-3 w-3" />
                               Enviado: {formatDate(item.shippedAt)}
                             </p>
                           )}
 
-                          {/* Razón de rechazo destacada */}
+                          {/* RazÃ³n de rechazo destacada */}
                           {item.status === 'REJECTED' && item.rejectionReason && (
                             <div className="mt-3 p-3 bg-red-100 border-l-4 border-red-500 rounded">
                               <div className="flex items-start gap-2">
@@ -643,12 +715,12 @@ const MyOrders = () => {
                 </div>
               </div>
 
-              {/* Dirección de envío */}
+              {/* Dirección de enví­o */}
               {selectedOrder.shippingAddress && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
                   <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-600" />
-                    Dirección de Envío
+                    Dirección de enví­o
                   </h4>
                   <p className="text-sm text-gray-700">
                     {selectedOrder.shippingAddress.address}
@@ -662,7 +734,7 @@ const MyOrders = () => {
                 </div>
               )}
 
-              {/* Botón de cerrar */}
+              {/* BotÃ³n de cerrar */}
               <div className="flex justify-end pt-4 border-t border-gray-200">
                 <button
                   onClick={() => setSelectedOrder(null)}
@@ -676,7 +748,7 @@ const MyOrders = () => {
         </div>
       )}
 
-      {/* Modal de Valoración */}
+      {/* Modal de ValoraciÃ³n */}
       {reviewModalOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
@@ -705,7 +777,7 @@ const MyOrders = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Calificación *
+                  CalificaciÃ³n *
                 </label>
                 {renderStars(rating, true)}
                 {rating > 0 && (
@@ -722,7 +794,7 @@ const MyOrders = () => {
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Cuéntanos sobre tu experiencia..."
+                  placeholder="CuÃ©ntanos sobre tu experiencia..."
                   maxLength={1000}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
@@ -748,7 +820,7 @@ const MyOrders = () => {
                   disabled={rating === 0 || submittingReview}
                   className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  {submittingReview ? 'Enviando...' : 'Enviar Valoración'}
+                  {submittingReview ? 'Enviando...' : 'Enviar ValoraciÃ³n'}
                 </button>
               </div>
             </div>

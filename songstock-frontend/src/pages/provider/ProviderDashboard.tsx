@@ -47,6 +47,12 @@ const ProviderDashboard = () => {
     totalOrders: 0
   });
 
+    // DEBUG: Exponer temporalmente
+  useEffect(() => {
+    (window as any).debugOrders = allOrders;
+  }, [allOrders]);
+
+
   useEffect(() => {
     loadData();
   }, []);
@@ -227,11 +233,12 @@ const ProviderDashboard = () => {
   const getStatusBadge = (status: OrderItemStatus) => {
     const badges = {
       PENDING: { color: 'bg-yellow-100 text-yellow-800', text: 'Pendiente' },
-      ACCEPTED: { color: 'bg-green-100 text-green-800', text: 'Aceptado' },
+      ACCEPTED: { color: 'bg-green-100 text-green-800', text: 'Aceptada' },
       REJECTED: { color: 'bg-red-100 text-red-800', text: 'Rechazado' },
       PROCESSING: { color: 'bg-blue-100 text-blue-800', text: 'En Proceso' },
       SHIPPED: { color: 'bg-indigo-100 text-indigo-800', text: 'Enviado' },
       DELIVERED: { color: 'bg-green-100 text-green-800', text: 'Entregado' },
+      RECEIVED: { color: 'bg-green-100 text-green-800', text: 'Recibido' },
     };
     const badge = badges [status] || badges.PENDING;
     return (
@@ -240,6 +247,26 @@ const ProviderDashboard = () => {
       </span>
     );
   };
+
+  const getOrderStatusBadge = (status: OrderStatus) => {
+    const badges: Record<OrderStatus, { color: string; text: string }> = {
+      PENDING: { color: 'bg-yellow-100 text-yellow-800', text: 'Pendiente' },
+      ACCEPTED: { color: 'bg-green-100 text-green-800', text: 'Aceptada' },
+      CONFIRMED: { color: 'bg-blue-100 text-blue-800', text: 'Confirmada' },
+      PROCESSING: { color: 'bg-blue-100 text-blue-800', text: 'En Proceso' },
+      SHIPPED: { color: 'bg-indigo-100 text-indigo-800', text: 'Enviada' },
+      DELIVERED: { color: 'bg-green-100 text-green-800', text: 'Entregada' },
+      RECEIVED: { color: 'bg-green-200 text-green-900', text: '✓ Recibida por Cliente' },
+      CANCELLED: { color: 'bg-red-100 text-red-800', text: 'Cancelada' },
+      REJECTED: { color: 'bg-red-100 text-red-800', text: 'Rechazada' },
+    };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badges[status].color}`}>
+        {badges[status].text}
+      </span>
+    );
+  };
+      
 
   const filteredProducts = products.filter(product =>
     product.albumTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -522,7 +549,10 @@ const ProviderDashboard = () => {
                       <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
+                          <div className="flex items-center gap-3 mb-1">
++                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
++                            {getOrderStatusBadge(order.status)}
++                          </div>
                             <p className="text-sm text-gray-500">
                               {new Date(order.createdAt).toLocaleDateString('es-CO', {
                                 year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -602,12 +632,20 @@ const ProviderDashboard = () => {
                     <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
+                        <div className="flex items-center gap-3 mb-1">
++                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
++                            {getOrderStatusBadge(order.status)}
++                          </div>
                           <p className="text-sm text-gray-500">
                             {new Date(order.createdAt).toLocaleDateString('es-CO', {
                               year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
                           </p>
+                          {order.status === OrderStatus.RECEIVED && (
+                            <p className="text-xs text-green-700 mt-1 font-medium">
+                              ✓ El cliente confirmó la recepción del pedido
+                            </p>
+                          )}
                         </div>
                         <span className="text-lg font-bold text-gray-900">{formatPrice(order.total)}</span>
                       </div>
