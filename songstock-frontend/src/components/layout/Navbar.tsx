@@ -1,11 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import NotificationBell from '../common/NotificationBell';
 import { 
   Music, 
   ShoppingCart, 
   User, 
-  ListMusic,
   LogOut, 
   Menu, 
   X,
@@ -77,19 +77,19 @@ const Navbar = () => {
             </Link>
 
             {isAuthenticated && user?.role === 'CUSTOMER' && (
-                <Link
-                  to="/compilations"
-                  className="block px-4 py-3 text-gray-700 hover:bg-gray-100 font-medium transition"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Mis Recopilaciones
-                </Link>
-              )}
-
-
+              <Link
+                to="/compilations"
+                className="text-gray-700 hover:text-primary-900 font-medium transition"
+              >
+                Recopilaciones
+              </Link>
+            )}
 
             {isAuthenticated ? (
               <>
+                {/* Notificaciones - Solo para usuarios autenticados */}
+                <NotificationBell />
+
                 {user?.role === 'CUSTOMER' && (
                   <Link 
                     to="/cart" 
@@ -202,6 +202,16 @@ const Navbar = () => {
             >
               Catálogo
             </Link>
+
+            {isAuthenticated && user?.role === 'CUSTOMER' && (
+              <Link
+                to="/compilations"
+                className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Recopilaciones
+              </Link>
+            )}
             
             {isAuthenticated ? (
               <>
@@ -237,6 +247,16 @@ const Navbar = () => {
                 >
                   Mi Perfil
                 </Link>
+
+                {user?.role === 'CUSTOMER' && (
+                  <Link
+                    to="/my-orders"
+                    className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Mis Pedidos
+                  </Link>
+                )}
                 
                 <button
                   onClick={() => {

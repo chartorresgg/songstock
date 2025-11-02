@@ -21,6 +21,8 @@ public class OrderDTO {
     private PaymentMethod paymentMethod;
     private String rejectionReason;
     private LocalDate estimatedDeliveryDate;
+    private LocalDateTime shippedAt;
+    private LocalDateTime deliveredAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<OrderItemDTO> items;
@@ -127,6 +129,22 @@ public class OrderDTO {
 
     public void setEstimatedDeliveryDate(LocalDate estimatedDeliveryDate) {
         this.estimatedDeliveryDate = estimatedDeliveryDate;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
+    }
+
+    public void setShippedAt(LocalDateTime shippedAt) {
+        this.shippedAt = shippedAt;
+    }
+
+    public LocalDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(LocalDateTime deliveredAt) {
+        this.deliveredAt = deliveredAt;
     }
 
     public LocalDateTime getCreatedAt() {

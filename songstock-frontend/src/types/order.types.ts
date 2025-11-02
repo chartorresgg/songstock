@@ -24,6 +24,7 @@ export enum OrderItemStatus {
   REJECTED = 'REJECTED',
   PROCESSING = 'PROCESSING',
   SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
 }
   
 
@@ -43,6 +44,7 @@ export interface OrderItem {
   providerName: string;          // Nombre del proveedor
   status: OrderItemStatus;       // Estado del item
   rejectionReason?: string;      // Razón de rechazo (opcional)
+  shippedAt?: string;            // Fecha de envío (ISO string)
 }
 
 /**
@@ -73,8 +75,33 @@ export interface Order {
   shippingAddress?: ShippingAddress;  // Dirección de envío (opcional para productos digitales)
   paymentMethod: string;         // Método de pago utilizado (credit_card, debit_card, pse, etc.)
   createdAt: string;             // Fecha y hora de creación de la orden (formato ISO string)
-  updatedAt: string;             // Fecha y hora de la última actualización
+  updatedAt: string;   
+  shippedAt?: string;
+  deliveredAt?: string;          // Fecha y hora de la última actualización
+  review?: OrderReview | null;          // Valoración de la orden
 }
+
+/**
+ * Interfaz para la valoración de una orden
+ */
+export interface OrderReview {
+    id: number;
+    orderId: number;
+    userId: number;
+    userName: string;
+    rating: number;
+    comment?: string;
+    createdAt: string;
+  }
+  
+  /**
+   * DTO para crear una valoración
+   */
+  export interface CreateReviewRequest {
+    rating: number;
+    comment?: string;
+  }
+  
 
 /**
  * Esta interfaz es útil para crear una nueva orden desde el frontend.

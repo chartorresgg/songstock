@@ -2,6 +2,10 @@ package com.songstock.service;
 
 import com.songstock.dto.*;
 import com.songstock.entity.*;
+import com.songstock.entity.OrderReview;
+import com.songstock.repository.OrderReviewRepository;
+import com.songstock.dto.CreateReviewDTO;
+import com.songstock.dto.OrderReviewDTO;
 import com.songstock.exception.ResourceNotFoundException;
 import com.songstock.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +16,18 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.songstock.exception.BusinessException;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Transactional
 public class OrderService {
+
+    @Autowired
+    private OrderReviewRepository orderReviewRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -65,6 +77,9 @@ public class OrderService {
 
         order.setTotal(total);
         Order savedOrder = orderRepository.save(order);
+
+        // Crear notificación
+        notificationService.createOrderNotification(userId, savedOrder.getId(), savedOrder.getOrderNumber());
 
         return mapToDTO(savedOrder);
     }
@@ -174,6 +189,8 @@ public class OrderService {
         dto.setPaymentMethod(order.getPaymentMethod());
         dto.setRejectionReason(order.getRejectionReason());
         dto.setEstimatedDeliveryDate(order.getEstimatedDeliveryDate());
+        dto.setShippedAt(order.getShippedAt());
+        dto.setDeliveredAt(order.getDeliveredAt());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
 
@@ -197,6 +214,7 @@ public class OrderService {
             itemDTO.setProviderName(item.getProvider().getBusinessName());
             itemDTO.setStatus(item.getStatus());
             itemDTO.setRejectionReason(item.getRejectionReason());
+            itemDTO.setShippedAt(item.getShippedAt());
 
             // Mapear producto
             ProductDTO productDTO = new ProductDTO();
@@ -213,4 +231,110 @@ public class OrderService {
 
         return dto;
     }
+
+    @Transactional
+    public void shipOrderItem(Long itemId, LocalDateTime shippedDate) {
+        OrderItem item = orderItemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item no encontrado"));
+
+        // Usar la fecha proporcionada o la actual
+        LocalDateTime shipDate = shippedDate != null ? shippedDate : LocalDateTime.now();
+
+        item.setStatus(OrderItemStatus.SHIPPED);
+        item.setShippedAt(shipDate); // ← ESTA LÍNEA ES CRÍTICA
+        orderItemRepository.save(item);
+
+        // Actualizar orden si todos los items están shipped
+        updateOrderStatusIfNeeded(item.getOrder());
+    }
+
+    @Transactional
+    public void deliverOrderItem(Long itemId) {
+        OrderItem item = orderItemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item no encontrado"));
+
+        // El item ya debe estar en SHIPPED
+        if (item.getStatus() != OrderItemStatus.SHIPPED) {
+            throw new BusinessException("El item debe estar en estado SHIPPED para marcarlo como entregado");
+        }
+
+        // Actualizar la orden completa a DELIVERED
+        Order order = item.getOrder();
+
+        // Verificar que todos los items estén en SHIPPED
+        boolean allShipped = order.getItems().stream()
+                .allMatch(i -> i.getStatus() == OrderItemStatus.SHIPPED);
+
+        if (allShipped) {
+            order.setStatus(OrderStatus.DELIVERED);
+            order.setDeliveredAt(LocalDateTime.now());
+            orderRepository.save(order);
+        }
+    }
+
+    /**
+     * Actualizar estado de la orden basado en el estado de todos sus items
+     */
+    private void updateOrderStatusIfNeeded(Order order) {
+        List<OrderItem> items = order.getItems();
+
+        // Si todos los items están SHIPPED y la orden aún no está SHIPPED
+        boolean allShipped = items.stream()
+                .allMatch(i -> i.getStatus() == OrderItemStatus.SHIPPED);
+
+        if (allShipped && order.getStatus() != OrderStatus.SHIPPED && order.getStatus() != OrderStatus.DELIVERED) {
+            order.setStatus(OrderStatus.SHIPPED);
+            order.setShippedAt(LocalDateTime.now());
+            orderRepository.save(order);
+        }
+    }
+
+    @Transactional
+    public OrderReviewDTO createReview(Long orderId, Long userId, CreateReviewDTO dto) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada"));
+
+        // Validar que la orden pertenece al usuario
+        if (!order.getUser().getId().equals(userId)) {
+            throw new BusinessException("No tienes permiso para valorar esta orden");
+        }
+
+        // Validar que la orden está entregada
+        if (order.getStatus() != OrderStatus.DELIVERED) {
+            throw new BusinessException("Solo puedes valorar órdenes entregadas");
+        }
+
+        // Validar que no existe una valoración previa
+        if (orderReviewRepository.existsByOrderId(orderId)) {
+            throw new BusinessException("Esta orden ya fue valorada");
+        }
+
+        OrderReview review = new OrderReview();
+        review.setOrder(order);
+        review.setUser(order.getUser());
+        review.setRating(dto.getRating());
+        review.setComment(dto.getComment());
+
+        review = orderReviewRepository.save(review);
+        return mapToReviewDTO(review);
+    }
+
+    public OrderReviewDTO getReview(Long orderId) {
+        return orderReviewRepository.findByOrderId(orderId)
+                .map(this::mapToReviewDTO)
+                .orElse(null);
+    }
+
+    private OrderReviewDTO mapToReviewDTO(OrderReview review) {
+        OrderReviewDTO dto = new OrderReviewDTO();
+        dto.setId(review.getId());
+        dto.setOrderId(review.getOrder().getId());
+        dto.setUserId(review.getUser().getId());
+        dto.setUserName(review.getUser().getFirstName() + " " + review.getUser().getLastName());
+        dto.setRating(review.getRating());
+        dto.setComment(review.getComment());
+        dto.setCreatedAt(review.getCreatedAt());
+        return dto;
+    }
+
 }

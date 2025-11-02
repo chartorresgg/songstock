@@ -38,6 +38,9 @@ public class OrderItem {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @Column(name = "shipped_at")
+    private LocalDateTime shippedAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -95,6 +98,14 @@ public class OrderItem {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
+    }
+
+    public void setShippedAt(LocalDateTime shippedAt) {
+        this.shippedAt = shippedAt;
     }
 
     public LocalDateTime getCreatedAt() {

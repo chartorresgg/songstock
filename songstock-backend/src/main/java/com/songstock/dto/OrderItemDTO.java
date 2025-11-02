@@ -3,6 +3,7 @@ package com.songstock.dto;
 import com.songstock.dto.ProductDTO;
 import com.songstock.entity.OrderItemStatus;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class OrderItemDTO {
     private Long id;
@@ -14,6 +15,7 @@ public class OrderItemDTO {
     private String providerName;
     private OrderItemStatus status;
     private String rejectionReason;
+    private LocalDateTime shippedAt;
 
     public Long getId() {
         return id;
@@ -85,6 +87,14 @@ public class OrderItemDTO {
 
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
+    }
+
+    public LocalDateTime getShippedAt() {
+        return shippedAt;
+    }
+
+    public void setShippedAt(LocalDateTime shippedAt) {
+        this.shippedAt = shippedAt;
     }
 
 }

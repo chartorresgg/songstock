@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import orderService from '../../services/order.service';
-import { Order, OrderItemStatus } from '../../types/order.types';
+import { Order, OrderItemStatus, OrderStatus } from '../../types/order.types';
 import { Link } from 'react-router-dom';
 import { 
   Package, 
@@ -13,15 +13,30 @@ import {
   Search,
   ShoppingCart,
   Check,
-  X
+  X,
+  Clock,
+  CheckCircle,
+  XCircle,
+  List,
+  Truck 
 } from 'lucide-react';
 import providerService from '../../services/provider.service';
 import { Product } from '../../types/product.types';
 import toast from 'react-hot-toast';
 
+type TabType = 'products' | 'pending' | 'history';
+
 const ProviderDashboard = () => {
+  const [activeTab, setActiveTab] = useState<TabType>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [itemToReject, setItemToReject] = useState<number | null>(null);
+  const [showShipModal, setShowShipModal] = useState(false);
+  const [itemToShip, setItemToShip] = useState<number | null>(null);
+  const [shipDate, setShipDate] = useState('');
   const [processingItem, setProcessingItem] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,11 +68,20 @@ const ProviderDashboard = () => {
 
       // Cargar órdenes pendientes
       try {
-        const ordersData = await orderService.getPendingOrders();
-        setPendingOrders(ordersData);
+        const pendingOrdersData = await orderService.getPendingOrders();
+        setPendingOrders(pendingOrdersData);
       } catch (ordersError) {
         console.warn('Could not load pending orders:', ordersError);
         setPendingOrders([]);
+      }
+
+      // Cargar historial completo de órdenes
+      try {
+        const allOrdersData = await orderService.getProviderOrders();
+        setAllOrders(allOrdersData);
+      } catch (ordersError) {
+        console.warn('Could not load order history:', ordersError);
+        setAllOrders([]);
       }
   
       try {
@@ -131,6 +155,52 @@ const ProviderDashboard = () => {
     }
   };
 
+    const openShipModal = (itemId: number) => {
+        setItemToShip(itemId);
+        // Fecha actual por defecto
+        const now = new Date();
+        const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+        setShipDate(localDate);
+        setShowShipModal(true);
+      };
+    
+      const handleShipItem = async () => {
+        if (!itemToShip) return;
+    
+        setProcessingItem(itemToShip);
+    try {
+            // Convertir fecha local a ISO
+      const isoDate = new Date(shipDate).toISOString();
+      await orderService.shipOrderItem(itemToShip, isoDate);
+      toast.success('Item marcado como enviado');
+            setShowShipModal(false);
+      setItemToShip(null);
+      setShipDate('');
+      await loadData();
+    } catch (error) {
+      console.error('Error shipping item:', error);
+      toast.error('Error al marcar como enviado');
+    } finally {
+      setProcessingItem(null);
+    }
+  };
+
+  const handleDeliverItem = async (itemId: number) => {
+    setProcessingItem(itemId);
+    try {
+      await orderService.deliverOrderItem(itemId);
+      toast.success('Item marcado como entregado');
+      await loadData();
+    } catch (error) {
+      console.error('Error delivering item:', error);
+      toast.error('Error al marcar como entregado');
+    } finally {
+      setProcessingItem(null);
+    }
+  };
+
   const handleDelete = async (id: number, title: string) => {
     if (!window.confirm(`¿Estás seguro de eliminar "${title}"?`)) {
       return;
@@ -152,6 +222,23 @@ const ProviderDashboard = () => {
       currency: 'COP',
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const getStatusBadge = (status: OrderItemStatus) => {
+    const badges = {
+      PENDING: { color: 'bg-yellow-100 text-yellow-800', text: 'Pendiente' },
+      ACCEPTED: { color: 'bg-green-100 text-green-800', text: 'Aceptado' },
+      REJECTED: { color: 'bg-red-100 text-red-800', text: 'Rechazado' },
+      PROCESSING: { color: 'bg-blue-100 text-blue-800', text: 'En Proceso' },
+      SHIPPED: { color: 'bg-indigo-100 text-indigo-800', text: 'Enviado' },
+      DELIVERED: { color: 'bg-green-100 text-green-800', text: 'Entregado' },
+    };
+    const badge = badges [status] || badges.PENDING;
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
+        {badge.text}
+      </span>
+    );
   };
 
   const filteredProducts = products.filter(product =>
@@ -244,13 +331,173 @@ const ProviderDashboard = () => {
           </div>
         </div>
 
-        {/* Órdenes Pendientes */}
-        {pendingOrders.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md mb-8">
+        {/* TABS */}
+        <div className="mb-6">
+          <div className="flex space-x-2 border-b">
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`px-6 py-3 font-semibold transition-colors flex items-center space-x-2 ${
+                activeTab === 'products'
+                  ? 'border-b-2 border-primary-900 text-primary-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Package className="h-5 w-5" />
+              <span>Productos</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-6 py-3 font-semibold transition-colors flex items-center space-x-2 relative ${
+                activeTab === 'pending'
+                  ? 'border-b-2 border-primary-900 text-primary-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Clock className="h-5 w-5" />
+              <span>Pendientes</span>
+              {pendingItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {pendingItemsCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-3 font-semibold transition-colors flex items-center space-x-2 ${
+                activeTab === 'history'
+                  ? 'border-b-2 border-primary-900 text-primary-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <List className="h-5 w-5" />
+              <span>Historial de Órdenes</span>
+            </button>
+          </div>
+        </div>
+
+        {/* TAB CONTENT: PRODUCTOS */}
+        {activeTab === 'products' && (
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Mis Productos</h2>
+                <div className="text-sm text-gray-600">
+                  {filteredProducts.length} de {products.length} productos
+                </div>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por título, artista o SKU..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 mb-2">
+                          {searchTerm ? 'No se encontraron productos' : 'No tienes productos todavía'}
+                        </p>
+                        {!searchTerm && (
+                          <Link to="/provider/products/new" className="text-primary-900 hover:text-primary-700 font-medium">
+                            Crear tu primer producto
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <tr key={product.id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-secondary-100 rounded flex items-center justify-center flex-shrink-0">
+                              <Package className="h-6 w-6 text-primary-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{product.albumTitle}</div>
+                              <div className="text-sm text-gray-500">{product.artistName}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-mono text-gray-600">{product.sku}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            product.productType === 'PHYSICAL' ? 'bg-primary-100 text-primary-800' : 'bg-secondary-100 text-secondary-800'
+                          }`}>
+                            {product.productType === 'PHYSICAL' ? 'Físico' : 'Digital'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-semibold text-gray-900">{formatPrice(product.price)}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`text-sm font-medium ${
+                            product.stockQuantity > 10 ? 'text-green-600' : product.stockQuantity > 0 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {product.stockQuantity}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            product.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {product.isActive ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Link to={`/product/${product.id}`} className="text-gray-400 hover:text-primary-600 transition" title="Ver">
+                              <Eye className="h-5 w-5" />
+                            </Link>
+                            <Link to={`/provider/products/${product.id}/edit`} className="text-gray-400 hover:text-blue-600 transition" title="Editar">
+                              <Edit className="h-5 w-5" />
+                            </Link>
+                            <button onClick={() => handleDelete(product.id, product.albumTitle)} className="text-gray-400 hover:text-red-600 transition" title="Eliminar">
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB CONTENT: ÓRDENES PENDIENTES */}
+        {activeTab === 'pending' && (
+          <div className="bg-white rounded-lg shadow-md">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                  <ShoppingCart className="h-6 w-6 mr-2 text-primary-600" />
+                  <Clock className="h-6 w-6 mr-2 text-primary-600" />
                   Órdenes Pendientes
                 </h2>
                 <span className="bg-yellow-100 text-yellow-800 text-sm font-semibold px-3 py-1 rounded-full">
@@ -260,39 +507,114 @@ const ProviderDashboard = () => {
             </div>
 
             <div className="p-6">
-              <div className="space-y-4">
-                {pendingOrders.map(order => {
-                  const myPendingItems = order.items.filter(
-                    item => item.status === OrderItemStatus.PENDING
-                  );
+              {pendingOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle className="h-16 w-16 text-green-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No hay órdenes pendientes</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingOrders.map(order => {
+                    const myPendingItems = order.items.filter(item => item.status === OrderItemStatus.PENDING);
+                    if (myPendingItems.length === 0) return null;
 
-                  if (myPendingItems.length === 0) return null;
+                    return (
+                      <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
+                            <p className="text-sm text-gray-500">
+                              {new Date(order.createdAt).toLocaleDateString('es-CO', {
+                                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900">{formatPrice(order.total)}</span>
+                        </div>
 
-                  return (
+                        {myPendingItems.map(item => (
+                          <div key={item.id} className="bg-gray-50 rounded-lg p-4 mb-2">
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">{item.product.albumTitle}</p>
+                                <p className="text-sm text-gray-600">{item.product.artistName}</p>
+                                <div className="flex items-center space-x-4 mt-2">
+                                  <span className="text-sm text-gray-500">
+                                    Cantidad: <span className="font-semibold">{item.quantity}</span>
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    Precio: <span className="font-semibold">{formatPrice(item.price)}</span>
+                                  </span>
+                                  <span className="text-sm font-semibold text-primary-600">
+                                    Subtotal: {formatPrice(item.subtotal)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2 ml-4">
+                                <button
+                                  onClick={() => handleAcceptItem(item.id)}
+                                  disabled={processingItem === item.id}
+                                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center space-x-2"
+                                >
+                                  <Check className="h-5 w-5" />
+                                  <span>Aceptar</span>
+                                </button>
+                                <button
+                                  onClick={() => handleRejectItem(item.id)}
+                                  disabled={processingItem === item.id}
+                                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center space-x-2"
+                                >
+                                  <X className="h-5 w-5" />
+                                  <span>Rechazar</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB CONTENT: HISTORIAL DE ÓRDENES */}
+        {activeTab === 'history' && (
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <List className="h-6 w-6 mr-2 text-primary-600" />
+                Historial Completo de Órdenes
+              </h2>
+            </div>
+
+            <div className="p-6">
+              {allOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No hay órdenes registradas</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allOrders.map(order => (
                     <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-semibold text-gray-900">
-                            Orden #{order.orderNumber}
-                          </h3>
+                          <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
                           <p className="text-sm text-gray-500">
                             {new Date(order.createdAt).toLocaleDateString('es-CO', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
+                              year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
                           </p>
                         </div>
-                        <span className="text-lg font-bold text-gray-900">
-                          {formatPrice(order.total)}
-                        </span>
+                        <span className="text-lg font-bold text-gray-900">{formatPrice(order.total)}</span>
                       </div>
 
-                      {myPendingItems.map(item => (
-                        <div key={item.id} className="bg-gray-50 rounded-lg p-4 mb-2">
-                          <div className="flex justify-between items-center">
+                      <div className="space-y-2">
+                        {order.items.map(item => (
+                          <div key={item.id} className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{item.product.albumTitle}</p>
                               <p className="text-sm text-gray-600">{item.product.artistName}</p>
@@ -308,188 +630,89 @@ const ProviderDashboard = () => {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex space-x-2 ml-4">
-                              <button
-                                onClick={() => handleAcceptItem(item.id)}
-                                disabled={processingItem === item.id}
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center space-x-2"
-                                title="Aceptar pedido"
-                              >
-                                <Check className="h-5 w-5" />
-                                <span>Aceptar</span>
-                              </button>
-                              <button
-                                onClick={() => handleRejectItem(item.id)}
-                                disabled={processingItem === item.id}
-                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center space-x-2"
-                                title="Rechazar pedido"
-                              >
-                                <X className="h-5 w-5" />
-                                <span>Rechazar</span>
-                              </button>
+                            <div className="ml-4">
+                              <div className="flex flex-col items-end space-y-2">
+                                {getStatusBadge(item.status)}
+                                
+                                {/* Botón para ENVIAR (solo si está ACCEPTED) */}
+                                {item.status === OrderItemStatus.ACCEPTED && (
+                                  <button
+                                  onClick={() => openShipModal(item.id)}
+                                    disabled={processingItem === item.id}
+                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-1"
+                                  >
+                                    <Truck className="h-4 w-4" />
+                                    <span>Enviar</span>
+                                  </button>
+                                )}
+                                
+                                {/* Botón para ENTREGAR (solo si está SHIPPED) */}
+                                {item.status === OrderItemStatus.SHIPPED && (
+                                  <button
+                                    onClick={() => handleDeliverItem(item.id)}
+                                    disabled={processingItem === item.id}
+                                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>Entregar</span>
+                                  </button>
+                                )}
+                                
+                                {item.status === OrderItemStatus.REJECTED && item.rejectionReason && (
+                                  <p className="text-xs text-red-600 mt-1">Motivo: {item.rejectionReason}</p>
+                                )}
+                              </div>
                             </div>
+
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
-
-        {/* Tabla de Productos */}
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Mis Productos</h2>
-              <div className="text-sm text-gray-600">
-                {filteredProducts.length} de {products.length} productos
-              </div>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+      </div>
+           {/* Modal para fecha de envío */}
+      {showShipModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold mb-4">Registrar Fecha de Envío</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha y hora de envío
+              </label>
               <input
-                type="text"
-                placeholder="Buscar por título, artista o SKU..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                type="datetime-local"
+                value={shipDate}
+                onChange={(e) => setShipDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Producto
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Precio
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-2">
-                        {searchTerm ? 'No se encontraron productos' : 'No tienes productos todavía'}
-                      </p>
-                      {!searchTerm && (
-                        <Link
-                          to="/provider/products/new"
-                          className="text-primary-900 hover:text-primary-700 font-medium"
-                        >
-                          Crear tu primer producto
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProducts.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-secondary-100 rounded flex items-center justify-center flex-shrink-0">
-                            <Package className="h-6 w-6 text-primary-600" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{product.albumTitle}</div>
-                            <div className="text-sm text-gray-500">{product.artistName}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-mono text-gray-600">{product.sku}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          product.productType === 'PHYSICAL'
-                            ? 'bg-primary-100 text-primary-800'
-                            : 'bg-secondary-100 text-secondary-800'
-                        }`}>
-                          {product.productType === 'PHYSICAL' ? 'Físico' : 'Digital'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {formatPrice(product.price)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-sm font-medium ${
-                          product.stockQuantity > 10
-                            ? 'text-green-600'
-                            : product.stockQuantity > 0
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}>
-                          {product.stockQuantity}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          product.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {product.isActive ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Link
-                            to={`/product/${product.id}`}
-                            className="text-gray-400 hover:text-primary-600 transition"
-                            title="Ver"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </Link>
-                          <Link
-                            to={`/provider/products/${product.id}/edit`}
-                            className="text-gray-400 hover:text-blue-600 transition"
-                            title="Editar"
-                          >
-                            <Edit className="h-5 w-5" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(product.id, product.albumTitle)}
-                            className="text-gray-400 hover:text-red-600 transition"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowShipModal(false);
+                  setItemToShip(null);
+                  setShipDate('');
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleShipItem}
+                disabled={!shipDate || processingItem === itemToShip}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {processingItem === itemToShip ? 'Enviando...' : 'Confirmar Envío'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

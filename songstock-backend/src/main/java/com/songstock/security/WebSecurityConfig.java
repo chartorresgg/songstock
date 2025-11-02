@@ -64,6 +64,10 @@ public class WebSecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/orders/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/review").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/*/review").hasAnyRole("CUSTOMER", "PROVIDER")
+                        .requestMatchers("/api/v1/orders/**").authenticated()
+
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
                         // Endpoints de Artists

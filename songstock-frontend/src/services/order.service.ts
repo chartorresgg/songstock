@@ -1,5 +1,5 @@
 import axiosInstance from './axios.instance';
-import { Order, OrderStatus, OrderItemStatus } from '../types/order.types';
+import { Order, OrderReview, CreateReviewRequest } from '../types/order.types';
 import { ApiResponse } from '../types/api.types';
 
 class OrderService {
@@ -77,6 +77,42 @@ class OrderService {
   }
 
   /**
+   * Marcar item como enviado (PROVIDER)
+   */
+  async shipOrderItem(itemId: number, shippedDate?: string): Promise<void> {
+    try {
+      await axiosInstance.put(`/orders/items/${itemId}/ship${shippedDate ? `?shippedDate=${shippedDate}` : ''}`);
+    } catch (error) {
+      console.error('Error shipping order item:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Marcar item como entregado (PROVIDER)
+   */
+  async deliverOrderItem(itemId: number): Promise<void> {
+    try {
+      await axiosInstance.put(`/orders/items/${itemId}/deliver`);
+    } catch (error) {
+      console.error('Error delivering order item:', error);
+      throw error;
+    }
+  }
+
+  async getProviderOrders(): Promise<Order[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<Order[]>>(
+        '/orders/provider'
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching provider orders:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Crear nueva orden (CUSTOMER)
    */
   async createOrder(orderData: {
@@ -97,6 +133,35 @@ class OrderService {
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Crear valoración de orden (CUSTOMER)
+   */
+  async createReview(orderId: number, reviewData: CreateReviewRequest): Promise<OrderReview> {
+    try {
+      const response = await axiosInstance.post<ApiResponse<OrderReview>>(
+        `/orders/${orderId}/review`,
+        reviewData
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Error al crear valoración');
+    }
+  }
+
+  /**
+   * Obtener valoración de una orden
+   */
+  async getReview(orderId: number): Promise<OrderReview | null> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<OrderReview>>(
+        `/orders/${orderId}/review`
+      );
+      return response.data.data;
+    } catch (error) {
+      return null;
     }
   }
 }
