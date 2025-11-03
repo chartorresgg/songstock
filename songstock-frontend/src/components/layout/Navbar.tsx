@@ -1,7 +1,8 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import NotificationBell from '../common/NotificationBell';
+import { Search } from 'lucide-react'; 
 import { 
   Music, 
   ShoppingCart, 
@@ -16,6 +17,7 @@ import { useState } from 'react';
 const Navbar = () => {
   const { isAuthenticated, user, logout, loading  } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { itemCount } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -53,6 +55,12 @@ const Navbar = () => {
     }
   };
 
+  const isActive = (path: string) => {
+        return location.pathname === path
+          ? 'text-primary-900 font-semibold'
+          : 'text-gray-700 hover:text-primary-900';
+      };
+
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,13 +76,18 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/catalog" 
-              className="text-gray-700 hover:text-primary-900 font-medium transition"
-            >
-              Catálogo
-            </Link>
+<div className="hidden md:flex items-center space-x-8">
+  <Link to="/songs/search" className={`${isActive('/songs/search')} font-medium transition flex items-center`}>
+    <Search className="h-4 w-4 mr-1" />
+    Buscar Canciones
+  </Link>
+  
+  <Link 
+    to="/catalog" 
+    className="text-gray-700 hover:text-primary-900 font-medium transition"
+  >
+    Catálogo
+  </Link>
 
             {isAuthenticated && user?.role === 'CUSTOMER' && (
               <Link
@@ -190,18 +203,25 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-
-      {/* Mobile Navigation */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link
-              to="/catalog"
-              className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Catálogo
-            </Link>
+{/* Mobile Navigation */}
+{mobileMenuOpen && (
+  <div className="md:hidden bg-white border-t">
+    <div className="px-2 pt-2 pb-3 space-y-1">
+      <Link
+        to="/songs/search"
+        className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Buscar Canciones
+      </Link>
+      
+      <Link
+        to="/catalog"
+        className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Catálogo
+      </Link>
 
             {isAuthenticated && user?.role === 'CUSTOMER' && (
               <Link

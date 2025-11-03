@@ -9,6 +9,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Home from './pages/customer/Home';
 import Catalog from './pages/customer/Catalog';
+import SongSearch from './pages/public/SongSearch';
 import AboutUs from './pages/public/AboutUs';
 import ProductDetail from './pages/customer/ProductDetail';
 import Cart from './pages/customer/Cart';
@@ -93,6 +94,7 @@ function App() {
               <Route element={<MainLayout />}>
                 {/* Páginas Públicas */}
                 <Route path="/" element={<Home />} />
+                <Route path="/songs/search" element={<SongSearch />} />
                 <Route path="/catalog" element={<Catalog />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/about-us" element={<AboutUs />} />

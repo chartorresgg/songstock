@@ -3,8 +3,10 @@ package com.songstock.controller;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageRequest;
 import com.songstock.dto.ProductDTO;
+import com.songstock.dto.SongDTO;
 import com.songstock.entity.Product;
 import com.songstock.entity.ProductType;
+import com.songstock.service.SongService;
 import org.springframework.http.HttpStatus;
 import com.songstock.service.ProductService;
 import com.songstock.repository.ProductRepository;
@@ -59,6 +61,8 @@ public class ProductController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
 
+    @Autowired
+    private SongService songService;
     @Autowired
     private ProductService productService;
 
@@ -569,6 +573,29 @@ public class ProductController {
                     "Error interno del servidor",
                     null);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Obtener tracklist (canciones) de un producto
+     * GET /api/v1/products/{id}/tracklist
+     */
+    @GetMapping("/{id}/tracklist")
+    @Operation(summary = "Tracklist del producto", description = "Obtener lista de canciones del álbum asociado al producto")
+    public ResponseEntity<ApiResponse<List<SongDTO>>> getProductTracklist(@PathVariable Long id) {
+        try {
+            // Obtener producto para verificar que existe
+            ProductDTO product = productService.getProductById(id);
+
+            // Obtener canciones del álbum
+            List<SongDTO> songs = songService.getSongsByAlbumId(product.getAlbumId());
+
+            return ResponseEntity.ok(ApiResponse.success("Tracklist obtenido exitosamente", songs));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage(), null));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error("Error al obtener tracklist", null));
         }
     }
 

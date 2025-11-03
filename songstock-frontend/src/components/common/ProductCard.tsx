@@ -4,6 +4,7 @@ import { Product } from '../../types/product.types';
 import { useCart } from '../../contexts/CartContext';
 import { ShoppingCart, Disc3, Music, Repeat } from 'lucide-react';
 import productService from '../../services/product.service';
+import songService from '../../services/song.service';
 
 interface ProductCardProps {
   product: Product;
@@ -12,11 +13,21 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const { addItem } = useCart();
+    
+  // Helper: Obtener URL de imagen principal
+  const getPrimaryImageUrl = () => {
+    const primaryImage = product.images?.find(img => img.isPrimary);
+    return primaryImage?.imageUrl || null;
+  };
   const [hasAlternative, setHasAlternative] = useState(false);
   const [checkingAlternative, setCheckingAlternative] = useState(false);
+  const [songCount, setSongCount] = useState(0);
   
   useEffect(() => {
     checkForAlternativeFormats();
+    if (product.productType === 'PHYSICAL') {
+      loadSongCount();
+    }
   }, [product.id]);
 
   const checkForAlternativeFormats = async () => {
@@ -28,6 +39,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
       console.error('Error checking alternative formats:', error);
     } finally {
       setCheckingAlternative(false);
+    }
+  };
+
+  const loadSongCount = async () => {
+    try {
+      const songs = await songService.getSongsByAlbum(product.albumId);
+      setSongCount(songs.length);
+    } catch (error) {
+      console.error('Error loading song count:', error);
     }
   };
 
@@ -82,12 +102,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
       {/* Image */}
       <Link to={`/product/${product.id}`} className="block relative overflow-hidden">
         <div className="aspect-square bg-gradient-to-br from-primary-100 to-secondary-100 flex items-center justify-center">
-          {product.images ? (
-            <img
-              src={product.images}
-              alt={product.albumTitle}
+
+          {getPrimaryImageUrl() ? (
+             <img
+
+              src={getPrimaryImageUrl()!}
+               alt={product.albumTitle}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
+              loading="lazy"
+             />
           ) : (
             <Disc3 className="h-24 w-24 text-primary-300 group-hover:rotate-180 transition-transform duration-500" />
           )}
@@ -105,7 +128,17 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </span>
         </div>
 
-        {/* ==================== NUEVO: Badge de formato alternativo disponible ==================== */}
+        {/* Badge canciones - NUEVO */}
+        {product.productType === 'PHYSICAL' && songCount > 0 && (
+          <div className="absolute top-14 right-3">
+            <span className="bg-indigo-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <Music className="h-3 w-3" />
+              {songCount} canciones
+            </span>
+          </div>
+        )}
+
+        {/* Badge de formato alternativo disponible */}
         {hasAlternative && !checkingAlternative && (
           <div className="absolute top-3 left-3">
             <span className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg animate-pulse">
@@ -180,7 +213,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </div>
         )}
 
-        {/* ==================== NUEVO: Indicador de formato alternativo ==================== */}
+        {/* Indicador de formato alternativo */}
         {hasAlternative && !checkingAlternative && (
           <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-xs text-blue-700 font-medium flex items-center">

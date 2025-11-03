@@ -417,4 +417,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
          */
         Page<Product> findByProviderId(Long providerId, Pageable pageable);
 
+        // Obtener productos por proveedor y estado
+        @Query("SELECT p FROM Product p WHERE p.provider.id = :providerId AND p.isActive = :isActive")
+        List<Product> findByProviderIdAndIsActive(@Param("providerId") Long providerId,
+                        @Param("isActive") Boolean isActive);
+
+        // Obtener productos físicos (vinilos) que contienen una canción específica
+        @Query("SELECT p FROM Product p WHERE p.album.id = :albumId AND p.productType = 'PHYSICAL' AND p.isActive = true ORDER BY p.price ASC")
+        List<Product> findPhysicalProductsByAlbumId(@Param("albumId") Long albumId);
+
+        // Contar vinilos disponibles para un álbum
+        Long countByAlbumIdAndProductTypeAndIsActiveTrue(Long albumId, ProductType productType);
+
 }

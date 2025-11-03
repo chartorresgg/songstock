@@ -1,3 +1,11 @@
+export interface ProductImage {
+    id: number;
+    imageUrl: string;
+    altText?: string;
+    isPrimary: boolean;
+    displayOrder: number;
+  }
+
 export interface Product {
     id: number;
     albumId: number;
@@ -21,7 +29,7 @@ export interface Product {
     featured: boolean;
     createdAt: number[];
     updatedAt: number[];
-    images: any;
+    images?: ProductImage[];
     alternativeFormats: any;
     physical: boolean;
     digital: boolean;

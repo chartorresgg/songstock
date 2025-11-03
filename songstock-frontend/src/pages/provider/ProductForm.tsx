@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import providerService from '../../services/provider.service';
 import catalogService, { Album, Category } from '../../services/catalog.service';
 import { useAuth } from '../../contexts/AuthContext';
+import SongManager from './SongManager';
 
 interface ProductFormData {
   albumId: number | null;
@@ -533,6 +534,10 @@ const ProductForm = () => {
               </div>
             </div>
           </div>
+
+          {isEditMode && formData.productType === 'PHYSICAL' && formData.albumId && (
+           <SongManager albumId={Number(formData.albumId)} />
+)}
 
           {/* Botones */}
           <div className="flex items-center justify-end space-x-4 pt-6 border-t">

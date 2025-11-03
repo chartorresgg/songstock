@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Product, ProductImage } from '../../types/product.types';
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -13,6 +14,13 @@ const Cart = () => {
       minimumFractionDigits: 0,
     }).format(price);
   };
+
+    // Helper: Obtener URL de imagen principal
+  const getPrimaryImageUrl = (product: Product) => {
+    const primaryImage = product.images?.find(img => img.isPrimary);
+    return primaryImage?.imageUrl || null;
+  };
+
 
   const handleCheckout = () => {
     if (items.length === 0) return;
@@ -82,11 +90,12 @@ const Cart = () => {
                     className="flex-shrink-0"
                   >
                     <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-lg flex items-center justify-center overflow-hidden">
-                      {item.product.images ? (
+                    {getPrimaryImageUrl(item.product) ? (
                         <img
-                          src={item.product.images}
+                        src={getPrimaryImageUrl(item.product)!}
                           alt={item.product.albumTitle}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <ShoppingBag className="h-12 w-12 text-primary-300" />

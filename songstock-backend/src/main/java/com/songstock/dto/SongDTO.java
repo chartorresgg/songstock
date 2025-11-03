@@ -1,7 +1,10 @@
+// src/main/java/com/songstock/dto/SongDTO.java
 package com.songstock.dto;
 
-public class SongDTO {
+import java.util.ArrayList;
+import java.util.List;
 
+public class SongDTO {
     private Long id;
     private Long albumId;
     private String albumTitle;
@@ -9,6 +12,7 @@ public class SongDTO {
     private Integer trackNumber;
     private String title;
     private Integer durationSeconds;
+    private List<VinylAvailabilityDTO> availableVinyls = new ArrayList<>();
 
     // Getters y Setters
     public Long getId() {
@@ -65,5 +69,13 @@ public class SongDTO {
 
     public void setDurationSeconds(Integer durationSeconds) {
         this.durationSeconds = durationSeconds;
+    }
+
+    public List<VinylAvailabilityDTO> getAvailableVinyls() {
+        return availableVinyls;
+    }
+
+    public void setAvailableVinyls(List<VinylAvailabilityDTO> availableVinyls) {
+        this.availableVinyls = availableVinyls;
     }
 }

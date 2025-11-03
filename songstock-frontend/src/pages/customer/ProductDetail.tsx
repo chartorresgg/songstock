@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../../contexts/CartContext';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { Product, ProductImage } from '../../types/product.types';
+
 import { 
   Disc3, 
   ShoppingCart, 
@@ -19,13 +21,19 @@ import {
 } from 'lucide-react';
 import productService from '../../services/product.service';
 import compilationService from '../../services/compilation.service';
-import { Product } from '../../types/product.types';
+import songService from '../../services/song.service';
 import { Song } from '../../types/compilation.types';
 import AlternativeFormats from '../../components/common/AlternativeFormat';
 import CompilationSelector from '../../components/customer/CompilationSelector';
 import toast from 'react-hot-toast';
 
 const ProductDetail = () => {
+    const getPrimaryImageUrl = (product: Product | null) => {
+        if (!product) return null;
+        const primaryImage = product.images?.find((img: ProductImage) => img.isPrimary);
+    return primaryImage?.imageUrl || null;
+  };
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
@@ -37,6 +45,8 @@ const ProductDetail = () => {
   const [loadingSongs, setLoadingSongs] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [showCompilationSelector, setShowCompilationSelector] = useState(false);
+  const [tracklist, setTracklist] = useState<Song[]>([]);
+  const [activeTab, setActiveTab] = useState<'details' | 'tracklist'>('details');
 
   useEffect(() => {
     if (id) {
@@ -49,8 +59,19 @@ const ProductDetail = () => {
     try {
       const data = await productService.getProductById(productId);
       setProduct(data);
+      
+      // Cargar canciones según tipo
       if (data.productType === 'DIGITAL') {
         loadSongs(data.albumId);
+      } else if (data.productType === 'PHYSICAL') {
+        // Cargar tracklist para productos físicos
+        try {
+          const tracklistData = await songService.getProductTracklist(productId);
+          setTracklist(tracklistData);
+        } catch (error) {
+          console.error('Error loading tracklist:', error);
+          // No mostrar error, solo no mostrar el tab
+        }
       }
     } catch (error) {
       console.error('Error loading product:', error);
@@ -184,11 +205,12 @@ const ProductDetail = () => {
           {/* Image Section */}
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="aspect-square bg-gradient-to-br from-primary-100 to-secondary-100 rounded-lg flex items-center justify-center relative overflow-hidden">
-              {product.images ? (
+            {getPrimaryImageUrl(product) ? (
                 <img
-                  src={product.images}
+                src={getPrimaryImageUrl(product)!}
                   alt={product.albumTitle}
                   className="w-full h-full object-cover"
+                   loading="lazy"
                 />
               ) : (
                 <Disc3 className="h-48 w-48 text-primary-300" />
@@ -222,224 +244,275 @@ const ProductDetail = () => {
 
           {/* Info Section */}
           <div className="space-y-6">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                {product.albumTitle}
-              </h1>
-              <p className="text-2xl text-gray-600 mb-4">
-                {product.artistName}
-              </p>
-
-              {/* Price */}
-              <div className="flex items-baseline space-x-4 mb-6">
-                <span className="text-4xl font-bold text-primary-900">
-                  {formatPrice(product.price)}
-                </span>
-                {product.stockQuantity > 0 && product.stockQuantity <= 10 && (
-                  <span className="text-sm text-red-600 font-medium">
-                    ¡Solo quedan {product.stockQuantity}!
-                  </span>
-                )}
-              </div>
-
-              {/* Category */}
-              <div className="flex items-center space-x-2 mb-4">
-                <Tag className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">{product.categoryName}</span>
-              </div>
-
-              {/* Provider */}
-              <div className="flex items-center space-x-2 mb-6">
-                <Store className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">Vendido por: <span className="font-medium">{product.providerName}</span></span>
-              </div>
-            </div>
-
-            {/* Specifications */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Especificaciones</h3>
-              
-              <div className="space-y-3">
-                {/* Condición */}
-                {product.conditionType && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 flex items-center">
-                      <Check className="h-4 w-4 mr-2" />
-                      Condición:
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      {getConditionLabel(product.conditionType)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Stock */}
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 flex items-center">
-                    <Package className="h-4 w-4 mr-2" />
-                    Disponibilidad:
-                  </span>
-                  <span className={`font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                    {product.inStock ? `${product.stockQuantity} en stock` : 'Agotado'}
-                  </span>
-                </div>
-
-                {/* Physical Specs */}
-                {product.productType === 'PHYSICAL' && (
-                  <>
-                    {product.vinylSize && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 flex items-center">
-                          <Disc3 className="h-4 w-4 mr-2" />
-                          Tamaño:
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {getVinylSizeLabel(product.vinylSize)}
-                        </span>
-                      </div>
-                    )}
-
-                    {product.vinylSpeed && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 flex items-center">
-                          <Gauge className="h-4 w-4 mr-2" />
-                          Velocidad:
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {getVinylSpeedLabel(product.vinylSpeed)}
-                        </span>
-                      </div>
-                    )}
-
-                    {product.weightGrams && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 flex items-center">
-                          <Weight className="h-4 w-4 mr-2" />
-                          Peso:
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {product.weightGrams}g
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Digital Specs */}
-                {product.productType === 'DIGITAL' && (
-                  <>
-                    {product.fileFormat && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 flex items-center">
-                          <Music className="h-4 w-4 mr-2" />
-                          Formato:
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {product.fileFormat}
-                        </span>
-                      </div>
-                    )}
-
-                    {product.fileSizeMb && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 flex items-center">
-                          <HardDrive className="h-4 w-4 mr-2" />
-                          Tamaño:
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {product.fileSizeMb} MB
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 flex items-center">
-                        <Clock className="h-4 w-4 mr-2" />
-                        Descarga:
-                      </span>
-                      <span className="font-medium text-green-600">
-                        Inmediata
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                {/* SKU */}
-                <div className="flex items-center justify-between pt-3 border-t">
-                  <span className="text-gray-600">SKU:</span>
-                  <span className="font-mono text-sm text-gray-900">
-                    {product.sku}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quantity Selector (only for in-stock items) */}
-            {product.inStock && (
-              <div className="flex items-center space-x-4">
-                <label className="text-gray-700 font-medium">Cantidad:</label>
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-4 py-2 hover:bg-gray-100 transition"
-                  >
-                    -
-                  </button>
-                  <span className="px-6 py-2 border-x border-gray-300 font-medium">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
-                    className="px-4 py-2 hover:bg-gray-100 transition"
-                  >
-                    +
-                  </button>
-                </div>
+            {/* Tabs - Solo mostrar si hay tracklist */}
+            {product.productType === 'PHYSICAL' && tracklist.length > 0 && (
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('details')}
+                  className={`px-6 py-3 font-medium ${activeTab === 'details' ? 'border-b-2 border-primary-900 text-primary-900' : 'text-gray-500'}`}
+                >
+                  Detalles
+                </button>
+                <button
+                  onClick={() => setActiveTab('tracklist')}
+                  className={`px-6 py-3 font-medium flex items-center gap-2 ${activeTab === 'tracklist' ? 'border-b-2 border-primary-900 text-primary-900' : 'text-gray-500'}`}
+                >
+                  <ListMusic className="h-4 w-4" />
+                  Tracklist ({tracklist.length})
+                </button>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              {product.inStock ? (
-                <>
-                  <button
-                    onClick={handleBuyNow}
-                    className="w-full bg-primary-900 text-white py-4 rounded-lg font-semibold hover:bg-primary-800 transition text-lg"
-                  >
-                    Comprar Ahora
-                  </button>
-                  <button
-                    onClick={handleAddToCart}
-                    className="w-full bg-secondary-500 text-white py-4 rounded-lg font-semibold hover:bg-secondary-600 transition text-lg flex items-center justify-center space-x-2"
-                  >
-                    <ShoppingCart className="h-6 w-6" />
-                    <span>Agregar al Carrito</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  disabled
-                  className="w-full bg-gray-300 text-gray-600 py-4 rounded-lg font-semibold cursor-not-allowed text-lg"
-                >
-                  Producto Agotado
-                </button>
-              )}
-            </div>
+            {activeTab === 'details' ? (
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                  {product.albumTitle}
+                </h1>
+                <p className="text-2xl text-gray-600 mb-4">
+                  {product.artistName}
+                </p>
 
-            {/* Additional Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <Package className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Información de Envío</h4>
-                  <p className="text-sm text-gray-600">
-                    {product.productType === 'PHYSICAL' 
-                      ? 'Envío a todo el país. El proveedor coordinará la entrega después de confirmar tu pedido.'
-                      : 'Descarga digital inmediata después de la compra.'}
+                {/* Price */}
+                <div className="flex items-baseline space-x-4 mb-6">
+                  <span className="text-4xl font-bold text-primary-900">
+                    {formatPrice(product.price)}
+                  </span>
+                  {product.stockQuantity > 0 && product.stockQuantity <= 10 && (
+                    <span className="text-sm text-red-600 font-medium">
+                      ¡Solo quedan {product.stockQuantity}!
+                    </span>
+                  )}
+                </div>
+
+                {/* Category */}
+                <div className="flex items-center space-x-2 mb-4">
+                  <Tag className="h-5 w-5 text-gray-500" />
+                  <span className="text-gray-700">{product.categoryName}</span>
+                </div>
+
+                {/* Provider */}
+                <div className="flex items-center space-x-2 mb-6">
+                  <Store className="h-5 w-5 text-gray-500" />
+                  <span className="text-gray-700">Vendido por: <span className="font-medium">{product.providerName}</span></span>
+                </div>
+
+                {/* Specifications */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Especificaciones</h3>
+                  
+                  <div className="space-y-3">
+                    {/* Condición */}
+                    {product.conditionType && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 flex items-center">
+                          <Check className="h-4 w-4 mr-2" />
+                          Condición:
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {getConditionLabel(product.conditionType)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Stock */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 flex items-center">
+                        <Package className="h-4 w-4 mr-2" />
+                        Disponibilidad:
+                      </span>
+                      <span className={`font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
+                        {product.inStock ? `${product.stockQuantity} en stock` : 'Agotado'}
+                      </span>
+                    </div>
+
+                    {/* Physical Specs */}
+                    {product.productType === 'PHYSICAL' && (
+                      <>
+                        {product.vinylSize && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600 flex items-center">
+                              <Disc3 className="h-4 w-4 mr-2" />
+                              Tamaño:
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {getVinylSizeLabel(product.vinylSize)}
+                            </span>
+                          </div>
+                        )}
+
+                        {product.vinylSpeed && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600 flex items-center">
+                              <Gauge className="h-4 w-4 mr-2" />
+                              Velocidad:
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {getVinylSpeedLabel(product.vinylSpeed)}
+                            </span>
+                          </div>
+                        )}
+
+                        {product.weightGrams && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600 flex items-center">
+                              <Weight className="h-4 w-4 mr-2" />
+                              Peso:
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {product.weightGrams}g
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Digital Specs */}
+                    {product.productType === 'DIGITAL' && (
+                      <>
+                        {product.fileFormat && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600 flex items-center">
+                              <Music className="h-4 w-4 mr-2" />
+                              Formato:
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {product.fileFormat}
+                            </span>
+                          </div>
+                        )}
+
+                        {product.fileSizeMb && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600 flex items-center">
+                              <HardDrive className="h-4 w-4 mr-2" />
+                              Tamaño:
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {product.fileSizeMb} MB
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 flex items-center">
+                            <Clock className="h-4 w-4 mr-2" />
+                            Descarga:
+                          </span>
+                          <span className="font-medium text-green-600">
+                            Inmediata
+                          </span>
+                        </div>
+                      </>
+                    )}
+
+                    {/* SKU */}
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <span className="text-gray-600">SKU:</span>
+                      <span className="font-mono text-sm text-gray-900">
+                        {product.sku}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quantity Selector (only for in-stock items) */}
+                {product.inStock && (
+                  <div className="flex items-center space-x-4">
+                    <label className="text-gray-700 font-medium">Cantidad:</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="px-4 py-2 hover:bg-gray-100 transition"
+                      >
+                        -
+                      </button>
+                      <span className="px-6 py-2 border-x border-gray-300 font-medium">
+                        {quantity}
+                      </span>
+                      <button
+                        onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
+                        className="px-4 py-2 hover:bg-gray-100 transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  {product.inStock ? (
+                    <>
+                      <button
+                        onClick={handleBuyNow}
+                        className="w-full bg-primary-900 text-white py-4 rounded-lg font-semibold hover:bg-primary-800 transition text-lg"
+                      >
+                        Comprar Ahora
+                      </button>
+                      <button
+                        onClick={handleAddToCart}
+                        className="w-full bg-secondary-500 text-white py-4 rounded-lg font-semibold hover:bg-secondary-600 transition text-lg flex items-center justify-center space-x-2"
+                      >
+                        <ShoppingCart className="h-6 w-6" />
+                        <span>Agregar al Carrito</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full bg-gray-300 text-gray-600 py-4 rounded-lg font-semibold cursor-not-allowed text-lg"
+                    >
+                      Producto Agotado
+                    </button>
+                  )}
+                </div>
+
+                {/* Additional Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Package className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Información de Envío</h4>
+                      <p className="text-sm text-gray-600">
+                        {product.productType === 'PHYSICAL' 
+                          ? 'Envío a todo el país. El proveedor coordinará la entrega después de confirmar tu pedido.'
+                          : 'Descarga digital inmediata después de la compra.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Lista de Canciones</h2>
+                {tracklist.map((song, index) => (
+                  <div
+                    key={song.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-lg font-bold text-gray-400 w-8">
+                        {song.trackNumber || index + 1}
+                      </span>
+                      <div>
+                        <p className="font-medium text-gray-900">{song.title}</p>
+                        <p className="text-sm text-gray-500">{song.artistName}</p>
+                      </div>
+                    </div>
+                    {song.durationSeconds && (
+                      <span className="text-sm text-gray-500">
+                        {Math.floor(song.durationSeconds / 60)}:{(song.durationSeconds % 60).toString().padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
+                ))}
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Duración total:</strong> {Math.floor(tracklist.reduce((acc, s) => acc + (s.durationSeconds || 0), 0) / 60)} minutos
                   </p>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
