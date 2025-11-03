@@ -10,4 +10,8 @@ import java.util.List;
 public interface CompilationRepository extends JpaRepository<Compilation, Long> {
 
     List<Compilation> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<Compilation> findByIsPublicTrueOrderByCreatedAtDesc();
+
+    List<Compilation> findByIsPublicTrueAndNameContainingIgnoreCaseOrderByCreatedAtDesc(String name);
 }

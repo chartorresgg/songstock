@@ -21,7 +21,8 @@ import ProductForm from './pages/provider/ProductForm';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Compilations from './pages/customer/Compilations';
 import CompilationDetail from './pages/customer/CompilationDetail';
-
+import PublicCompilations from './pages/customer/PublicCompilations';
+import PublicCompilationDetail from './pages/customer/PublicCompilationDetail'
 // Layout
 import MainLayout from './components/layout/MainLayout';
 
@@ -127,6 +128,24 @@ function App() {
                 <Route path="/compilations/:id" element={
                   <ProtectedRoute allowedRoles={['CUSTOMER']}>
                     <CompilationDetail />
+                  </ProtectedRoute>
+                } />
+
+<Route path="/compilations/:id" element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <CompilationDetail />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/compilations/explore" element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <PublicCompilations />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/compilations/public/:id" element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <PublicCompilationDetail />
                   </ProtectedRoute>
                 } />
 

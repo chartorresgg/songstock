@@ -34,6 +34,26 @@ class CompilationService {
     await axiosInstance.delete(`/compilations/${id}`);
   }
 
+    async getPublicCompilations(params?: { 
+        name?: string; 
+        minSongs?: number; 
+        maxSongs?: number; 
+      }): Promise<Compilation[]> {
+        const response = await axiosInstance.get<ApiResponse<Compilation[]>>('/compilations/public', { params });
+        return response.data.data;
+      }
+    
+      async getPublicCompilationById(id: number): Promise<Compilation> {
+        const response = await axiosInstance.get<ApiResponse<Compilation>>(`/compilations/public/${id}`);
+        return response.data.data;
+      }
+    
+      async cloneCompilation(id: number): Promise<Compilation> {
+        const response = await axiosInstance.post<ApiResponse<Compilation>>(`/compilations/${id}/clone`);
+        return response.data.data;
+      }
+    
+
   async getSongsByAlbum(albumId: number): Promise<Song[]> {
     const response = await axiosInstance.get<ApiResponse<Song[]>>(`/songs/album/${albumId}`);
     return response.data.data;
