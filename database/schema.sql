@@ -1,12 +1,26 @@
-CREATE DATABASE song_stock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- =====================================================
+-- SONGSTOCK DATABASE SCHEMA
+-- Versión: 2.0
+-- Fecha: 2025-11-03
+-- Descripción: Marketplace de vinilos y música digital
+-- =====================================================
+
+CREATE DATABASE IF NOT EXISTS song_stock 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+
 USE song_stock;
 
--- Tabla de usuarios (administradores y proveedores)
+-- =====================================================
+-- TABLAS DE USUARIOS Y AUTENTICACIÓN
+-- =====================================================
+
+-- Tabla de usuarios (clientes, proveedores y administradores)
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL COMMENT 'Contraseña encriptada con BCrypt',
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone VARCHAR(20),
@@ -17,9 +31,9 @@ CREATE TABLE users (
     INDEX idx_username (username),
     INDEX idx_email (email),
     INDEX idx_role (role)
-);
+) ENGINE=InnoDB COMMENT='Usuarios del sistema';
 
--- Tabla de proveedores (información adicional específica de proveedores)
+-- Tabla de proveedores (información adicional de vendedores)
 CREATE TABLE providers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL,
@@ -38,9 +52,67 @@ CREATE TABLE providers (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_verification_status (verification_status),
     INDEX idx_business_name (business_name)
-);
+) ENGINE=InnoDB COMMENT='Información de proveedores/vendedores';
 
--- Tabla de categorías para los vinilos
+-- Tabla de invitaciones a proveedores
+CREATE TABLE provider_invitations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    business_name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20),
+    invitation_token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED') DEFAULT 'PENDING',
+    invited_by BIGINT NOT NULL COMMENT 'ID del admin que invitó',
+    completed_by BIGINT NULL COMMENT 'ID del proveedor que completó',
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    INDEX idx_email (email),
+    INDEX idx_token (invitation_token),
+    INDEX idx_status (status),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB COMMENT='Invitaciones enviadas a futuros proveedores';
+
+-- Tabla de sesiones de usuarios (JWT tracking)
+CREATE TABLE user_sessions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_token VARCHAR(255) NOT NULL,
+    refresh_token VARCHAR(255),
+    expires_at TIMESTAMP NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_session_token (session_token),
+    INDEX idx_user_id (user_id),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB COMMENT='Sesiones activas de usuarios';
+
+-- Tabla para tokens de recuperación de contraseña
+CREATE TABLE password_reset_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_token (token),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB COMMENT='Tokens para recuperación de contraseña';
+
+-- =====================================================
+-- TABLAS DE CATÁLOGO MUSICAL
+-- =====================================================
+
+-- Tabla de categorías de productos
 CREATE TABLE categories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
@@ -49,7 +121,7 @@ CREATE TABLE categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_name (name)
-);
+) ENGINE=InnoDB COMMENT='Categorías de productos (Vinilo, CD, Digital, etc.)';
 
 -- Tabla de géneros musicales
 CREATE TABLE genres (
@@ -59,7 +131,7 @@ CREATE TABLE genres (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_name (name)
-);
+) ENGINE=InnoDB COMMENT='Géneros musicales';
 
 -- Tabla de artistas
 CREATE TABLE artists (
@@ -73,7 +145,7 @@ CREATE TABLE artists (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_name (name),
     INDEX idx_country (country)
-);
+) ENGINE=InnoDB COMMENT='Artistas musicales';
 
 -- Tabla de álbumes
 CREATE TABLE albums (
@@ -92,11 +164,13 @@ CREATE TABLE albums (
     FOREIGN KEY (artist_id) REFERENCES artists(id),
     FOREIGN KEY (genre_id) REFERENCES genres(id),
     INDEX idx_title (title),
+    INDEX idx_artist_id (artist_id),
+    INDEX idx_genre_id (genre_id),
     INDEX idx_release_year (release_year),
     INDEX idx_catalog_number (catalog_number)
-);
+) ENGINE=InnoDB COMMENT='Álbumes musicales';
 
--- Tabla de canciones (tracks de álbumes digitales)
+-- Tabla de canciones (tracks de álbumes)
 CREATE TABLE songs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     album_id BIGINT NOT NULL,
@@ -110,9 +184,13 @@ CREATE TABLE songs (
     INDEX idx_track_number (track_number),
     INDEX idx_title (title),
     UNIQUE KEY unique_album_track (album_id, track_number)
-);
+) ENGINE=InnoDB COMMENT='Canciones/tracks de álbumes';
 
--- Tabla de productos (vinilos físicos y digitales)
+-- =====================================================
+-- TABLAS DE PRODUCTOS E INVENTARIO
+-- =====================================================
+
+-- Tabla de productos (vinilos físicos y productos digitales)
 CREATE TABLE products (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     album_id BIGINT NOT NULL,
@@ -120,14 +198,17 @@ CREATE TABLE products (
     category_id BIGINT NOT NULL,
     sku VARCHAR(50) UNIQUE NOT NULL,
     product_type ENUM('PHYSICAL', 'DIGITAL') NOT NULL,
-    condition_type ENUM('NEW', 'LIKE_NEW', 'VERY_GOOD', 'GOOD', 'FAIR', 'POOR') DEFAULT 'NEW',
+    condition_type ENUM('NEW', 'LIKE_NEW', 'VERY_GOOD', 'GOOD', 'ACCEPTABLE') DEFAULT 'NEW',
     price DECIMAL(10,2) NOT NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
-    vinyl_size ENUM('7_INCH', '10_INCH', '12_INCH') NULL, -- Solo para vinilos físicos
-    vinyl_speed ENUM('33_RPM', '45_RPM', '78_RPM') NULL, -- Solo para vinilos físicos
-    file_format VARCHAR(20) NULL, -- Solo para digitales (MP3, FLAC, WAV)
-    file_size_mb INT NULL, -- Solo para digitales
-    weight_grams INT NULL, -- Solo para físicos
+    -- Campos específicos para vinilos físicos
+    vinyl_size ENUM('SEVEN_INCH', 'TEN_INCH', 'TWELVE_INCH') NULL,
+    vinyl_speed ENUM('RPM_33', 'RPM_45', 'RPM_78') NULL,
+    weight_grams INT NULL,
+    -- Campos específicos para productos digitales
+    file_format VARCHAR(20) NULL COMMENT 'MP3, FLAC, WAV, etc.',
+    file_size_mb INT NULL,
+    -- Metadatos
     is_active BOOLEAN DEFAULT TRUE,
     featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -137,10 +218,13 @@ CREATE TABLE products (
     FOREIGN KEY (category_id) REFERENCES categories(id),
     INDEX idx_sku (sku),
     INDEX idx_product_type (product_type),
+    INDEX idx_provider_id (provider_id),
+    INDEX idx_album_id (album_id),
     INDEX idx_price (price),
     INDEX idx_featured (featured),
-    INDEX idx_condition (condition_type)
-);
+    INDEX idx_condition (condition_type),
+    INDEX idx_stock (stock_quantity)
+) ENGINE=InnoDB COMMENT='Productos disponibles (vinilos y digitales)';
 
 -- Tabla de imágenes de productos
 CREATE TABLE product_images (
@@ -154,25 +238,11 @@ CREATE TABLE product_images (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     INDEX idx_product_id (product_id),
     INDEX idx_is_primary (is_primary)
-);
+) ENGINE=InnoDB COMMENT='Imágenes de productos';
 
--- Tabla de sesiones de usuarios (para JWT tracking)
-CREATE TABLE user_sessions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    session_token VARCHAR(255) NOT NULL,
-    refresh_token VARCHAR(255),
-    expires_at TIMESTAMP NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_session_token (session_token),
-    INDEX idx_user_id (user_id),
-    INDEX idx_expires_at (expires_at)
-);
+-- =====================================================
+-- TABLAS DE RECOPILACIONES
+-- =====================================================
 
 -- Tabla de compilaciones/recopilaciones de usuarios
 CREATE TABLE compilations (
@@ -186,8 +256,9 @@ CREATE TABLE compilations (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_name (name),
-    INDEX idx_is_public (is_public)
-);
+    INDEX idx_is_public (is_public),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB COMMENT='Recopilaciones/playlists de usuarios';
 
 -- Tabla intermedia: canciones en compilaciones
 CREATE TABLE compilation_songs (
@@ -202,16 +273,19 @@ CREATE TABLE compilation_songs (
     INDEX idx_song_id (song_id),
     INDEX idx_order_position (order_position),
     UNIQUE KEY unique_compilation_song (compilation_id, song_id)
-);
+) ENGINE=InnoDB COMMENT='Canciones en cada recopilación';
 
+-- =====================================================
+-- TABLAS DE ÓRDENES Y TRANSACCIONES
+-- =====================================================
 
 -- Tabla de órdenes/pedidos
+-- NOTA: Una orden puede contener items de MÚLTIPLES proveedores
 CREATE TABLE orders (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_number VARCHAR(50) UNIQUE NOT NULL,
     user_id BIGINT NOT NULL,
-    provider_id BIGINT NOT NULL,
-    status ENUM('PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REJECTED', 'RECEIVED') NOT NULL DEFAULT 'PENDING',
+    status ENUM('PENDING', 'ACCEPTED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'RECEIVED', 'CANCELLED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
     total DECIMAL(12,2) NOT NULL,
     shipping_address TEXT,
     shipping_city VARCHAR(100),
@@ -226,29 +300,36 @@ CREATE TABLE orders (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (provider_id) REFERENCES providers(id),
     INDEX idx_order_number (order_number),
     INDEX idx_user_id (user_id),
-    INDEX idx_provider_id (provider_id),
     INDEX idx_status (status),
     INDEX idx_created_at (created_at)
-);
+) ENGINE=InnoDB COMMENT='Órdenes de compra';
 
 -- Tabla de items de órdenes
+-- IMPORTANTE: Cada item tiene su propio proveedor y estado
 CREATE TABLE order_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
+    provider_id BIGINT NOT NULL COMMENT 'Proveedor específico de este item',
     quantity INT NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(12,2) NOT NULL,
+    status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'SHIPPED', 'DELIVERED') DEFAULT 'PENDING',
+    rejection_reason TEXT NULL,
+    shipped_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (provider_id) REFERENCES providers(id),
     INDEX idx_order_id (order_id),
-    INDEX idx_product_id (product_id)
-);
+    INDEX idx_product_id (product_id),
+    INDEX idx_provider_id (provider_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB COMMENT='Items individuales de cada orden';
 
+-- Tabla de valoraciones/reviews de órdenes
 CREATE TABLE order_reviews (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL,
@@ -260,20 +341,31 @@ CREATE TABLE order_reviews (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_order_review (order_id),
     INDEX idx_user_id (user_id),
-    INDEX idx_rating (rating)
-);
+    INDEX idx_rating (rating),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB COMMENT='Valoraciones de órdenes por usuarios';
 
+-- =====================================================
+-- TABLAS DE NOTIFICACIONES
+-- =====================================================
+
+-- Tabla de notificaciones internas
 CREATE TABLE notifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
-    type ENUM('ORDER_CREATED', 'ORDER_CONFIRMED', 'ORDER_SHIPPED', 'ORDER_DELIVERED', 'ORDER_CANCELLED') NOT NULL,
+    type ENUM('ORDER_CREATED', 'ORDER_CONFIRMED', 'ORDER_SHIPPED', 'ORDER_DELIVERED', 'ORDER_CANCELLED', 'PROVIDER_NEW_ORDER') NOT NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    order_id BIGINT,
+    order_id BIGINT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_is_read (is_read),
+    INDEX idx_type (type),
     INDEX idx_created_at (created_at)
-);
+) ENGINE=InnoDB COMMENT='Notificaciones internas del sistema';
+
+-- =====================================================
+-- FIN DEL SCHEMA
+-- =====================================================

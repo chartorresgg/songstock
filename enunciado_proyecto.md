@@ -1,20 +1,23 @@
 PIF 2025-2 
 SongStock Market Place 
-Desarrollo Web. Yamid Ramírez, MSc. 
-Propósito 
+Desarrollo Web. Yamid Ramírez, MSc.
+
+PROPÓSITO: 
 El número de tiendas virtuales de canciones en internet se ha incrementado en los 
 últimos tiempos pero cada una busca la forma de diferenciarse para atraer distintos 
 nichos de mercado. La aplicación SongStock se ha venido posicionando bastante 
 bien en el mundo de la música por internet. Sin embargo, sus creadores quieren 
 atraer un público que últimamente ha venido creciendo y despertando gran interés 
-para el mercado: los coleccionadores de discos de vinilo.  
+para el mercado: los coleccionadores de discos de vinilo. 
+
 Actualmente SongStock permite visualizar un catálogo de discos y canciones que 
 la tienda tiene a la venta. Cada disco tiene un nombre, un género y una imagen de 
 la carátula del disco. La tienda se especializa en la venta de canciones en formato 
 MP3 por lo que ofrece toda la información relevante de una canción al usuario. Esta 
 información comprende: el nombre de la canción, su precio individual, la duración 
 en minutos y segundos, el tamaño en megabytes (MB) y la calidad de la canción 
-expresada en kilobytes por segundo (Kbps).  
+expresada en kilobytes por segundo (Kbps).
+
 Una característica importante del sistema actual es que permite manejar 
 recopilaciones creadas por los mismos usuarios. Una recopilación puede ser 
 entendida como una lista de reproducción compuesta por canciones de diferentes 
@@ -23,10 +26,13 @@ recopilación a partir de las canciones que estén a la venta en el sistema. Es 
 buscar recopilaciones de otros usuarios si estos establecen que son públicas. Esto 
 con el fin de que otros usuarios puedan crear sus propias recopilaciones tomando 
 inicialmente las canciones contenidas en recopilaciones publicadas por otras 
-personas.  
-Nuevos Requerimientos 
+personas.
+
+NUEVOS REQUERIMIENTOS:
+
 Debido al auge que durante los últimos tiempos ha tenido la compraventa de 
-vinilos usados, se decidió extender la funcionalidad de SongStock para:  
+vinilos usados, se decidió extender la funcionalidad de SongStock para:
+
 1. Proporcionar al usuario aficionado a la música la posibilidad de adquirir 
 discos de vinilo que contengan algunas de las canciones que se consiguen 
 fácilmente en formato MP3. 
@@ -48,8 +54,10 @@ registrar en el sistema dicho envío.
 5. Más adelante, una vez que el disco sea recibido, el usuario comprador tiene 
 la posibilidad de valorar la transacción comercial, es decir, emitir un concepto 
 de satisfacción o no acerca del proceso de compra y envío. 
+
 Con respecto al usuario coleccionista proveedor de vinilos, el sistema debe 
-permitir:  
+permitir:
+
 1. Registrar el proveedor frente al Marketplace de SongStock 
 2. Autenticar en el sistema al proveedor. 
 3. Construir un catálogo de vinilos. En el sistema, cada vinilo del catálogo debe 
@@ -79,8 +87,10 @@ cualquier momento los reportes de las compras o ventas realizadas. Este
 reporte también debe mostrar las ventas abiertas (en donde el usuario 
 comprador no ha confirmado la recepción de una orden de pedido o en donde 
 el proveedor no ha confirmado la confirmación o el rechazo de la orden de 
-pedido). 
-Otros Requerimientos y Restricciones 
+pedido).
+
+Otros Requerimientos y Restricciones:
+
 1. La información de la tienda debe ser persistente y el proceso debe ser 
 completamente transparente para el usuario. 
 2. Al momento de que el usuario inicie sesión, se debe saber qué discos y 
