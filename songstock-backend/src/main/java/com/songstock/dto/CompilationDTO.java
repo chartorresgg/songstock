@@ -10,6 +10,7 @@ public class CompilationDTO {
 
     private Long id;
     private Long userId;
+    private String creatorUsername;
 
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
@@ -37,6 +38,14 @@ public class CompilationDTO {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getCreatorUsername() {
+        return creatorUsername;
+    }
+
+    public void setCreatorUsername(String creatorUsername) {
+        this.creatorUsername = creatorUsername;
     }
 
     public String getName() {

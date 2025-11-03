@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,6 +57,87 @@ public class CompilationService {
         }
 
         return convertToDTOWithSongs(compilation);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompilationDTO> getPublicCompilations(String name, Integer minSongs, Integer maxSongs) {
+        logger.info("Obteniendo compilaciones públicas - name: {}, minSongs: {}, maxSongs: {}",
+                name, minSongs, maxSongs);
+
+        List<Compilation> compilations;
+
+        if (name != null && !name.trim().isEmpty()) {
+            compilations = compilationRepository
+                    .findByIsPublicTrueAndNameContainingIgnoreCaseOrderByCreatedAtDesc(name.trim());
+        } else {
+            compilations = compilationRepository.findByIsPublicTrueOrderByCreatedAtDesc();
+        }
+
+        List<CompilationDTO> result = compilations.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        // Filtrar por cantidad de canciones
+        if (minSongs != null || maxSongs != null) {
+            result = result.stream()
+                    .filter(dto -> {
+                        int count = dto.getSongCount();
+                        boolean matchMin = minSongs == null || count >= minSongs;
+                        boolean matchMax = maxSongs == null || count <= maxSongs;
+                        return matchMin && matchMax;
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public CompilationDTO getPublicCompilationById(Long id) {
+        logger.info("Obteniendo compilación pública: {}", id);
+
+        Compilation compilation = compilationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Compilación no encontrada con ID: " + id));
+
+        if (!compilation.getIsPublic()) {
+            throw new BadRequestException("Esta compilación no es pública");
+        }
+
+        return convertToDTOWithSongs(compilation);
+    }
+
+    public CompilationDTO cloneCompilation(Long id, Long userId) {
+        logger.info("Clonando compilación {} para usuario {}", id, userId);
+
+        Compilation original = compilationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Compilación no encontrada"));
+
+        if (!original.getIsPublic()) {
+            throw new BadRequestException("Solo se pueden clonar compilaciones públicas");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        Compilation clone = new Compilation();
+        clone.setUser(user);
+        clone.setName(original.getName() + " (Copia)");
+        clone.setDescription(original.getDescription());
+        clone.setIsPublic(false);
+
+        Compilation saved = compilationRepository.save(clone);
+
+        // Copiar canciones
+        for (CompilationSong originalSong : original.getCompilationSongs()) {
+            CompilationSong clonedSong = new CompilationSong();
+            clonedSong.setCompilation(saved);
+            clonedSong.setSong(originalSong.getSong());
+            clonedSong.setOrderPosition(originalSong.getOrderPosition());
+            compilationSongRepository.save(clonedSong); // ← CORRECCIÓN: usar compilationSongRepository
+        }
+
+        logger.info("Compilación clonada con ID: {}", saved.getId());
+        return convertToDTOWithSongs(saved);
     }
 
     public CompilationDTO createCompilation(CompilationDTO dto, Long userId) {
@@ -147,6 +228,7 @@ public class CompilationService {
         CompilationDTO dto = new CompilationDTO();
         dto.setId(compilation.getId());
         dto.setUserId(compilation.getUser().getId());
+        dto.setCreatorUsername(compilation.getUser().getUsername());
         dto.setName(compilation.getName());
         dto.setDescription(compilation.getDescription());
         dto.setIsPublic(compilation.getIsPublic());

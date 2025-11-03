@@ -11,6 +11,7 @@ export interface Song {
     export interface Compilation {
       id: number;
       userId: number;
+      creatorUsername?: string;
       name: string;
       description?: string;
       isPublic: boolean;
