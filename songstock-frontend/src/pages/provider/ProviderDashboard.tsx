@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import orderService from '../../services/order.service';
 import { Order, OrderItemStatus, OrderStatus } from '../../types/order.types';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Package, 
   Plus, 
@@ -27,7 +27,23 @@ import toast from 'react-hot-toast';
 type TabType = 'products' | 'pending' | 'history';
 
 const ProviderDashboard = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('products');
+    const location = useLocation();
+    const tabFromState = (location.state as any)?.tab;
+
+      console.log('🎯 Location state:', location.state);
+      console.log('🎯 Tab from state:', tabFromState);
+  
+  // Si hay tab en state, usarlo; sino, default 'products'
+  const initialTab = useMemo(() => {
+        const result = (['products', 'pending', 'history'] as TabType[]).includes(tabFromState as TabType) 
+          ? (tabFromState as TabType) 
+      : 'products';
+        
+    return result;
+  }, [tabFromState]);
+ 
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -38,6 +54,7 @@ const ProviderDashboard = () => {
   const [itemToShip, setItemToShip] = useState<number | null>(null);
   const [shipDate, setShipDate] = useState('');
   const [processingItem, setProcessingItem] = useState<number | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({

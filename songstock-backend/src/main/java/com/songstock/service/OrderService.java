@@ -73,6 +73,10 @@ public class OrderService {
 
             order.getItems().add(item);
             total = total.add(item.getSubtotal());
+
+            // Notificar al proveedor del producto
+            notificationService.createProviderOrderNotification(provider.getId(), order.getId(), order.getOrderNumber(),
+                    product.getAlbum().getTitle());
         }
 
         order.setTotal(total);

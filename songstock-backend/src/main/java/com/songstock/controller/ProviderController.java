@@ -2,6 +2,7 @@ package com.songstock.controller;
 
 import com.songstock.dto.ApiResponse;
 import com.songstock.dto.ProviderRegistrationDTO;
+import com.songstock.dto.ProviderListDTO;
 import com.songstock.entity.Provider;
 import com.songstock.entity.VerificationStatus;
 import com.songstock.service.ProviderService;
@@ -27,8 +28,8 @@ public class ProviderController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<Provider>>> getAllProviders() {
-        List<Provider> providers = providerService.getAllProviders();
+    public ResponseEntity<ApiResponse<List<ProviderListDTO>>> getAllProviders() {
+        List<ProviderListDTO> providers = providerService.getAllProviders();
         return ResponseEntity.ok(ApiResponse.success("Proveedores obtenidos exitosamente", providers));
     }
 

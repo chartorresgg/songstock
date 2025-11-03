@@ -36,6 +36,21 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    public void createProviderOrderNotification(Long providerId, Long orderId, String orderNumber, String productName) {
+        User providerUser = userRepository.findByProviderId(providerId)
+                .orElseThrow(() -> new RuntimeException("Usuario proveedor no encontrado"));
+
+        Notification notification = new Notification();
+        notification.setUser(providerUser);
+        notification.setType(Notification.NotificationType.PROVIDER_NEW_ORDER);
+        notification.setTitle("Nuevo pedido recibido");
+        notification.setMessage("Has recibido un pedido #" + orderNumber + " para: " + productName);
+        notification.setOrderId(orderId);
+        notification.setIsRead(false);
+
+        notificationRepository.save(notification);
+    }
+
     public List<NotificationDTO> getUserNotifications(Long userId) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()

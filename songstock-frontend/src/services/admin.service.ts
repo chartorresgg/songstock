@@ -334,7 +334,7 @@ class AdminService {
   async updateProduct(productId: number, productData: any): Promise<any> {
     try {
       const response = await axiosInstance.put<ApiResponse<any>>(
-        `/products/catalog/${productId}`,
+        `/products/${productId}/catalog`,
         productData
       );
       return response.data.data;

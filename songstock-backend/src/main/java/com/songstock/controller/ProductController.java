@@ -707,7 +707,7 @@ public class ProductController {
             }
 
             // Actualizar el producto
-            ProductCatalogResponseDTO response = productService.updateCatalogProduct(providerId, productId, updateDTO);
+            ProductCatalogResponseDTO response = productService.updateCatalogProduct(productId, providerId, updateDTO);
 
             ApiResponse<ProductCatalogResponseDTO> apiResponse = new ApiResponse<>(
                     true,

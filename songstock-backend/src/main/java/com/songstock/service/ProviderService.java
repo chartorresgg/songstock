@@ -7,6 +7,7 @@ import com.songstock.dto.CompleteRegistrationDTO;
 import com.songstock.dto.AuthResponseDTO;
 import com.songstock.dto.LoginRequestDTO;
 import com.songstock.entity.Provider;
+import com.songstock.dto.ProviderListDTO;
 import com.songstock.entity.User;
 import com.songstock.entity.UserRole;
 import com.songstock.entity.VerificationStatus;
@@ -23,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
-
+import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -51,11 +52,33 @@ public class ProviderService {
     // ================= MÉTODOS DE CONSULTA =================
 
     @Transactional(readOnly = true)
-    public List<Provider> getAllProviders() {
-                List<Provider> providers = providerRepository.findAll();
-                // Forzar carga del proxy user para evitar LazyInitializationException
-                providers.forEach(p -> p.getUser().getUsername());
-                return providers;
+    public List<ProviderListDTO> getAllProviders() {
+        List<Provider> providers = providerRepository.findAll();
+        return providers.stream()
+                .map(this::toProviderListDTO)
+                .collect(Collectors.toList());
+    }
+
+    private ProviderListDTO toProviderListDTO(Provider provider) {
+        ProviderListDTO dto = new ProviderListDTO();
+        dto.setId(provider.getId());
+        dto.setBusinessName(provider.getBusinessName());
+        dto.setTaxId(provider.getTaxId());
+        dto.setCity(provider.getCity());
+        dto.setState(provider.getState());
+        dto.setCountry(provider.getCountry());
+        dto.setVerificationStatus(provider.getVerificationStatus());
+        dto.setCommissionRate(provider.getCommissionRate());
+        dto.setCreatedAt(provider.getCreatedAt());
+        dto.setUpdatedAt(provider.getUpdatedAt());
+
+        User user = provider.getUser();
+        if (user != null) {
+            dto.setUserId(user.getId());
+            dto.setUsername(user.getUsername());
+            dto.setEmail(user.getEmail());
+        }
+        return dto;
     }
 
     @Transactional(readOnly = true)

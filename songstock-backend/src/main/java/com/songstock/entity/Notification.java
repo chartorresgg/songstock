@@ -44,7 +44,8 @@ public class Notification {
         ORDER_CONFIRMED,
         ORDER_SHIPPED,
         ORDER_DELIVERED,
-        ORDER_CANCELLED
+        ORDER_CANCELLED,
+        PROVIDER_NEW_ORDER
     }
 
     // Getters y Setters

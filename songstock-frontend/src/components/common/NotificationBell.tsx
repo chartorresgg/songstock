@@ -1,17 +1,31 @@
 import { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { user } = useAuth();
+  const location = useLocation();
+  const [, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleNotificationClick = async (notification: any) => {
+        console.log('🔔 Notification clicked:', notification);
+    console.log('🔔 Notification type:', notification.type);
+    console.log('🔔 User role:', user?.role);
     await markAsRead(notification.id);
-    if (notification.orderId) {
-      navigate('/my-orders');
+       // Redirigir según tipo de notificación
+    if (notification.type === 'PROVIDER_NEW_ORDER') {
+      console.log('🔔 Navigating to /provider/dashboard with state: pending');
+            navigate('/provider/dashboard', { 
+              state: { tab: 'pending' } 
+            });
+      } else if (notification.orderId) {
+        console.log('🔔 Navigating to /my-orders');
+        navigate('/my-orders');
     }
     setIsOpen(false);
   };

@@ -49,6 +49,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
          */
         boolean existsByEmail(String email);
 
+        @Query("SELECT u FROM User u WHERE u.provider.id = :providerId")
+        Optional<User> findByProviderId(@Param("providerId") Long providerId);
+
         /**
          * Buscar usuarios por rol.
          */

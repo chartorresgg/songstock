@@ -136,7 +136,7 @@ const AdminDashboard = () => {
       
       setCategories(categoriesData);
       setAlbums(albumsData);
-      setAllProviders(providers);
+      setAllProviders(providersData);
    } catch (error) {
       console.error('Error loading catalog data:', error);
     }
@@ -279,6 +279,7 @@ const AdminDashboard = () => {
 
   const handleDeleteProduct = async () => {
     if (!selectedProduct) return;
+    
 
     try {
       await adminService.deleteProduct(selectedProduct.id);
@@ -333,19 +334,30 @@ const AdminDashboard = () => {
     
     if (!selectedProduct) return;
 
+    // Helper para convertir valores a null si son inválidos
+    const parseOrNull = (value: any) => {
+        const parsed = parseInt(value);
+        return isNaN(parsed) || !value ? null : parsed;
+      };
+      
+      const parseFloatOrNull = (value: any) => {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) || !value ? null : parsed;
+      };
+
     try {
       await adminService.updateProduct(selectedProduct.id, {
-        categoryId: parseInt(productFormData.categoryId),
-        providerId: parseInt(productFormData.providerId),
+        categoryId: parseOrNull(productFormData.categoryId),
+        providerId: parseOrNull(productFormData.providerId),
         sku: productFormData.sku,
-        price: parseFloat(productFormData.price),
-        stockQuantity: parseInt(productFormData.stockQuantity),
+        price: parseFloatOrNull(productFormData.price),
+        stockQuantity: parseOrNull(productFormData.stockQuantity),
         featured: productFormData.featured,
         conditionType: productFormData.conditionType,
         vinylSize: productFormData.vinylSize,
         vinylSpeed: productFormData.vinylSpeed,
         fileFormat: productFormData.fileFormat,
-        fileSizeMB: productFormData.fileSizeMB ? parseFloat(productFormData.fileSizeMB) : null,
+        fileSizeMB: parseFloatOrNull(productFormData.fileSizeMB),
       });
 
       toast.success('Producto actualizado exitosamente');
