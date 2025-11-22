@@ -19,6 +19,12 @@ class CompilationService {
     return response.data.data;
   }
 
+    async updateCompilation(id: number, data: { name?: string; description?: string; isPublic?: boolean }): Promise<Compilation> {
+        const response = await axiosInstance.put<ApiResponse<Compilation>>(`/compilations/${id}`, data);
+        return response.data.data;
+      }
+    
+
   async addSongToCompilation(compilationId: number, songId: number): Promise<Compilation> {
     const response = await axiosInstance.post<ApiResponse<Compilation>>(
       `/compilations/${compilationId}/songs/${songId}`

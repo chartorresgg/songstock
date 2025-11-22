@@ -158,6 +158,28 @@ public class CompilationService {
         return convertToDTO(saved);
     }
 
+    public CompilationDTO updateCompilation(Long id, CompilationDTO dto, Long userId) {
+        logger.info("Actualizando compilación {} del usuario {}", id, userId);
+
+        Compilation compilation = compilationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Compilación no encontrada"));
+
+        if (!compilation.getUser().getId().equals(userId)) {
+            throw new BadRequestException("No tienes permiso para modificar esta compilación");
+        }
+
+        if (dto.getName() != null && !dto.getName().trim().isEmpty()) {
+            compilation.setName(dto.getName());
+        }
+        compilation.setDescription(dto.getDescription());
+        if (dto.getIsPublic() != null) {
+            compilation.setIsPublic(dto.getIsPublic());
+        }
+
+        Compilation updated = compilationRepository.save(compilation);
+        return convertToDTO(updated);
+    }
+
     public CompilationDTO addSongToCompilation(Long compilationId, Long songId, Long userId) {
         logger.info("Añadiendo canción {} a compilación {} del usuario {}", songId, compilationId, userId);
 

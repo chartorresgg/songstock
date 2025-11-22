@@ -25,6 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
         logger.info("Configuring CORS mappings");
 
         registry.addMapping("/**") // Aplica a todas las rutas
+                .allowedOrigins("http://localhost:3000")
                 .allowedOriginPatterns("http://localhost:*",
                         "http://127.0.0.1:*",
                         "null") // Permite cualquier origen

@@ -57,6 +57,9 @@ public class ProductService {
     private ProductRepository productRepository;
 
     @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
     private AlbumRepository albumRepository;
 
     @Autowired
@@ -234,6 +237,9 @@ public class ProductService {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
 
+        // Guardar stock anterior para comparar
+        Integer previousStock = existingProduct.getStockQuantity();
+        Long providerId = existingProduct.getProvider().getId();
         // Verificar si el nuevo SKU ya existe en otro producto
         if (!existingProduct.getSku().equals(productDTO.getSku())) {
             Optional<Product> duplicateProduct = productRepository.findBySkuAndIsActiveTrue(productDTO.getSku());
@@ -269,6 +275,20 @@ public class ProductService {
 
         productMapper.updateEntity(existingProduct, productDTO);
         Product updatedProduct = productRepository.save(existingProduct);
+
+        // AGREGAR: Verificar si debe crear alerta de stock bajo
+        Integer newStock = updatedProduct.getStockQuantity();
+        Integer threshold = updatedProduct.getLowStockThreshold() != null ? updatedProduct.getLowStockThreshold() : 5;
+
+        logger.info("🔍 Verificando alerta después de UPDATE - Stock anterior: {}, Stock nuevo: {}, Threshold: {}",
+                previousStock, newStock, threshold);
+
+        if (newStock <= threshold) {
+            logger.info("⚠️ Stock bajo detectado - Creando alerta");
+            notificationService.createLowStockAlert(updatedProduct, providerId);
+        } else {
+            logger.info("✅ Stock OK - No requiere alerta");
+        }
 
         logger.info("Producto actualizado exitosamente con ID: {}", updatedProduct.getId());
         return productMapper.toDTO(updatedProduct);
@@ -575,6 +595,16 @@ public class ProductService {
         logger.info("Stock actualizado - Producto: {}, Stock anterior: {}, Stock nuevo: {}, Proveedor: {}, Razón: {}",
                 productId, previousStock, updateDTO.getStockQuantity(), providerId, updateDTO.getUpdateReason());
 
+        // Verificar si debe crear alerta de stock bajo
+        Integer threshold = savedProduct.getLowStockThreshold() != null ? savedProduct.getLowStockThreshold() : 5;
+        logger.info("🔍 Verificando alerta - Stock: {}, Threshold: {}", savedProduct.getStockQuantity(), threshold);
+
+        if (savedProduct.getStockQuantity() <= threshold) {
+            logger.info("⚠️ Creando alerta de stock bajo para producto: {}", savedProduct.getId());
+            notificationService.createLowStockAlert(savedProduct, providerId);
+        } else {
+            logger.info("✅ Stock OK - No requiere alerta");
+        }
         return mapToInventoryResponseDTO(savedProduct);
     }
 
@@ -630,6 +660,17 @@ public class ProductService {
                 "Stock ajustado - Producto: {}, Tipo: {}, Cantidad: {}, Stock anterior: {}, Stock nuevo: {}, Razón: {}",
                 productId, adjustmentDTO.getAdjustmentType(), adjustmentDTO.getQuantity(),
                 currentStock, newStock, adjustmentDTO.getReason());
+
+        // Verificar si debe crear alerta de stock bajo
+        Integer threshold = savedProduct.getLowStockThreshold() != null ? savedProduct.getLowStockThreshold() : 5;
+        logger.info("🔍 Verificando alerta - Stock: {}, Threshold: {}", savedProduct.getStockQuantity(), threshold);
+
+        if (savedProduct.getStockQuantity() <= threshold) {
+            logger.info("⚠️ Creando alerta de stock bajo para producto: {}", savedProduct.getId());
+            notificationService.createLowStockAlert(savedProduct, providerId);
+        } else {
+            logger.info("✅ Stock OK - No requiere alerta");
+        }
 
         return mapToInventoryResponseDTO(savedProduct);
     }

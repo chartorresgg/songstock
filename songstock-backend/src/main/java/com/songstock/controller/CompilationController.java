@@ -108,6 +108,20 @@ public class CompilationController {
                 .body(ApiResponse.success("Compilación creada exitosamente", created));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Actualizar compilación", description = "Actualizar nombre, descripción y visibilidad")
+    public ResponseEntity<ApiResponse<CompilationDTO>> updateCompilation(
+            @PathVariable Long id,
+            @Valid @RequestBody CompilationDTO compilationDTO,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        logger.info("REST request to update compilation: {}", id);
+
+        CompilationDTO updated = compilationService.updateCompilation(id, compilationDTO, userDetails.getId());
+
+        return ResponseEntity.ok(ApiResponse.success("Compilación actualizada exitosamente", updated));
+    }
+
     @PostMapping("/{id}/songs/{songId}")
     @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(summary = "Añadir canción", description = "Añadir una canción a la compilación")

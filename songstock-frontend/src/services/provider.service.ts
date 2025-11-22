@@ -103,6 +103,20 @@ class ProviderService {
     );
     return response.data.data;
   }
+
+  
+  // Obtener reporte de ventas del proveedor
+  async getSalesReport(providerId: number): Promise<any> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<any>>(
+        `${API_ENDPOINTS.PROVIDERS}/${providerId}/sales-report`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting sales report:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ProviderService();

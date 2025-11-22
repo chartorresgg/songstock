@@ -1,5 +1,7 @@
+// frontend/src/components/compilations/CompilationSelector.tsx
 import { useState, useEffect } from 'react';
-import { X, Plus, Music2, Loader2 } from 'lucide-react';
+import { X, Plus, Music2, Loader2, Compass } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import compilationService from '../../services/compilation.service';
 import { Compilation, Song } from '../../types/compilation.types';
 import toast from 'react-hot-toast';
@@ -10,6 +12,7 @@ interface CompilationSelectorProps {
 }
 
 const CompilationSelector = ({ song, onClose }: CompilationSelectorProps) => {
+  const navigate = useNavigate();
   const [compilations, setCompilations] = useState<Compilation[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<number | null>(null);
@@ -72,6 +75,11 @@ const CompilationSelector = ({ song, onClose }: CompilationSelectorProps) => {
     }
   };
 
+  const handleExplorePublic = () => {
+    onClose();
+    navigate('/compilations/explore');
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
@@ -132,13 +140,23 @@ const CompilationSelector = ({ song, onClose }: CompilationSelectorProps) => {
 
               {/* Create New Compilation */}
               {!showCreateForm ? (
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="w-full flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-900 hover:bg-primary-50 transition text-gray-600 hover:text-primary-900"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span className="font-medium">Crear nueva recopilación</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className="w-full flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-900 hover:bg-primary-50 transition text-gray-600 hover:text-primary-900"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span className="font-medium">Crear nueva recopilación</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleExplorePublic}
+                    className="w-full flex items-center justify-center space-x-2 p-4 border-2 border-primary-200 bg-primary-50 rounded-lg hover:border-primary-900 hover:bg-primary-100 transition text-primary-900"
+                  >
+                    <Compass className="h-5 w-5" />
+                    <span className="font-medium">Explorar recopilaciones públicas</span>
+                  </button>
+                </div>
               ) : (
                 <div className="border-2 border-primary-900 rounded-lg p-4 space-y-3">
                   <input

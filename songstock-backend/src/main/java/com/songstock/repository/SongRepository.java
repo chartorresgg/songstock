@@ -19,4 +19,10 @@ public interface SongRepository extends JpaRepository<Song, Long> {
     // Búsqueda avanzada: título o álbum o artista
     @Query("SELECT s FROM Song s WHERE (LOWER(s.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(s.album.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(s.album.artist.name) LIKE LOWER(CONCAT('%', :query, '%'))) AND s.isActive = true")
     List<Song> searchByTitleOrAlbumOrArtist(String query);
+
+    List<Song> findByAvailableTrue();
+
+    List<Song> findByTitleContainingIgnoreCaseAndAvailableTrue(String title);
+
+    List<Song> findByAlbum_Genre_IdAndAvailableTrue(Long genreId);
 }

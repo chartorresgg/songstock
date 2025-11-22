@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import com.songstock.exception.BusinessException;
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -344,15 +345,63 @@ public class OrderService {
         review.setUser(order.getUser());
         review.setRating(dto.getRating());
         review.setComment(dto.getComment());
+        review.setStatus(ReviewStatus.PENDING);
 
         review = orderReviewRepository.save(review);
         return mapToReviewDTO(review);
     }
 
     public OrderReviewDTO getReview(Long orderId) {
-        return orderReviewRepository.findByOrderId(orderId)
-                .map(this::mapToReviewDTO)
+        OrderReview review = orderReviewRepository.findByOrderId(orderId)
                 .orElse(null);
+
+        // Solo retornar reviews aprobadas (ocultar PENDING y REJECTED)
+        if (review != null && review.getStatus() != ReviewStatus.APPROVED) {
+            return null;
+        }
+
+        return review != null
+                ? mapToReviewDTO(review)
+
+                : null;
+    }
+
+    public List<OrderReviewDTO> getPendingReviews() {
+        return orderReviewRepository.findByStatusOrderByCreatedAtDesc(ReviewStatus.PENDING)
+                .stream()
+                .map(this::mapToReviewDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public OrderReviewDTO approveReview(Long reviewId, Long adminUserId) {
+        OrderReview review = orderReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Valoración no encontrada"));
+
+        if (review.getStatus() != ReviewStatus.PENDING) {
+            throw new BusinessException("Solo se pueden aprobar valoraciones pendientes");
+        }
+
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin no encontrado"));
+
+        review.setStatus(ReviewStatus.APPROVED);
+        review.setModeratedAt(LocalDateTime.now());
+        review.setModeratedBy(admin);
+        review = orderReviewRepository.save(review);
+        return mapToReviewDTO(review);
+    }
+
+    @Transactional
+    public OrderReviewDTO rejectReview(Long reviewId, Long adminUserId) {
+        OrderReview review = orderReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Valoración no encontrada"));
+
+        review.setStatus(ReviewStatus.REJECTED);
+        review.setModeratedAt(LocalDateTime.now());
+        review.setModeratedBy(userRepository.findById(adminUserId).orElse(null));
+        review = orderReviewRepository.save(review);
+        return mapToReviewDTO(review);
     }
 
     private OrderReviewDTO mapToReviewDTO(OrderReview review) {
@@ -364,6 +413,11 @@ public class OrderService {
         dto.setRating(review.getRating());
         dto.setComment(review.getComment());
         dto.setCreatedAt(review.getCreatedAt());
+        dto.setStatus(review.getStatus());
+        dto.setModeratedAt(review.getModeratedAt());
+        if (review.getModeratedBy() != null) {
+            dto.setModeratedByUsername(review.getModeratedBy().getUsername());
+        }
         return dto;
     }
 

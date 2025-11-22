@@ -1,5 +1,6 @@
 import axiosInstance from './axios.instance';
 import { ApiResponse } from '../types/api.types';
+import { OrderReview } from '../types/order.types';
 
 // ==================== INTERFACES ====================
 
@@ -459,6 +460,56 @@ class AdminService {
       return this.getSystemStats();
     }
   }
+
+  // ============ MODERACIÓN DE VALORACIONES ============
+  
+  /**
+   * Obtener valoraciones pendientes de moderación
+   */
+  async getPendingReviews(): Promise<OrderReview[]> {
+    try {
+      const response = await axiosInstance.get<ApiResponse<OrderReview[]>>(
+        '/admin/users/reviews/pending'
+      );
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching pending reviews:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Aprobar una valoración
+   */
+  async approveReview(reviewId: number): Promise<OrderReview> {
+    try {
+      const response = await axiosInstance.put<ApiResponse<OrderReview>>(
+        `/admin/users/reviews/${reviewId}/approve`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error approving review:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rechazar una valoración
+   */
+  async rejectReview(reviewId: number): Promise<OrderReview> {
+    try {
+      const response = await axiosInstance.put<ApiResponse<OrderReview>>(
+        `/admin/users/reviews/${reviewId}/reject`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error rejecting review:', error);
+      throw error;
+    }
+  }
+
 }
+
+
 
 export default new AdminService();

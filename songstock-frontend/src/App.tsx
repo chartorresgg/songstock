@@ -23,7 +23,6 @@ import Compilations from './pages/customer/Compilations';
 import CompilationDetail from './pages/customer/CompilationDetail';
 import PublicCompilations from './pages/customer/PublicCompilations';
 import PublicCompilationDetail from './pages/customer/PublicCompilationDetail'
-// Layout
 import MainLayout from './components/layout/MainLayout';
 
 // Protected Route
@@ -97,6 +96,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/songs/search" element={<SongSearch />} />
                 <Route path="/catalog" element={<Catalog />} />
+                <Route path="/songs" element={<SongSearch />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/about-us" element={<AboutUs />} />
 
@@ -130,13 +130,7 @@ function App() {
                     <CompilationDetail />
                   </ProtectedRoute>
                 } />
-
-<Route path="/compilations/:id" element={
-                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
-                    <CompilationDetail />
-                  </ProtectedRoute>
-                } />
-
+        
                 <Route path="/compilations/explore" element={
                   <ProtectedRoute allowedRoles={['CUSTOMER']}>
                     <PublicCompilations />

@@ -94,6 +94,9 @@ export interface OrderReview {
     rating: number;
     comment?: string;
     createdAt: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    moderatedAt?: string;
+    moderatedByUsername?: string;
   }
   
   /**

@@ -5,7 +5,12 @@ import com.songstock.dto.UserRegistrationDTO;
 import com.songstock.dto.ProviderInvitationDTO;
 import com.songstock.dto.CompleteRegistrationDTO;
 import com.songstock.dto.AuthResponseDTO;
+import com.songstock.dto.ProviderSalesReportDTO;
+import com.songstock.dto.ProviderSalesReportDTO.TopProductDTO;
 import com.songstock.dto.LoginRequestDTO;
+import com.songstock.entity.OrderItem;
+import com.songstock.entity.OrderItemStatus;
+import com.songstock.repository.OrderItemRepository;
 import com.songstock.entity.Provider;
 import com.songstock.dto.ProviderListDTO;
 import com.songstock.entity.User;
@@ -28,6 +33,11 @@ import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.math.BigDecimal;
 
 @Service
 @Transactional
@@ -48,6 +58,9 @@ public class ProviderService {
         this.invitationRepository = invitationRepository;
         this.authService = authService;
     }
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     // ================= MÉTODOS DE CONSULTA =================
 
@@ -447,4 +460,102 @@ public class ProviderService {
             return totalProviders > 0 ? (double) verifiedProviders / totalProviders * 100 : 0;
         }
     }
+
+    /**
+     * Obtener reporte de ventas de un proveedor
+     */
+    @Transactional(readOnly = true)
+    public ProviderSalesReportDTO getSalesReport(Long providerId) {
+        Provider provider = getProviderById(providerId);
+
+        ProviderSalesReportDTO report = new ProviderSalesReportDTO();
+        report.setProviderId(providerId);
+        report.setProviderBusinessName(provider.getBusinessName());
+
+        // Obtener métricas generales
+        BigDecimal totalSales = orderItemRepository.getTotalSalesByProvider(providerId);
+        BigDecimal totalRevenue = orderItemRepository.getTotalRevenueByProvider(providerId);
+        Long totalOrders = orderItemRepository.countOrdersByProvider(providerId);
+        Long completedItems = orderItemRepository.countCompletedItemsByProvider(providerId);
+        Long pendingItems = orderItemRepository.countPendingItemsByProvider(providerId);
+
+        report.setTotalSales(totalSales != null ? totalSales : java.math.BigDecimal.ZERO);
+        report.setTotalRevenue(totalRevenue != null ? totalRevenue : java.math.BigDecimal.ZERO);
+        report.setTotalOrders(totalOrders != null ? totalOrders : 0L);
+        report.setCompletedItems(completedItems != null ? completedItems : 0L);
+        report.setPendingItems(pendingItems != null ? pendingItems : 0L);
+
+        // Calcular promedio de orden
+        if (totalOrders != null && totalOrders > 0 && totalRevenue != null) {
+            java.math.BigDecimal avgOrderValue = totalRevenue.divide(
+                    java.math.BigDecimal.valueOf(totalOrders),
+                    2,
+                    RoundingMode.HALF_UP);
+            report.setAverageOrderValue(avgOrderValue);
+        } else {
+            report.setAverageOrderValue(java.math.BigDecimal.ZERO);
+        }
+
+        // Calcular top productos
+        List<OrderItem> allItems = orderItemRepository.findByProviderId(providerId);
+        java.util.Map<Long, ProductSalesData> productSalesMap = new HashMap<>();
+
+        for (OrderItem item : allItems) {
+            if (item.getStatus() == OrderItemStatus.SHIPPED || item.getStatus() == OrderItemStatus.DELIVERED) {
+                Long productId = item.getProduct().getId();
+                ProductSalesData data = productSalesMap.getOrDefault(
+                        productId,
+                        new ProductSalesData(
+                                productId,
+                                item.getProduct().getAlbum().getTitle(),
+                                item.getProduct().getAlbum().getArtist().getName()));
+                data.addSale(item.getQuantity(), item.getSubtotal());
+                productSalesMap.put(productId, data);
+            }
+        }
+
+        List<TopProductDTO> topProducts = productSalesMap.values().stream()
+                .sorted(Comparator.comparing(ProductSalesData::getRevenue).reversed())
+                .limit(5)
+                .map(data -> new TopProductDTO(
+                        data.productId,
+                        data.albumTitle,
+                        data.artistName,
+                        data.quantitySold,
+                        data.revenue))
+                .collect(Collectors.toList());
+
+        report.setTopProducts(topProducts);
+
+        return report;
+    }
+
+    // Clase auxiliar para cálculo de top productos
+    private static class ProductSalesData {
+        Long productId;
+        String albumTitle;
+        String artistName;
+        Long quantitySold = 0L;
+        java.math.BigDecimal revenue = java.math.BigDecimal.ZERO;
+
+        ProductSalesData(Long productId, String albumTitle, String artistName) {
+            this.productId = productId;
+            this.albumTitle = albumTitle;
+            this.artistName = artistName;
+        }
+
+        void addSale(Integer quantity, java.math.BigDecimal subtotal) {
+            this.quantitySold += quantity;
+            this.revenue = this.revenue.add(subtotal);
+        }
+
+        Long getQuantitySold() {
+            return quantitySold;
+        }
+
+        java.math.BigDecimal getRevenue() {
+            return revenue;
+        }
+    }
+
 }

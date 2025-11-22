@@ -18,27 +18,28 @@ import {
   CheckCircle,
   XCircle,
   List,
-  Truck 
+  Truck,
+  BarChart3
 } from 'lucide-react';
 import providerService from '../../services/provider.service';
 import { Product } from '../../types/product.types';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext';
 
-type TabType = 'products' | 'pending' | 'history';
+type TabType = 'products' | 'pending' | 'history' | 'reports';
 
 const ProviderDashboard = () => {
-    const location = useLocation();
-    const tabFromState = (location.state as any)?.tab;
+  const { user } = useAuth();
+  const location = useLocation();
+  const tabFromState = (location.state as any)?.tab;
 
-      console.log('🎯 Location state:', location.state);
-      console.log('🎯 Tab from state:', tabFromState);
-  
-  // Si hay tab en state, usarlo; sino, default 'products'
+  console.log('🎯 Location state:', location.state);
+  console.log('🎯 Tab from state:', tabFromState);
+
   const initialTab = useMemo(() => {
-        const result = (['products', 'pending', 'history'] as TabType[]).includes(tabFromState as TabType) 
-          ? (tabFromState as TabType) 
+    const result = (['products', 'pending', 'history', 'reports'] as TabType[]).includes(tabFromState as TabType) 
+      ? (tabFromState as TabType) 
       : 'products';
-        
     return result;
   }, [tabFromState]);
  
@@ -47,9 +48,8 @@ const ProviderDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [itemToReject, setItemToReject] = useState<number | null>(null);
+  const [salesReport, setSalesReport] = useState<any>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
   const [showShipModal, setShowShipModal] = useState(false);
   const [itemToShip, setItemToShip] = useState<number | null>(null);
   const [shipDate, setShipDate] = useState('');
@@ -64,11 +64,9 @@ const ProviderDashboard = () => {
     totalOrders: 0
   });
 
-    // DEBUG: Exponer temporalmente
   useEffect(() => {
     (window as any).debugOrders = allOrders;
   }, [allOrders]);
-
 
   useEffect(() => {
     loadData();
@@ -89,7 +87,6 @@ const ProviderDashboard = () => {
       
       setProducts(productsData);
 
-      // Cargar órdenes pendientes
       try {
         const pendingOrdersData = await orderService.getPendingOrders();
         setPendingOrders(pendingOrdersData);
@@ -98,7 +95,6 @@ const ProviderDashboard = () => {
         setPendingOrders([]);
       }
 
-      // Cargar historial completo de órdenes
       try {
         const allOrdersData = await orderService.getProviderOrders();
         setAllOrders(allOrdersData);
@@ -144,6 +140,25 @@ const ProviderDashboard = () => {
     });
   };
 
+  const loadSalesReport = async () => {
+    if (!user?.providerId) {
+      toast.error('No se pudo obtener el ID del proveedor');
+      return;
+    }
+    
+    setLoadingReport(true);
+    try {
+      const report = await providerService.getSalesReport(user.providerId);
+      setSalesReport(report);
+      toast.success('Reporte generado exitosamente');
+    } catch (error) {
+      console.error('Error loading sales report:', error);
+      toast.error('Error al cargar el reporte de ventas');
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
   const handleAcceptItem = async (itemId: number) => {
     try {
       setProcessingItem(itemId);
@@ -178,27 +193,25 @@ const ProviderDashboard = () => {
     }
   };
 
-    const openShipModal = (itemId: number) => {
-        setItemToShip(itemId);
-        // Fecha actual por defecto
-        const now = new Date();
-        const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-          .toISOString()
-          .slice(0, 16);
-        setShipDate(localDate);
-        setShowShipModal(true);
-      };
-    
-      const handleShipItem = async () => {
-        if (!itemToShip) return;
-    
-        setProcessingItem(itemToShip);
+  const openShipModal = (itemId: number) => {
+    setItemToShip(itemId);
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+    setShipDate(localDate);
+    setShowShipModal(true);
+  };
+
+  const handleShipItem = async () => {
+    if (!itemToShip) return;
+
+    setProcessingItem(itemToShip);
     try {
-            // Convertir fecha local a ISO
       const isoDate = new Date(shipDate).toISOString();
       await orderService.shipOrderItem(itemToShip, isoDate);
       toast.success('Item marcado como enviado');
-            setShowShipModal(false);
+      setShowShipModal(false);
       setItemToShip(null);
       setShipDate('');
       await loadData();
@@ -257,7 +270,7 @@ const ProviderDashboard = () => {
       DELIVERED: { color: 'bg-green-100 text-green-800', text: 'Entregado' },
       RECEIVED: { color: 'bg-green-100 text-green-800', text: 'Recibido' },
     };
-    const badge = badges [status] || badges.PENDING;
+    const badge = badges[status] || badges.PENDING;
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
         {badge.text}
@@ -283,7 +296,6 @@ const ProviderDashboard = () => {
       </span>
     );
   };
-      
 
   const filteredProducts = products.filter(product =>
     product.albumTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -416,7 +428,19 @@ const ProviderDashboard = () => {
               }`}
             >
               <List className="h-5 w-5" />
-              <span>Historial de Órdenes</span>
+              <span>Historial</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`px-6 py-3 font-semibold transition-colors flex items-center space-x-2 ${
+                activeTab === 'reports'
+                  ? 'border-b-2 border-primary-900 text-primary-900'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BarChart3 className="h-5 w-5" />
+              <span>Reportes</span>
             </button>
           </div>
         </div>
@@ -566,10 +590,10 @@ const ProviderDashboard = () => {
                       <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                          <div className="flex items-center gap-3 mb-1">
-+                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
-+                            {getOrderStatusBadge(order.status)}
-+                          </div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
+                              {getOrderStatusBadge(order.status)}
+                            </div>
                             <p className="text-sm text-gray-500">
                               {new Date(order.createdAt).toLocaleDateString('es-CO', {
                                 year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -649,10 +673,10 @@ const ProviderDashboard = () => {
                     <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                        <div className="flex items-center gap-3 mb-1">
-+                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
-+                            {getOrderStatusBadge(order.status)}
-+                          </div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-semibold text-gray-900">Orden #{order.orderNumber}</h3>
+                            {getOrderStatusBadge(order.status)}
+                          </div>
                           <p className="text-sm text-gray-500">
                             {new Date(order.createdAt).toLocaleDateString('es-CO', {
                               year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -689,10 +713,9 @@ const ProviderDashboard = () => {
                               <div className="flex flex-col items-end space-y-2">
                                 {getStatusBadge(item.status)}
                                 
-                                {/* Botón para ENVIAR (solo si está ACCEPTED) */}
                                 {item.status === OrderItemStatus.ACCEPTED && (
                                   <button
-                                  onClick={() => openShipModal(item.id)}
+                                    onClick={() => openShipModal(item.id)}
                                     disabled={processingItem === item.id}
                                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-1"
                                   >
@@ -701,7 +724,6 @@ const ProviderDashboard = () => {
                                   </button>
                                 )}
                                 
-                                {/* Botón para ENTREGAR (solo si está SHIPPED) */}
                                 {item.status === OrderItemStatus.SHIPPED && (
                                   <button
                                     onClick={() => handleDeliverItem(item.id)}
@@ -718,7 +740,6 @@ const ProviderDashboard = () => {
                                 )}
                               </div>
                             </div>
-
                           </div>
                         ))}
                       </div>
@@ -729,8 +750,149 @@ const ProviderDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* TAB CONTENT: REPORTES DE VENTAS */}
+        {activeTab === 'reports' && (
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <BarChart3 className="h-6 w-6 mr-2 text-primary-600" />
+                  Reporte de Ventas
+                </h2>
+                <button
+                  onClick={loadSalesReport}
+                  disabled={loadingReport}
+                  className="bg-primary-900 text-white px-6 py-2 rounded-lg font-semibold hover:bg-primary-800 disabled:bg-gray-400 transition"
+                >
+                  {loadingReport ? 'Generando...' : 'Generar Reporte'}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {!salesReport ? (
+                <div className="text-center py-12">
+                  <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">Genera un reporte para ver tus métricas de ventas</p>
+                  <button
+                    onClick={loadSalesReport}
+                    disabled={loadingReport}
+                    className="bg-primary-900 text-white px-6 py-2 rounded-lg font-semibold hover:bg-primary-800 disabled:bg-gray-400 transition"
+                  >
+                    {loadingReport ? 'Generando...' : 'Generar Reporte'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Métricas principales */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                      <p className="text-sm text-gray-600 mb-1">Ingresos Totales</p>
+                      <p className="text-3xl font-bold text-green-600">
+                        {formatPrice(salesReport.totalRevenue || 0)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">De items completados</p>
+                    </div>
+                    <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                      <p className="text-sm text-gray-600 mb-1">Total Órdenes</p>
+                      <p className="text-3xl font-bold text-blue-600">
+                        {salesReport.totalOrders || 0}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Órdenes únicas</p>
+                    </div>
+                    <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                      <p className="text-sm text-gray-600 mb-1">Promedio por Orden</p>
+                      <p className="text-3xl font-bold text-purple-600">
+                        {formatPrice(salesReport.averageOrderValue || 0)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Valor promedio</p>
+                    </div>
+                  </div>
+
+                  {/* Métricas adicionales */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-sm text-gray-600 mb-1">Items Completados</p>
+                      <p className="text-2xl font-semibold text-gray-900">{salesReport.completedItems || 0}</p>
+                      <p className="text-xs text-gray-500 mt-1">Enviados/Entregados</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-sm text-gray-600 mb-1">Items Pendientes</p>
+                      <p className="text-2xl font-semibold text-yellow-600">{salesReport.pendingItems || 0}</p>
+                      <p className="text-xs text-gray-500 mt-1">En proceso</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-sm text-gray-600 mb-1">Ventas Totales</p>
+                      <p className="text-2xl font-semibold text-gray-900">{formatPrice(salesReport.totalSales || 0)}</p>
+                      <p className="text-xs text-gray-500 mt-1">Todos los items</p>
+                    </div>
+                  </div>
+
+                  {/* Top Productos */}
+                  {salesReport.topProducts && salesReport.topProducts.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Top 5 Productos Más Vendidos</h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Álbum
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Artista
+                              </th>
+                              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Unidades Vendidas
+                              </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ingresos
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {salesReport.topProducts.map((product: any, index: number) => (
+                              <tr key={product.productId} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <span className="text-lg font-bold text-gray-400 mr-3">#{index + 1}</span>
+                                    <span className="font-medium text-gray-900">{product.albumTitle}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                                  {product.artistName}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                    {product.quantitySold}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right font-semibold text-green-600">
+                                  {formatPrice(product.revenue || 0)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {salesReport.topProducts && salesReport.topProducts.length === 0 && (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No hay productos vendidos aún</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-           {/* Modal para fecha de envío */}
+
+      {/* Modal para fecha de envío */}
       {showShipModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">

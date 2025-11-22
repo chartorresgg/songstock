@@ -19,6 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.songstock.entity.User;
+import org.springframework.security.core.Authentication;
+import com.songstock.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +39,9 @@ public class AdminUserController {
 
     @Autowired
     private UserManagementMapper userManagementMapper;
+
+    @Autowired
+    private UserRepository userRepository;
 
     // ========== GESTIÓN GENERAL DE USUARIOS ==========
 
@@ -428,6 +434,83 @@ public class AdminUserController {
             logger.error("Error al obtener métricas rápidas", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Error al obtener métricas: " + e.getMessage(), null));
+        }
+    }
+
+    // ========== MODERACIÓN DE VALORACIONES ==========
+
+    /**
+     * Obtener valoraciones pendientes de moderación
+     * GET /api/v1/admin/users/reviews/pending
+     */
+    @GetMapping("/reviews/pending")
+    @Operation(summary = "Valoraciones pendientes", description = "Obtiene todas las valoraciones pendientes de moderación")
+    public ResponseEntity<ApiResponse<List<OrderReviewDTO>>> getPendingReviews() {
+        logger.info("REST request para obtener valoraciones pendientes");
+
+        try {
+            List<OrderReviewDTO> reviews = adminUserService.getPendingReviews();
+
+            String message = reviews.isEmpty()
+                    ? "No hay valoraciones pendientes"
+                    : String.format("Se encontraron %d valoración(es) pendiente(s)", reviews.size());
+
+            return ResponseEntity.ok(ApiResponse.success(message, reviews));
+
+        } catch (Exception e) {
+            logger.error("Error al obtener valoraciones pendientes", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Error al obtener valoraciones: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Aprobar valoración
+     * PUT /api/v1/admin/users/reviews/{reviewId}/approve
+     */
+    @PutMapping("/reviews/{reviewId}/approve")
+    @Operation(summary = "Aprobar valoración", description = "Aprueba una valoración pendiente")
+    public ResponseEntity<ApiResponse<OrderReviewDTO>> approveReview(
+            @PathVariable Long reviewId,
+            Authentication authentication) {
+        logger.info("REST request para aprobar valoración ID: {}", reviewId);
+
+        try {
+            User admin = userRepository.findByUsername(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            OrderReviewDTO review = adminUserService.approveReview(reviewId, admin.getId());
+            return ResponseEntity.ok(ApiResponse.success("Valoración aprobada exitosamente", review));
+
+        } catch (Exception e) {
+            logger.error("Error al aprobar valoración ID: {}", reviewId, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Error al aprobar valoración: " + e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Rechazar valoración
+     * PUT /api/v1/admin/users/reviews/{reviewId}/reject
+     */
+    @PutMapping("/reviews/{reviewId}/reject")
+    @Operation(summary = "Rechazar valoración", description = "Rechaza una valoración pendiente")
+    public ResponseEntity<ApiResponse<OrderReviewDTO>> rejectReview(
+            @PathVariable Long reviewId,
+            Authentication authentication) {
+        logger.info("REST request para rechazar valoración ID: {}", reviewId);
+
+        try {
+            User admin = userRepository.findByUsername(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            OrderReviewDTO review = adminUserService.rejectReview(reviewId, admin.getId());
+            return ResponseEntity.ok(ApiResponse.success("Valoración rechazada exitosamente", review));
+
+        } catch (Exception e) {
+            logger.error("Error al rechazar valoración ID: {}", reviewId, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Error al rechazar valoración: " + e.getMessage(), null));
         }
     }
 }

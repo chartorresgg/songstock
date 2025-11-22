@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -182,6 +181,51 @@ public class SongService {
         dto.setTrackNumber(song.getTrackNumber());
         dto.setTitle(song.getTitle());
         dto.setDurationSeconds(song.getDurationSeconds());
+        return dto;
+    }
+
+    private SongDTO toDTO(Song song) {
+        SongDTO dto = new SongDTO();
+        dto.setId(song.getId());
+        dto.setTitle(song.getTitle());
+        dto.setPrice(song.getPrice());
+        dto.setFormat(song.getFormat());
+        dto.setArtistName(
+                song.getAlbum() != null && song.getAlbum().getArtist() != null ? song.getAlbum().getArtist().getName()
+                        : "Unknown");
+        dto.setAlbumTitle(song.getAlbum() != null ? song.getAlbum().getTitle() : "Single");
+        return dto;
+    }
+
+    public List<SongDTO> searchAvailableSongs(String query, Long genreId) {
+        List<Song> songs;
+
+        if (query != null && !query.isEmpty()) {
+            songs = songRepository.findByTitleContainingIgnoreCaseAndAvailableTrue(query);
+        } else if (genreId != null) {
+            songs = songRepository.findByAlbum_Genre_IdAndAvailableTrue(genreId);
+        } else {
+            songs = songRepository.findByAvailableTrue();
+        }
+
+        return songs.stream().map(this::toSongDTO).collect(Collectors.toList());
+    }
+
+    private SongDTO toSongDTO(Song song) {
+        SongDTO dto = new SongDTO();
+        dto.setId(song.getId());
+        dto.setTitle(song.getTitle());
+        dto.setPrice(song.getPrice());
+        dto.setAvailable(song.getAvailable());
+        dto.setFormat(song.getFormat());
+
+        if (song.getAlbum() != null) {
+            dto.setAlbumTitle(song.getAlbum().getTitle());
+            if (song.getAlbum().getArtist() != null) {
+                dto.setArtistName(song.getAlbum().getArtist().getName());
+            }
+        }
+
         return dto;
     }
 }

@@ -88,7 +88,7 @@ const Navbar = () => {
   >
     Catálogo
   </Link>
-
+  <Link to="/songs" className="hover:text-gray-300">Canciones MP3</Link>
   {isAuthenticated && user?.role === 'CUSTOMER' && (
               <div className="relative group">
                 <button className="text-gray-700 hover:text-primary-900 font-medium transition">

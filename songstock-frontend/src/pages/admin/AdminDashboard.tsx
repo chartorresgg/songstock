@@ -16,11 +16,15 @@ import {
   Eye,
   Disc3,
   Music,
-  Filter
+  Filter,
+  Star,        // ← AGREGAR
+  ThumbsUp,    // ← AGREGAR
+  ThumbsDown   // ← AGREGAR
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import adminService from '../../services/admin.service';
 import toast from 'react-hot-toast';
+import { OrderReview } from '../../types/order.types';
 
 // ==================== INTERFACES ====================
 
@@ -68,6 +72,8 @@ interface Product {
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [pendingReviews, setPendingReviews] = useState<OrderReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'users' | 'products'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -124,6 +130,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadData();
     loadCatalogData();
+    loadPendingReviews();  // ← AGREGAR ESTA LÍNEA
   }, []);
 
   const loadCatalogData = async () => {
@@ -163,6 +170,18 @@ const AdminDashboard = () => {
       toast.error('Error al cargar los datos del sistema');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPendingReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const reviews = await adminService.getPendingReviews();
+      setPendingReviews(reviews);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    } finally {
+      setLoadingReviews(false);
     }
   };
 
@@ -267,6 +286,32 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error updating provider status:', error);
       toast.error('Error al actualizar el estado');
+    }
+  };
+
+  const handleApproveReview = async (reviewId: number) => {
+    try {
+      await adminService.approveReview(reviewId);
+      toast.success('Valoración aprobada');
+      setPendingReviews(prev => prev.filter(r => r.id !== reviewId));
+      loadData(); // Actualizar stats
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Error al aprobar');
+    }
+  };
+
+  const handleRejectReview = async (reviewId: number) => {
+    if (!confirm('¿Estás seguro de rechazar esta valoración?')) return;
+    
+    try {
+      await adminService.rejectReview(reviewId);
+      toast.success('Valoración rechazada');
+      setPendingReviews(prev => prev.filter(r => r.id !== reviewId));
+      loadData(); // Actualizar stats
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Error al rechazar');
     }
   };
 
@@ -456,6 +501,7 @@ const AdminDashboard = () => {
       'CUSTOMER': { bg: 'bg-gray-100', text: 'text-gray-800' }
     };
 
+
     const config = roleConfig[role] || roleConfig['CUSTOMER'];
 
     return (
@@ -463,6 +509,17 @@ const AdminDashboard = () => {
         {role}
       </span>
     );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-CO', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   // Filtrar usuarios según búsqueda
@@ -557,6 +614,101 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Sección de Valoraciones Pendientes */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Star className="w-6 h-6 text-yellow-500" />
+              <h2 className="text-2xl font-bold text-gray-800">
+                Valoraciones Pendientes de Moderación
+              </h2>
+              {pendingReviews.length > 0 && (
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                  {pendingReviews.length}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={loadPendingReviews}
+              disabled={loadingReviews}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition"
+            >
+              {loadingReviews ? 'Cargando...' : 'Actualizar'}
+            </button>
+          </div>
+
+          {pendingReviews.length === 0 ? (
+            <div className="text-center py-12">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">No hay valoraciones pendientes</p>
+              <p className="text-gray-400 text-sm mt-2">Todas las valoraciones han sido moderadas</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Calificación</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comentario</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {pendingReviews.map((review) => (
+                    <tr key={review.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{review.userName}</div>
+                        <div className="text-xs text-gray-500">ID: {review.userId}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        #{review.orderId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                          <span className="ml-2 text-sm text-gray-600">({review.rating}/5)</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 max-w-xs">
+                        <p className="text-sm text-gray-700 truncate">{review.comment || 'Sin comentario'}</p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(review.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleApproveReview(review.id)}
+                            className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition"
+                            title="Aprobar"
+                          >
+                            <ThumbsUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRejectReview(review.id)}
+                            className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition"
+                            title="Rechazar"
+                          >
+                            <ThumbsDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Tabs Navigation */}
