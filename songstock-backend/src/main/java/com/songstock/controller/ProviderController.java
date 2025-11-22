@@ -2,6 +2,7 @@ package com.songstock.controller;
 
 import com.songstock.dto.ApiResponse;
 import com.songstock.dto.ProviderRegistrationDTO;
+import com.songstock.dto.ProviderSalesReportDTO;
 import com.songstock.dto.ProviderListDTO;
 import com.songstock.entity.Provider;
 import com.songstock.entity.VerificationStatus;
@@ -158,4 +159,14 @@ public class ProviderController {
         ProviderInvitation invitation = providerService.getInvitationByToken(token);
         return ResponseEntity.ok(ApiResponse.success("Invitación encontrada", invitation));
     }
+
+    @GetMapping("/{id}/sales-report")
+    @PreAuthorize("hasRole('PROVIDER') and @providerService.getProviderById(#id).user.id == authentication.principal.id")
+    public ResponseEntity<ApiResponse<ProviderSalesReportDTO>> getSalesReport(@PathVariable Long id) {
+        ProviderSalesReportDTO report = providerService.getSalesReport(id);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Reporte de ventas generado exitosamente",
+                report));
+    }
+
 }

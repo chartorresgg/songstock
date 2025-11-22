@@ -25,6 +25,17 @@ public class OrderReview {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ReviewStatus status = ReviewStatus.PENDING;
+
+    @Column(name = "moderated_at")
+    private LocalDateTime moderatedAt;
+
+    @ManyToOne
+    @JoinColumn(name = "moderated_by")
+    private User moderatedBy;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -80,5 +91,29 @@ public class OrderReview {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public ReviewStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ReviewStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getModeratedAt() {
+        return moderatedAt;
+    }
+
+    public void setModeratedAt(LocalDateTime moderatedAt) {
+        this.moderatedAt = moderatedAt;
+    }
+
+    public User getModeratedBy() {
+        return moderatedBy;
+    }
+
+    public void setModeratedBy(User moderatedBy) {
+        this.moderatedBy = moderatedBy;
     }
 }

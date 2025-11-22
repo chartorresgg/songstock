@@ -78,6 +78,9 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity = 0; // Inventario disponible
 
+    @Column(name = "low_stock_threshold")
+    private Integer lowStockThreshold = 5;
+
     // ================= Campos específicos para vinilos físicos =================
 
     @Enumerated(EnumType.STRING)
@@ -252,6 +255,14 @@ public class Product {
 
     public void setFileSizeMb(Integer fileSizeMb) {
         this.fileSizeMb = fileSizeMb;
+    }
+
+    public Integer getLowStockThreshold() {
+        return lowStockThreshold;
+    }
+
+    public void setLowStockThreshold(Integer lowStockThreshold) {
+        this.lowStockThreshold = lowStockThreshold;
     }
 
     public Boolean getIsActive() {

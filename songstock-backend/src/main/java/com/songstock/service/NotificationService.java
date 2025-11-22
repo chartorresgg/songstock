@@ -3,17 +3,22 @@ package com.songstock.service;
 import com.songstock.dto.NotificationDTO;
 import com.songstock.entity.Notification;
 import com.songstock.entity.User;
+import com.songstock.entity.Product;
 import com.songstock.repository.NotificationRepository;
 import com.songstock.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class NotificationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -74,5 +79,27 @@ public class NotificationService {
                 .orElseThrow(() -> new RuntimeException("Notificación no encontrada"));
         notification.setIsRead(true);
         notificationRepository.save(notification);
+    }
+
+    public void createLowStockAlert(Product product, Long providerId) {
+        logger.info("📦 Creando alerta LOW_STOCK - Producto: {}, Provider: {}, Stock: {}",
+                product.getId(), providerId, product.getStockQuantity());
+
+        User providerUser = userRepository.findByProviderId(providerId)
+                .orElseThrow(() -> new RuntimeException("Usuario proveedor no encontrado"));
+
+        Notification notification = new Notification();
+        notification.setUser(providerUser);
+        notification.setType(Notification.NotificationType.LOW_STOCK);
+        notification.setTitle("Alerta: Stock bajo");
+        notification.setMessage(
+                String.format("El producto '%s' tiene stock bajo (%d unidades). Umbral: %d",
+                        product.getAlbum().getTitle(),
+                        product.getStockQuantity(),
+                        product.getLowStockThreshold()));
+        notification.setIsRead(false);
+        Notification saved = notificationRepository.save(notification);
+
+        logger.info("✅ Notificación LOW_STOCK creada - ID: {}, User: {}", saved.getId(), providerUser.getId());
     }
 }

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,6 +19,14 @@ public class Song {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal price;
+
+    private Boolean available;
+
+    @Column(length = 10)
+    private String format;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "album_id", nullable = false)
     @NotNull(message = "El álbum es obligatorio")
@@ -28,6 +36,30 @@ public class Song {
     @Column(name = "track_number", nullable = false)
     @NotNull(message = "El número de track es obligatorio")
     private Integer trackNumber;
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public Boolean getAvailable() {
+        return available;
+    }
+
+    public void setAvailable(Boolean available) {
+        this.available = available;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
 
     @NotBlank(message = "El título de la canción es obligatorio")
     @Size(max = 200, message = "El título no puede exceder 200 caracteres")

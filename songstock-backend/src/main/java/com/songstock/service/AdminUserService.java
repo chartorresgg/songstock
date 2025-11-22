@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.songstock.service.OrderService;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -47,6 +48,9 @@ public class AdminUserService {
 
     @Autowired
     private UserManagementMapper userManagementMapper;
+
+    @Autowired
+    private OrderService orderService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -344,6 +348,20 @@ public class AdminUserService {
                 dashboard.getTotalUsers(), dashboard.getVerifiedProviders());
 
         return dashboard;
+    }
+
+    // ========== MODERACIÓN DE VALORACIONES ==========
+
+    public List<OrderReviewDTO> getPendingReviews() {
+        return orderService.getPendingReviews();
+    }
+
+    public OrderReviewDTO approveReview(Long reviewId, Long adminUserId) {
+        return orderService.approveReview(reviewId, adminUserId);
+    }
+
+    public OrderReviewDTO rejectReview(Long reviewId, Long adminUserId) {
+        return orderService.rejectReview(reviewId, adminUserId);
     }
 
     /**

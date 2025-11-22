@@ -19,6 +19,12 @@ class CompilationService {
     return response.data.data;
   }
 
+    async updateCompilation(id: number, data: { name?: string; description?: string; isPublic?: boolean }): Promise<Compilation> {
+        const response = await axiosInstance.put<ApiResponse<Compilation>>(`/compilations/${id}`, data);
+        return response.data.data;
+      }
+    
+
   async addSongToCompilation(compilationId: number, songId: number): Promise<Compilation> {
     const response = await axiosInstance.post<ApiResponse<Compilation>>(
       `/compilations/${compilationId}/songs/${songId}`
@@ -33,6 +39,26 @@ class CompilationService {
   async deleteCompilation(id: number): Promise<void> {
     await axiosInstance.delete(`/compilations/${id}`);
   }
+
+    async getPublicCompilations(params?: { 
+        name?: string; 
+        minSongs?: number; 
+        maxSongs?: number; 
+      }): Promise<Compilation[]> {
+        const response = await axiosInstance.get<ApiResponse<Compilation[]>>('/compilations/public', { params });
+        return response.data.data;
+      }
+    
+      async getPublicCompilationById(id: number): Promise<Compilation> {
+        const response = await axiosInstance.get<ApiResponse<Compilation>>(`/compilations/public/${id}`);
+        return response.data.data;
+      }
+    
+      async cloneCompilation(id: number): Promise<Compilation> {
+        const response = await axiosInstance.post<ApiResponse<Compilation>>(`/compilations/${id}/clone`);
+        return response.data.data;
+      }
+    
 
   async getSongsByAlbum(albumId: number): Promise<Song[]> {
     const response = await axiosInstance.get<ApiResponse<Song[]>>(`/songs/album/${albumId}`);

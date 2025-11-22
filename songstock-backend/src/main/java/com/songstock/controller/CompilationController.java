@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -38,6 +39,46 @@ public class CompilationController {
         List<CompilationDTO> compilations = compilationService.getMyCompilations(userDetails.getId());
 
         return ResponseEntity.ok(ApiResponse.success("Compilaciones obtenidas exitosamente", compilations));
+    }
+
+    @GetMapping("/public")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Compilaciones públicas", description = "Obtener todas las compilaciones públicas con filtros opcionales")
+    public ResponseEntity<ApiResponse<List<CompilationDTO>>> getPublicCompilations(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Integer minSongs,
+            @RequestParam(required = false) Integer maxSongs) {
+        logger.info("REST request to get public compilations - name: {}, minSongs: {}, maxSongs: {}",
+                name, minSongs, maxSongs);
+
+        List<CompilationDTO> compilations = compilationService.getPublicCompilations(name, minSongs, maxSongs);
+
+        return ResponseEntity.ok(ApiResponse.success("Compilaciones públicas obtenidas exitosamente", compilations));
+    }
+
+    @GetMapping("/public/{id}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Detalle de compilación pública", description = "Obtener detalle de una compilación pública")
+    public ResponseEntity<ApiResponse<CompilationDTO>> getPublicCompilationById(@PathVariable Long id) {
+        logger.info("REST request to get public compilation: {}", id);
+
+        CompilationDTO compilation = compilationService.getPublicCompilationById(id);
+
+        return ResponseEntity.ok(ApiResponse.success("Compilación pública obtenida exitosamente", compilation));
+    }
+
+    @PostMapping("/{id}/clone")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Clonar compilación", description = "Clonar una compilación pública a mi colección")
+    public ResponseEntity<ApiResponse<CompilationDTO>> cloneCompilation(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        logger.info("REST request to clone compilation: {}", id);
+
+        CompilationDTO cloned = compilationService.cloneCompilation(id, userDetails.getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Compilación clonada exitosamente", cloned));
     }
 
     @GetMapping("/{id}")
@@ -65,6 +106,20 @@ public class CompilationController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Compilación creada exitosamente", created));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Actualizar compilación", description = "Actualizar nombre, descripción y visibilidad")
+    public ResponseEntity<ApiResponse<CompilationDTO>> updateCompilation(
+            @PathVariable Long id,
+            @Valid @RequestBody CompilationDTO compilationDTO,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        logger.info("REST request to update compilation: {}", id);
+
+        CompilationDTO updated = compilationService.updateCompilation(id, compilationDTO, userDetails.getId());
+
+        return ResponseEntity.ok(ApiResponse.success("Compilación actualizada exitosamente", updated));
     }
 
     @PostMapping("/{id}/songs/{songId}")

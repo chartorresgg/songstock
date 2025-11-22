@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SongStock Logo](https://via.placeholder.com/150x150/1e40af/ffffff?text=SongStock)
+![SongStock Logo]()
 
 **Marketplace moderno para coleccionistas de vinilos y amantes de la música digital**
 

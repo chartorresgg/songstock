@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '../types/product.types';
+import { Song } from '../types/api.types';
 import { toast } from 'react-hot-toast';
 
-
 interface CartItem {
-  product: Product;
+  product?: Product;
+  song?: Song;
   quantity: number;
+  type: 'PHYSICAL' | 'DIGITAL' | 'SONG';
 }
 
 interface CartContextType {
@@ -13,10 +15,11 @@ interface CartContextType {
   itemCount: number;
   total: number;
   addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: number) => void;
+  removeItem: (id: number, type: 'product' | 'song') => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   isInCart: (productId: number) => boolean;
+  addSongToCart: (song: Song) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -50,16 +53,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [lastAction]);
 
-
   const addItem = (product: Product, quantity: number = 1) => {
     setItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item.product.id === product.id);
+      const existingItem = currentItems.find((item) => item.product?.id === product.id);
 
       if (existingItem) {
-        // Si ya existe, actualizar cantidad
         const newQuantity = existingItem.quantity + quantity;
         
-        // Verificar stock
         if (newQuantity > product.stockQuantity) {
           setLastAction({type: 'error', message: `Solo hay ${product.stockQuantity} unidades disponibles`});
           return currentItems;
@@ -67,36 +67,61 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         setLastAction({type: 'success', message: 'Cantidad actualizada en el carrito'});
         return currentItems.map((item) =>
-          item.product.id === product.id
+          item.product?.id === product.id
             ? { ...item, quantity: newQuantity }
             : item
         );
       } else {
-        // Si no existe, agregarlo
         setLastAction({type: 'success', message: `${product.albumTitle} agregado al carrito`});
-        return [...currentItems, { product, quantity }];
+        return [...currentItems, { 
+          product, 
+          quantity, 
+          type: product.productType === 'PHYSICAL' ? 'PHYSICAL' : 'DIGITAL' 
+        }];
       }
     });
   };
 
-  const removeItem = (productId: number) => {
+  const addSongToCart = (song: Song) => {
     setItems((currentItems) => {
-      const item = currentItems.find((i) => i.product.id === productId);
-      if (item) setLastAction({type: 'success', message: `${item.product.albumTitle} eliminado del carrito`});
-      return currentItems.filter((item) => item.product.id !== productId);
+      const existingIndex = currentItems.findIndex((item) => item.song?.id === song.id);
+      
+      if (existingIndex > -1) {
+        setLastAction({type: 'error', message: 'Esta canción ya está en el carrito'});
+        return currentItems;
+      }
+      
+      setLastAction({type: 'success', message: `${song.title} agregado al carrito`});
+      return [...currentItems, { song, quantity: 1, type: 'SONG' }];
+    });
+  };
+
+  const removeItem = (id: number, type: 'product' | 'song' = 'product') => {
+    setItems((currentItems) => {
+      const item = currentItems.find((i) => 
+        type === 'product' ? i.product?.id === id : i.song?.id === id
+      );
+      
+      if (item) {
+        const name = item.product?.albumTitle || item.song?.title || 'Item';
+        setLastAction({type: 'success', message: `${name} eliminado del carrito`});
+      }
+      
+      return currentItems.filter((item) => 
+        type === 'product' ? item.product?.id !== id : item.song?.id !== id
+      );
     });
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
     if (quantity < 1) {
-      removeItem(productId);
+      removeItem(productId, 'product');
       return;
     }
 
     setItems((currentItems) =>
       currentItems.map((item) => {
-        if (item.product.id === productId) {
-          // Verificar stock
+        if (item.product?.id === productId) {
           if (quantity > item.product.stockQuantity) {
             setLastAction({type: 'error', message: `Solo hay ${item.product.stockQuantity} unidades disponibles`});
             return item;
@@ -114,14 +139,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const isInCart = (productId: number): boolean => {
-    return items.some((item) => item.product.id === productId);
+    return items.some((item) => item.product?.id === productId);
   };
 
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
-  const total = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
+  const total = items.reduce((sum, item) => {
+    if (item.product) {
+      return sum + item.product.price * item.quantity;
+    } else if (item.song) {
+      return sum + item.song.price;
+    }
+    return sum;
+  }, 0);
 
   return (
     <CartContext.Provider
@@ -134,6 +163,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         updateQuantity,
         clearCart,
         isInCart,
+        addSongToCart,
       }}
     >
       {children}

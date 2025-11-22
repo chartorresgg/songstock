@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music2, Plus, Trash2, Eye, Clock, Loader2 } from 'lucide-react';
+import { Music2, Plus, Trash2, Eye, Clock, Loader2, Globe, Lock } from 'lucide-react';
 import compilationService from '../../services/compilation.service';
 import { Compilation } from '../../types/compilation.types';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ const Compilations = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCompilationName, setNewCompilationName] = useState('');
+  const [newCompilationIsPublic, setNewCompilationIsPublic] = useState(false);
   const [newCompilationDescription, setNewCompilationDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -43,12 +44,13 @@ const Compilations = () => {
       await compilationService.createCompilation({
         name: newCompilationName,
         description: newCompilationDescription,
-        isPublic: false,
+        isPublic: newCompilationIsPublic,
       });
       toast.success('Recopilación creada exitosamente');
       setShowCreateModal(false);
       setNewCompilationName('');
       setNewCompilationDescription('');
+      setNewCompilationIsPublic(false);
       loadCompilations();
     } catch (error: any) {
       const message = error.response?.data?.message || 'Error al crear recopilación';
@@ -232,6 +234,22 @@ const Compilations = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-900 focus:border-transparent resize-none"
                 />
               </div>
+              <div className="flex items-start space-x-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  checked={newCompilationIsPublic}
+                  onChange={(e) => setNewCompilationIsPublic(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-primary-900 border-gray-300 rounded focus:ring-primary-900"
+                />
+                <label htmlFor="isPublic" className="flex-1 text-sm text-gray-700 cursor-pointer">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Globe className="h-4 w-4 text-primary-900" />
+                    <span className="font-medium">Hacer pública esta recopilación</span>
+                  </div>
+                  <p className="text-xs text-gray-500">Otros usuarios podrán ver y copiar tu recopilación</p>
+                </label>
+              </div>
             </div>
 
             <div className="flex space-x-3 mt-6">
@@ -257,6 +275,7 @@ const Compilations = () => {
                   setShowCreateModal(false);
                   setNewCompilationName('');
                   setNewCompilationDescription('');
+                  setNewCompilationIsPublic(false);
                 }}
                 disabled={creating}
                 className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"

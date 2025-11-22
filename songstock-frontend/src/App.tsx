@@ -21,8 +21,8 @@ import ProductForm from './pages/provider/ProductForm';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Compilations from './pages/customer/Compilations';
 import CompilationDetail from './pages/customer/CompilationDetail';
-
-// Layout
+import PublicCompilations from './pages/customer/PublicCompilations';
+import PublicCompilationDetail from './pages/customer/PublicCompilationDetail'
 import MainLayout from './components/layout/MainLayout';
 
 // Protected Route
@@ -96,6 +96,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/songs/search" element={<SongSearch />} />
                 <Route path="/catalog" element={<Catalog />} />
+                <Route path="/songs" element={<SongSearch />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/about-us" element={<AboutUs />} />
 
@@ -127,6 +128,18 @@ function App() {
                 <Route path="/compilations/:id" element={
                   <ProtectedRoute allowedRoles={['CUSTOMER']}>
                     <CompilationDetail />
+                  </ProtectedRoute>
+                } />
+        
+                <Route path="/compilations/explore" element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <PublicCompilations />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/compilations/public/:id" element={
+                  <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                    <PublicCompilationDetail />
                   </ProtectedRoute>
                 } />
 

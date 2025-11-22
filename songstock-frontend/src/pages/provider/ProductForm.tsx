@@ -15,6 +15,7 @@ interface ProductFormData {
   conditionType: 'NEW' | 'LIKE_NEW' | 'VERY_GOOD' | 'GOOD' | 'ACCEPTABLE';
   price: number | string;
   stockQuantity: number | string;
+  lowStockThreshold: number | string;
   vinylSize: 'SEVEN_INCH' | 'TEN_INCH' | 'TWELVE_INCH' | '';
   vinylSpeed: 'RPM_33' | 'RPM_45' | 'RPM_78' | '';
   weightGrams: number | string;
@@ -42,6 +43,7 @@ const ProductForm = () => {
     conditionType: 'NEW',
     price: '',
     stockQuantity: '',
+    lowStockThreshold: '5',
     vinylSize: '',
     vinylSpeed: '',
     weightGrams: '',
@@ -85,6 +87,7 @@ const ProductForm = () => {
         conditionType: product.conditionType,
         price: product.price,
         stockQuantity: product.stockQuantity,
+        lowStockThreshold: product.lowStockThreshold || 5,
         vinylSize: product.vinylSize || '',
         vinylSpeed: product.vinylSpeed || '',
         weightGrams: product.weightGrams || '',
@@ -192,6 +195,7 @@ const ProductForm = () => {
         conditionType: formData.conditionType,
         price: Number(formData.price),
         stockQuantity: Number(formData.stockQuantity),
+        lowStockThreshold: Number(formData.lowStockThreshold) || 5,
         featured: formData.featured,
         description: formData.description.trim() || null,
       };
@@ -385,6 +389,28 @@ const ProductForm = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
+
+              {/* AGREGAR AQUÍ 👇 */}
+              {/* Umbral de Stock Bajo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Umbral de Alerta de Stock
+                </label>
+                <input
+                  type="number"
+                  name="lowStockThreshold"
+                  value={formData.lowStockThreshold}
+                  onChange={handleChange}
+                  min="1"
+                  placeholder="5"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Recibirás una alerta cuando el stock sea igual o menor a este valor
+                </p>
+              </div>
+              {/* FIN DEL NUEVO CAMPO 👆 */}
+
             </div>
           </div>
 

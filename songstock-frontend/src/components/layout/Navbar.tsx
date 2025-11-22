@@ -88,14 +88,28 @@ const Navbar = () => {
   >
     Catálogo
   </Link>
-
-            {isAuthenticated && user?.role === 'CUSTOMER' && (
-              <Link
-                to="/compilations"
-                className="text-gray-700 hover:text-primary-900 font-medium transition"
-              >
-                Recopilaciones
-              </Link>
+  <Link to="/songs" className="hover:text-gray-300">Canciones MP3</Link>
+  {isAuthenticated && user?.role === 'CUSTOMER' && (
+              <div className="relative group">
+                <button className="text-gray-700 hover:text-primary-900 font-medium transition">
+                  Recopilaciones
+                </button>
+                
+                <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200">
+                  <Link
+                    to="/compilations"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Mis Recopilaciones
+                  </Link>
+                  <Link
+                    to="/compilations/explore"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Explorar Públicas
+                  </Link>
+                </div>
+              </div>
             )}
 
             {isAuthenticated ? (
@@ -231,6 +245,25 @@ const Navbar = () => {
               >
                 Recopilaciones
               </Link>
+            )}
+
+{isAuthenticated && user?.role === 'CUSTOMER' && (
+              <>
+                <Link
+                  to="/compilations"
+                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Mis Recopilaciones
+                </Link>
+                <Link
+                  to="/compilations/explore"
+                  className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Explorar Públicas
+                </Link>
+              </>
             )}
             
             {isAuthenticated ? (

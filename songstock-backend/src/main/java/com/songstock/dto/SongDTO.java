@@ -3,6 +3,7 @@ package com.songstock.dto;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 public class SongDTO {
     private Long id;
@@ -10,6 +11,10 @@ public class SongDTO {
     private String albumTitle;
     private String artistName;
     private Integer trackNumber;
+    private BigDecimal price;
+    private Boolean available;
+    private String format;
+
     private String title;
     private Integer durationSeconds;
     private List<VinylAvailabilityDTO> availableVinyls = new ArrayList<>();
@@ -78,4 +83,29 @@ public class SongDTO {
     public void setAvailableVinyls(List<VinylAvailabilityDTO> availableVinyls) {
         this.availableVinyls = availableVinyls;
     }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public Boolean getAvailable() {
+        return available;
+    }
+
+    public void setAvailable(Boolean available) {
+        this.available = available;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
 }

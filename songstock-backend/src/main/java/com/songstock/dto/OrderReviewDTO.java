@@ -1,6 +1,7 @@
 package com.songstock.dto;
 
 import java.time.LocalDateTime;
+import com.songstock.entity.ReviewStatus;
 
 public class OrderReviewDTO {
     private Long id;
@@ -10,6 +11,9 @@ public class OrderReviewDTO {
     private Integer rating;
     private String comment;
     private LocalDateTime createdAt;
+    private ReviewStatus status;
+    private LocalDateTime moderatedAt;
+    private String moderatedByUsername;
 
     // Getters y Setters
     public Long getId() {
@@ -66,5 +70,29 @@ public class OrderReviewDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public ReviewStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ReviewStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getModeratedAt() {
+        return moderatedAt;
+    }
+
+    public void setModeratedAt(LocalDateTime moderatedAt) {
+        this.moderatedAt = moderatedAt;
+    }
+
+    public String getModeratedByUsername() {
+        return moderatedByUsername;
+    }
+
+    public void setModeratedByUsername(String moderatedByUsername) {
+        this.moderatedByUsername = moderatedByUsername;
     }
 }

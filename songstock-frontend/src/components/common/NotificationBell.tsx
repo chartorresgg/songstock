@@ -24,6 +24,12 @@ const NotificationBell = () => {
               state: { tab: 'pending' } 
             });
       } else if (notification.orderId) {
+                console.log('📬 Navigating to /my-orders');
+        navigate('/my-orders');
+    } else if (notification.type === 'LOW_STOCK') {
+        console.log('📦 Navigating to inventory');
+        navigate('/provider/dashboard', { state: { tab: 'inventory' } });
+    } else if (notification.orderId) {
         console.log('🔔 Navigating to /my-orders');
         navigate('/my-orders');
     }

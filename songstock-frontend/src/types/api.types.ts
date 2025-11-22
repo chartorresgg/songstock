@@ -12,3 +12,16 @@ export interface ApiResponse<T> {
     size: number;
     number: number;
   }
+
+  export interface Song {
+    id: number;
+    title: string;
+    price: number;
+    format: string;
+    artistName: string;
+    albumTitle: string;
+    available?: boolean;
+    albumId?: number;
+    trackNumber?: number;
+    durationSeconds?: number;
+  }

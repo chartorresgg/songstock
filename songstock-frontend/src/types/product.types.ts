@@ -20,6 +20,7 @@ export interface Product {
     conditionType: 'NEW' | 'LIKE_NEW' | 'VERY_GOOD' | 'GOOD' | 'ACCEPTABLE';
     price: number;
     stockQuantity: number;
+    lowStockThreshold?: number;
     vinylSize?: 'SEVEN_INCH' | 'TEN_INCH' | 'TWELVE_INCH' | null;
     vinylSpeed?: 'RPM_33' | 'RPM_45' | 'RPM_78' | null;
     weightGrams?: number | null;

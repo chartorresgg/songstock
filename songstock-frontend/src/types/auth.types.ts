@@ -10,6 +10,7 @@ export interface User {
   phone?: string;
   role: 'ADMIN' | 'PROVIDER' | 'CUSTOMER';
   isActive: boolean;
+  providerId?: number;  // ✅ AGREGADO: ID del proveedor si el usuario tiene rol PROVIDER
   createdAt: string;
   updatedAt: string;
 }
