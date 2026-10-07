@@ -28,7 +28,7 @@ Cada entregable debe cumplir tres condiciones:
 | `estructura.md` | ❌ Eliminar | Salida de `tree` de ~559 KB, con codificación rota. No es documentación. |
 | `enunciado_proyecto.md` | ✅ Útil | Fuente de requisitos y base de la trazabilidad. |
 | Postman (`songstock-backend/docs/postman/`) | 🟡 Parcial | 6 colecciones por HU, dispersas y sin environment. |
-| OpenAPI | 🟡 Latente | `springdoc` está en el `pom.xml`, pero los ~160 endpoints (16 controllers) no tienen anotaciones ni spec exportado. |
+| OpenAPI | 🟡 Parcial | `springdoc` está en el `pom.xml`. 8 de 17 controllers tienen algunas anotaciones `@Tag`/`@Operation`; no hay spec exportado. |
 | Base de datos (`database/`) | 🟡 Parcial | `schema.sql` y migraciones con nombre Flyway (`V1__`, `V2__`), pero **Flyway no está en el pom**. Sin diagrama ER ni diccionario de datos. |
 | `docker-compose.yml` | ❌ Vacío | El README lo presenta como si funcionara. |
 | Tests | ❌ Inexistentes | Solo el test por defecto (`SongstockBackendApplicationTests`). |
@@ -91,8 +91,9 @@ _Por qué primero: hoy estos puntos le restan valor al proyecto frente a cualqui
 - [ ] Revisar H3: ¿`validate` o `update` en dev? ¿Adoptar Flyway?
 - [ ] Eliminar los controllers de depuración o restringirlos a un perfil (H6)
 - [ ] Agregar `LICENSE`
-- [ ] Eliminar `estructura.md`
-- [ ] Agregar `*.tsbuildinfo` al `.gitignore` (H8)
+- [x] Eliminar `estructura.md`
+- [x] Agregar `*.tsbuildinfo` al `.gitignore` y dejar de versionarlos (H8)
+- [x] Corregir en el README lo que no coincide con el código (rutas, versiones, endpoints, Docker, licencia, arquitectura, contacto ficticio)
 
 ### Fase 1: Renombrado e identidad
 - [ ] Definir el nombre y el concepto del producto
