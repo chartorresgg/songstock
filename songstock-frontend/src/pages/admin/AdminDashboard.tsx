@@ -4,8 +4,6 @@ import {
   Package, 
   Store,
   AlertCircle,
-  CheckCircle,
-  XCircle,
   Search,
   Plus,
   Edit,
@@ -15,8 +13,7 @@ import {
   ExternalLink,
   Eye,
   Disc3,
-  Music,
-  Filter
+  Music
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import adminService from '../../services/admin.service';

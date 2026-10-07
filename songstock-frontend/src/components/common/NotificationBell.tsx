@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const { user } = useAuth();
-  const location = useLocation();
-  const [, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 

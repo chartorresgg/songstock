@@ -3,7 +3,7 @@ import { ApiResponse } from '../types/api.types';
 
 // ==================== INTERFACES ====================
 
-interface Provider {
+export interface Provider {
   id: number;
   businessName: string;
   taxId: string;

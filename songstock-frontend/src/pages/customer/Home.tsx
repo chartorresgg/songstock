@@ -17,7 +17,6 @@ import {
 import ProductCard from '../../components/common/ProductCard';
 import productService from '../../services/product.service';
 import { Product } from '../../types/product.types';
-import toast from 'react-hot-toast';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);

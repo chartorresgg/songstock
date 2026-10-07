@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, ArrowRight } from 'lucide-react';
-import { Product, ProductImage } from '../../types/product.types';
+import { Product } from '../../types/product.types';
 
 const Cart = () => {
   const navigate = useNavigate();
