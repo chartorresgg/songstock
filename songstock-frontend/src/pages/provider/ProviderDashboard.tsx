@@ -16,7 +16,6 @@ import {
   X,
   Clock,
   CheckCircle,
-  XCircle,
   List,
   Truck 
 } from 'lucide-react';
@@ -47,9 +46,6 @@ const ProviderDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [itemToReject, setItemToReject] = useState<number | null>(null);
   const [showShipModal, setShowShipModal] = useState(false);
   const [itemToShip, setItemToShip] = useState<number | null>(null);
   const [shipDate, setShipDate] = useState('');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Filter, X } from 'lucide-react';
-import catalogService, { Genre, Artist } from '../../services/catalog.service';
+import catalogService, { Genre } from '../../services/catalog.service';
 
 interface FiltersProps {
   onFilterChange: (filters: FilterState) => void;

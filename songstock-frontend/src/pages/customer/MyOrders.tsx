@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import orderService from '../../services/order.service';
-import { Order, OrderStatus, OrderReview } from '../../types/order.types';
+import { Order, OrderStatus } from '../../types/order.types';
 import { Package, Calendar, CreditCard, MapPin, Eye, ShoppingBag, Truck, CheckCircle, Clock, X, Star } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 

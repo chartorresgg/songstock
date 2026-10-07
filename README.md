@@ -2,16 +2,13 @@
 
 <div align="center">
 
-![SongStock Logo](https://via.placeholder.com/150x150/1e40af/ffffff?text=SongStock)
-
 **Marketplace moderno para coleccionistas de vinilos y amantes de la música digital**
 
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=java)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green?logo=springboot)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?logo=mysql)](https://www.mysql.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [Características](#-características) •
 [Tecnologías](#️-stack-tecnológico) •
@@ -71,22 +68,22 @@
 - **ORM**: Spring Data JPA / Hibernate
 - **Seguridad**: Spring Security + JWT
 - **Validación**: Bean Validation (JSR-380)
-- **Build**: Maven 3.9
+- **Build**: Maven (incluye wrapper `mvnw`)
 
 ### Frontend
-- **Framework**: React 18
-- **Lenguaje**: TypeScript 5.0
-- **Build Tool**: Vite 5
-- **Routing**: React Router 6
+- **Framework**: React 19
+- **Lenguaje**: TypeScript 5.9
+- **Build Tool**: Vite 7
+- **Routing**: React Router 7
 - **State Management**: Context API
 - **Estilos**: Tailwind CSS 3
 - **Iconos**: Lucide React
 - **HTTP Client**: Axios
 
 ### Herramientas
-- **API Docs**: Swagger/OpenAPI 3.0
+- **API Docs**: Swagger UI / OpenAPI 3 (springdoc), documentación parcial
+- **Pruebas manuales de API**: colecciones de Postman en `songstock-backend/docs/postman/`
 - **Control de Versiones**: Git
-- **Containerización**: Docker (opcional)
 
 ---
 
@@ -106,22 +103,22 @@
 
 ### 1️⃣ Clonar el Repositorio
 ```bash
-git clone https://github.com/tu-usuario/songstock.git
+git clone https://github.com/chartorresgg/songstock.git
 cd songstock
 ```
 
 ### 2️⃣ Configurar Base de Datos
 ```bash
-# Crear base de datos
-mysql -u root -p < schema.sql
-
-# Datos iniciales (opcional)
-mysql -u root -p song_stock < initial-data.sql
+# Crear la base de datos song_stock y sus tablas
+mysql -u root -p < database/schema.sql
 ```
+
+> `database/initial-data.sql` y las migraciones de `database/migrations/` están vacíos por ahora.
 
 ### 3️⃣ Configurar Backend
 
-**application.properties**
+Ajusta `songstock-backend/src/main/resources/application.properties` con tus credenciales:
+
 ```properties
 # Base de datos
 spring.datasource.url=jdbc:mysql://localhost:3306/song_stock
@@ -139,9 +136,8 @@ server.servlet.context-path=/api/v1
 
 **Ejecutar Backend**
 ```bash
-cd backend
-mvn clean install
-mvn spring-boot:run
+cd songstock-backend
+./mvnw spring-boot:run      # En Windows: mvnw.cmd spring-boot:run
 ```
 
 El servidor estará disponible en: `http://localhost:8080/api/v1`
@@ -150,14 +146,11 @@ El servidor estará disponible en: `http://localhost:8080/api/v1`
 
 **Instalar dependencias**
 ```bash
-cd frontend
+cd songstock-frontend
 npm install
 ```
 
-**Configurar variables de entorno** (`.env`)
-```env
-VITE_API_URL=http://localhost:8080/api/v1
-```
+La URL del backend está fijada en `src/config/api.config.ts` (`http://localhost:8080/api/v1`). Por ahora no se lee de variables de entorno.
 
 **Ejecutar Frontend**
 ```bash
@@ -172,36 +165,44 @@ La aplicación estará disponible en: `http://localhost:3000`
 
 ```
 songstock/
-├── backend/
+├── songstock-backend/
 │   ├── src/main/java/com/songstock/
+│   │   ├── config/             # Configuración e inicialización de datos
 │   │   ├── controller/         # Endpoints REST
 │   │   ├── service/            # Lógica de negocio
 │   │   ├── repository/         # Acceso a datos (JPA)
 │   │   ├── entity/             # Entidades JPA
 │   │   ├── dto/                # Data Transfer Objects
+│   │   ├── mapper/             # Conversión entidad ↔ DTO
 │   │   ├── security/           # JWT, filtros, config
 │   │   ├── exception/          # Manejo de errores
 │   │   └── util/               # Utilidades
 │   ├── src/main/resources/
-│   │   └── application.properties
+│   │   ├── application.properties
+│   │   ├── application-dev.yml
+│   │   └── application-prod.yml
+│   ├── docs/postman/           # Colecciones de Postman por historia de usuario
 │   └── pom.xml
 │
-├── frontend/
+├── songstock-frontend/
 │   ├── src/
 │   │   ├── components/         # Componentes React
 │   │   ├── pages/              # Páginas/vistas
 │   │   ├── contexts/           # Context API
 │   │   ├── services/           # Llamadas API
+│   │   ├── config/             # Configuración (URL de la API)
 │   │   ├── types/              # TypeScript types
 │   │   └── App.tsx
 │   ├── package.json
 │   └── vite.config.ts
 │
-├── schema.sql                  # Schema de base de datos
-├── initial-data.sql            # Datos de prueba
-├── docker-compose.yml          # Orquestación (opcional)
-├── README.md
-└── LICENSE
+├── database/
+│   ├── schema.sql              # Schema de base de datos
+│   └── migrations/             # Reservado para migraciones (vacío)
+├── docs/
+│   └── ROADMAP.md              # Ruta de documentación e ingeniería
+├── enunciado_proyecto.md       # Requisitos del proyecto académico
+└── README.md
 ```
 
 ---
@@ -211,15 +212,17 @@ songstock/
 Una vez levantado el backend, accede a la documentación interactiva Swagger:
 
 ```
-http://localhost:8080/api/v1/swagger-ui.html
+http://localhost:8080/api/v1/swagger-ui/index.html
 ```
+
+> La documentación OpenAPI es parcial: solo algunos controllers tienen anotaciones `@Tag`/`@Operation`. Todas las rutas llevan el prefijo `/api/v1` (context-path).
 
 ### Principales Endpoints
 
 #### 🔐 Autenticación
 ```http
 POST   /auth/login              # Iniciar sesión
-POST   /auth/register           # Registro de cliente
+POST   /auth/register-customer  # Registro de cliente
 POST   /auth/forgot-password    # Recuperar contraseña
 ```
 
@@ -227,7 +230,7 @@ POST   /auth/forgot-password    # Recuperar contraseña
 ```http
 GET    /catalog/search          # Buscar productos (paginado)
 GET    /catalog/featured        # Productos destacados
-GET    /albums/{id}/formats     # Formatos disponibles de un álbum
+GET    /products/album/{albumId}/all-formats  # Formatos disponibles de un álbum
 GET    /songs/search            # Buscar canciones
 ```
 
@@ -240,16 +243,15 @@ POST   /orders/{id}/review      # Valorar orden
 
 #### 🏪 Proveedores
 ```http
-GET    /products/my-products    # Mis productos
-POST   /products                # Crear producto
-PUT    /items/{id}/accept       # Aceptar pedido
-PUT    /items/{id}/ship         # Registrar envío
+GET    /products/catalog/my-products  # Mis productos
+POST   /products                      # Crear producto
+PUT    /orders/items/{itemId}/accept  # Aceptar ítem de un pedido
+PUT    /orders/items/{itemId}/ship    # Registrar envío
 ```
 
 #### 🎼 Recopilaciones
 ```http
 GET    /compilations            # Mis recopilaciones
-GET    /compilations/public     # Recopilaciones públicas
 POST   /compilations            # Crear recopilación
 POST   /compilations/{id}/songs/{songId}  # Agregar canción
 ```
@@ -258,32 +260,21 @@ POST   /compilations/{id}/songs/{songId}  # Agregar canción
 
 ## 🧪 Datos de Prueba
 
-### Usuarios Preconfigurados
+### Usuario Preconfigurado
+
+Al arrancar, `DataInitializer` crea el administrador si no existe:
 
 | Rol | Username | Email | Password |
 |-----|----------|-------|----------|
-| Admin | admin | admin@songstock.com | Admin123! |
-| Proveedor | vinyl_store | store@example.com | Store123! |
-| Cliente | john_doe | john@example.com | User123! |
+| Admin | admin | admin@songstock.com | admin123 |
 
----
-
-## 🐳 Docker (Opcional)
-
-```bash
-# Levantar servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener
-docker-compose down
-```
+Los proveedores se registran por invitación del administrador y los clientes con `POST /auth/register-customer`.
 
 ---
 
 ## 🗺️ Roadmap
+
+El plan de documentación e ingeniería está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ### ✅ Implementado
 - [x] Sistema de autenticación JWT
@@ -313,27 +304,29 @@ docker-compose down
 ¡Las contribuciones son bienvenidas! Por favor:
 
 1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add: nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
+2. Crea una rama para tu cambio (`git checkout -b feat/mi-cambio`)
+3. Commit tus cambios (`git commit -m 'feat: nueva funcionalidad'`)
+4. Push a la rama (`git push origin feat/mi-cambio`)
 5. Abre un Pull Request
 
 ### Convención de Commits
+
+Se usa [Conventional Commits](https://www.conventionalcommits.org/es/):
+
 ```
-Add: nueva funcionalidad
-Fix: corrección de bug
-Update: actualización de código existente
-Docs: cambios en documentación
-Style: formato, punto y coma faltante, etc.
-Refactor: refactorización de código
-Test: agregar tests
+feat: nueva funcionalidad
+fix: corrección de bug
+docs: cambios en documentación
+refactor: refactorización sin cambio de comportamiento
+test: agregar o corregir tests
+chore: tareas de mantenimiento (build, dependencias, configuración)
 ```
 
 ---
 
 ## 📝 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver archivo [LICENSE](LICENSE) para más detalles.
+Licencia pendiente de definir. Mientras no exista un archivo `LICENSE`, aplican los derechos de autor por defecto.
 
 ---
 
@@ -341,15 +334,7 @@ Este proyecto está bajo la Licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 - **Desarrollo Backend** - Spring Boot + MySQL
 - **Desarrollo Frontend** - React + TypeScript + Tailwind
-- **Arquitectura** - Microservicios REST
-
----
-
-## 📞 Contacto
-
-- **Website**: [songstock.com](https://songstock.com)
-- **Email**: contacto@songstock.com
-- **GitHub**: [@songstock](https://github.com/tu-usuario/songstock)
+- **Arquitectura** - Monolito por capas (API REST Spring Boot + SPA React)
 
 ---
 
